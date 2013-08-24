@@ -18,7 +18,25 @@ extern "C"
 }
 
 #define PI 3.14159265
-#define RC_TIMEOUT 1000000		// 1 seconds
+#define interval (0.008)
+
+#define RC_TIMEOUT 1000000				// 1 seconds
+
+#define ACRO_ROLL_RATE (PI)				// 180 degree/s
+#define ACRO_PITCH_RATE (PI/2)			// 90 degree/s
+#define ACRO_YAW_RATE (PI/4)			// 45 degree/s
+#define ACRO_MAX_ROLL_OFFSET (PI/6)		// 30 degree, max roll advance before airframe can response in acrobatic mode
+#define ACRO_MAX_PITCH_OFFSET (PI/6)	// 30 degree, max pitch advance before airframe can response in acrobatic mode
+#define ACRO_MAX_YAW_OFFSET (PI/6)		// 30 degree, max yaw advance before airframe can response in acrobatic mode
+#define ACRO_MANUAL_FACTOR (0.3)		// final output in acrobatic mode, 70% pid, 30% rc
+
+static float pid_factor[3][3] = 
+{
+	{0.2, 0, 0,},						// roll p, i, d
+	{0.2, 0, 0,},						// pitch p, i, d
+	{0.2, 0, 0,},						// yaw p, i, d
+};
+
 
 typedef struct
 {
@@ -30,7 +48,13 @@ typedef struct
 	long pressure;	
 } sensor_data;
 
-
+enum fly_mode
+{
+	initializing,
+	manual,
+	acrobatic,
+	fly_by_wire,
+};
 
 int abs(int i)
 {
@@ -83,7 +107,7 @@ int main(void)
 	init_timer();
 	init_MPU6050();
 	init_HMC5883();	
-	init_MS5611();	
+	init_MS5611();
 	
 	// use PA-04 as cycle debugger
 	GPIO_InitTypeDef GPIO_InitStructure;
@@ -93,52 +117,99 @@ int main(void)
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
 
+	int mode = initializing;
 	sensor_data *p = new sensor_data;
 	vector estAccGyro = {0};			// for roll & pitch
 	vector estMagGyro = {0};			// for yaw
 	vector estGyro = {0};				// for gyro only yaw, yaw lock on this
 	
 	vector mag_avg = {0};
-	vector gyro_base = {0};
+	vector gyro_zero = {0};
 	vector accel_avg = {0};
+	double ground_pressure = 0;
+	double ground_temperature = 0;
+	int baro_counter = 0;
 
 	// static base value detection
 	for(int i=0; i<1000; i++)
 	{
 		printf("\r%d/1000", i);
-		if (read_MPU6050(p->accel)<0)
-			if (read_MPU6050(p->accel)<0)
-				continue;
-		if (read_HMC5883(p->mag)<0)
-			if (read_HMC5883(p->mag)<0)
-				continue;
+		if (read_MPU6050(p->accel)<0 && read_MPU6050(p->accel)<0)
+		{
+			printf("warning, MPU6050 sensor error during initializing\r\n");
+			continue;
+		}
+		if (read_HMC5883(p->mag)<0 && read_HMC5883(p->mag)<0)
+		{
+			printf("warning, HMC5883 sensor error during initializing\r\n");
+			continue;
+		}
+
+		int baro[2];
+		if (read_MS5611(baro) == 0)
+		{
+			ground_pressure += baro[0];
+			ground_temperature += baro[1];
+			baro_counter ++;
+		}
 		
 		vector gyro = {-p->gyro[0], -p->gyro[1], -p->gyro[2]};
 		vector acc = {-p->accel[1], p->accel[0], p->accel[2]};
 		vector mag = {p->mag[1], -p->mag[0], -p->mag[2]};
-		vector_add(&gyro_base, &gyro);
+		vector_add(&gyro_zero, &gyro);
 		vector_add(&accel_avg, &acc);
 		vector_add(&mag_avg, &mag);
+
 		delayms(1);
 	}
 	
-	vector_divide(&gyro_base, 1000);
+	vector_divide(&gyro_zero, 1000);
 	vector_divide(&accel_avg, 1000);
 	vector_divide(&mag_avg, 1000);
+	ground_pressure /= baro_counter * 100;
+	ground_temperature /= baro_counter * 100;
 
 	
 	vector target = {0};
 	vector targetM = {0};
 	target = estAccGyro = accel_avg;
 	targetM = estGyro= estMagGyro = mag_avg;
-	float accel_1g = vector_length(&accel_avg);
-
-
+	float accel_1g = vector_length(&accel_avg);	
 	
 	printf("base value measured\r\n");
+
+	mode = manual;
+	
+	while(0)
+	{
+		double temperature = 0;
+		double pressure = 0;
+		int OSS = 50;
+		for(int i=0; i<OSS; i++)
+		{
+			int data[2];
+			while (read_MS5611(data) != 0) 
+				;
+
+			pressure += data[0];
+			temperature += data[1];			
+			printf("\r%d/%d", i, OSS);
+		}
+
+		pressure /= OSS * 100;
+		temperature /= OSS * 100;
+
+		double scaling = (double)pressure / ground_pressure;
+		double temp = ((double)ground_temperature) + 273.15f;
+		double altitude = 153.8462f * temp * (1.0f - exp(0.190259f * log(scaling)));
+		printf("pressure,temperature=%f, %f, ground pressure & temperature=%f, %f, height=%f, time=%f\r\n", pressure, temperature, ground_pressure, ground_temperature, altitude, (double)getus()/1000000);
+	}
 	
 
 	// the main loop
+
+	int last_mode = mode;
+
 	while(1)
 	{
 		static const float factor = 0.995;
@@ -147,42 +218,48 @@ int main(void)
 		
 		GPIO_ResetBits(GPIOA, GPIO_Pin_4);
 
-
 		// if rc works and is switched to bypass mode, pass the PPM inputs directly to outputs
-		if (g_ppm_input_update[3] > getus() - RC_TIMEOUT && g_ppm_input[3] < 1520)
+		if (g_ppm_input_update[3] > getus() - RC_TIMEOUT )
 		{
-			for(int i=0; i<3; i++)
-				g_ppm_output[i] = g_ppm_input[i];
-			PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
+			if (g_ppm_input[3] < 1520)
+				mode = manual;
+			else
+				mode = acrobatic;
+		}
+		else
+		{
+			printf("warning: RC out of controll\r\n");
 		}
 
+		// mode changed?
+		if (mode != last_mode)
+		{
+			last_mode = mode;
 
-		
-		if (read_MPU6050(&p->accel[0])<0)
-			if (read_MPU6050(&p->accel[0])<0)
-			{
-				printf("read_MPU6050 error!\r\n");
-				continue;
-			}
-		
-		if (read_HMC5883(&p->mag[0])<0)
-			if (read_HMC5883(&p->mag[0])<0)
-			{
-				printf("read_HMC5883 error!\r\n");
-				continue;
-			}
-		
-		static float max_gyro = 0;
+			target = estAccGyro;
+			targetM = estGyro;
+		}
 
-		static const float GYRO_SCALE = 2000.0 * PI / 180 / 8192 * 0.0002;		// full scale: +/-2000 deg/s  +/-8192, 8ms interval, divided into 10 piece to better use small angle approximation
+		// always read sensors and calculate attitude
+		if (read_MPU6050(&p->accel[0])<0 && read_MPU6050(&p->accel[0])<0)
+		{
+			printf("read_MPU6050 error!\r\n");
+			continue;
+		}
+		
+		if (read_HMC5883(&p->mag[0])<0 && read_HMC5883(&p->mag[0])<0)
+		{
+			printf("read_HMC5883 error!\r\n");
+			continue;
+		}
+		
+		static const float GYRO_SCALE = 2000.0 * PI / 180 / 8192 * interval / 4 / 10;		// full scale: +/-2000 deg/s  +/-8192, 8ms interval, divided into 10 piece to better use small angle approximation
 		vector gyro = {-p->gyro[0], -p->gyro[1], -p->gyro[2]};
 		vector acc = {-p->accel[1], p->accel[0], p->accel[2]};
 		vector mag = {p->mag[1], -p->mag[0], -p->mag[2]};
-		vector_sub(&gyro, &gyro_base);
+		vector_sub(&gyro, &gyro_zero);
 		vector_multiply(&gyro, GYRO_SCALE);
-		max_gyro = fmax(gyro.array[0], max_gyro);
 		
-		float acc_g = vector_length(&acc)/ accel_1g;
 
 		for(int j=0; j<10; j++)
 		{
@@ -191,7 +268,14 @@ int main(void)
 			vector_rotate(&estMagGyro, gyro.array);
 		}
 		
-		// apply CF filter if g force is acceptable
+		// apply CF filter for Mag
+		vector mag_f = mag;
+		vector_multiply(&mag_f, factor_1);
+		vector_multiply(&estMagGyro, factor);
+		vector_add(&estMagGyro, &mag_f);
+		
+		// apply CF filter for Acc if g force is acceptable
+		float acc_g = vector_length(&acc)/ accel_1g;
 		if (acc_g > 0.85 && acc_g < 1.15)
 		{
 			vector acc_f = acc;
@@ -200,52 +284,68 @@ int main(void)
 			vector_add(&estAccGyro, &acc_f);
 		}
 
-		// apply CF filter for Mag
-		vector mag_f = mag;
-		vector_multiply(&mag_f, factor_1);
-		vector_multiply(&estMagGyro, factor);
-		vector_add(&estMagGyro, &mag_f);
+		// calculate attitude, unit is radian, range +/-PI
+		float roll = atan2(estAccGyro.V.x, estAccGyro.V.z);
+		float pitch = atan2(estAccGyro.V.y, sqrt(estAccGyro.V.x*estAccGyro.V.x + estAccGyro.V.z * estAccGyro.V.z));
+		vector estAccGyro16 = estAccGyro;
+		vector_divide(&estAccGyro16, 16);
+		float xxzz = (estAccGyro16.V.x*estAccGyro16.V.x + estAccGyro16.V.z * estAccGyro16.V.z);
+		float G = sqrt(xxzz+estAccGyro16.V.y*estAccGyro16.V.y);
+		float yaw_est = atan2(estMagGyro.V.z * estAccGyro16.V.x - estMagGyro.V.x * estAccGyro16.V.z,
+			(estMagGyro.V.y * xxzz - (estMagGyro.V.x * estAccGyro16.V.x + estMagGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y )/G);
+		float yaw_gyro = atan2(estGyro.V.z * estAccGyro16.V.x - estGyro.V.x * estAccGyro16.V.z,
+			(estGyro.V.y * xxzz - (estGyro.V.x * estAccGyro16.V.x + estGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y )/G);
+
+
+		// apply pid controll
+		float roll_target = atan2(estAccGyro.V.x, estAccGyro.V.z);
+		float pitch_target = atan2(target.V.y, sqrt(target.V.x*target.V.x + target.V.z * target.V.z));
+		float yaw_target = atan2(targetM.V.z * estAccGyro16.V.x - targetM.V.x * estAccGyro16.V.z,
+			(targetM.V.y * xxzz - (targetM.V.x * estAccGyro16.V.x + targetM.V.z * estAccGyro16.V.z) *estAccGyro16.V.y )/G);
+		float error_pid[3][3] = {0};		// error_pid[roll, pitch, yaw][p,i,d]
+
+		error_pid[0][0] = radian_delta(roll, roll_target);
+		error_pid[1][0] = radian_delta(pitch, pitch_target);
+		error_pid[2][0] = radian_delta(yaw_gyro, yaw_target);
 		
-		
-		
-		GPIO_SetBits(GPIOA, GPIO_Pin_4);
-		static int i = 0;
-		if(i++ %10== 0)
-		{
-			float roll = atan2(estAccGyro.V.x, estAccGyro.V.z) * 180 / PI;
-			float pitch = atan2(estAccGyro.V.y, sqrt(estAccGyro.V.x*estAccGyro.V.x + estAccGyro.V.z * estAccGyro.V.z)) * 180 / PI;
-			
-			vector estAccGyro16 = estAccGyro;
-			vector_divide(&estAccGyro16, 16);
-			float xxzz = (estAccGyro16.V.x*estAccGyro16.V.x + estAccGyro16.V.z * estAccGyro16.V.z);
-			float G = sqrt(xxzz+estAccGyro16.V.y*estAccGyro16.V.y);
-			float yaw_est = atan2(estMagGyro.V.z * estAccGyro16.V.x - estMagGyro.V.x * estAccGyro16.V.z,
-				(estMagGyro.V.y * xxzz - (estMagGyro.V.x * estAccGyro16.V.x + estMagGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y )/G) * 180 / PI;
-			float yaw_gyro = atan2(estGyro.V.z * estAccGyro16.V.x - estGyro.V.x * estAccGyro16.V.z,
-				(estGyro.V.y * xxzz - (estGyro.V.x * estAccGyro16.V.x + estGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y )/G) * 180 / PI;
-			
-			printf("\r mag:%f,%f,%f, gyro_est:%f,%f,%f, yaw_est=%f", mag.V.x, mag.V.y, mag.V.z, estMagGyro.V.x, estMagGyro.V.y, estMagGyro.V.z, yaw_est);
-			//printf("\r gyro:%f, %f, %f, acc:%f, %f, %f,  max_gyro=%f, roll, pitch,yaw = %f,%f,%f         ", estAccGyro.array[0], estAccGyro.array[1], estAccGyro.array[2], acc.array[0], acc.array[1], acc.array[2], max_gyro, roll, pitch, yaw_est);
-			//printf("xyz=%f,%f,%f, dx,dy,dz = %d,%d,%d, angel(pitch,roll,yaw, pitch_accel)=%f,%f,%f,%f\r\n", pitch, roll, yaw, p->gyro[0], p->gyro[1], p->gyro[2], pitch*9/17500, roll*9/17500 , yaw*9/17500, pitch_accel);
-			//printf("accel xyz = %d, %d, %d, pitch_accel = %f\r\n", p->accel[0], p->accel[1], p->accel[2], pitch_accel);
-			//printf("pitch, pitchI, pitch_accel, roll, rollI, roll_accel=%f,%f,%f,%f,%f,%f \r\n", pitch*9/17500, pitchI*9/17500, pitch_accel, roll*9/17500, rollI*9/17500, roll_accel);
-			
-			//printf("\rdelta roll,pitch=%f, %f", (roll - roll_target)*9/17500, (pitch - pitch_target)*9/17500);			
-		}
-		
-		//g_ppm_output[0] = 1500 - (roll - roll_target)*9/17500 * 25;
-		//g_ppm_output[1] = 1500 + (pitch - pitch_target)*9/17500 * 12;
-		//g_ppm_output[2] = 1500 + (yaw - yaw_target)*9/17500 * 12;
-		
+
+		g_ppm_output[0] = 1520 + (1-ACRO_MANUAL_FACTOR)*(error_pid[0][0] * pid_factor[0][0] + error_pid[0][1] * pid_factor[0][1] + error_pid[0][2] * pid_factor[0][2]);
+		g_ppm_output[1] = 1520 + (1-ACRO_MANUAL_FACTOR)*(error_pid[0][0] * pid_factor[0][0] + error_pid[0][1] * pid_factor[0][1] + error_pid[0][2] * pid_factor[0][2]);
+		g_ppm_output[2] = 1520 + (1-ACRO_MANUAL_FACTOR)*(error_pid[0][0] * pid_factor[0][0] + error_pid[0][1] * pid_factor[0][1] + error_pid[0][2] * pid_factor[0][2]);
+
 		for(int i=0; i<3; i++)
 		{
+			g_ppm_output[i] += g_ppm_input[i] * ACRO_MANUAL_FACTOR;
 			g_ppm_output[i] = max(1000, g_ppm_output[i]);
 			g_ppm_output[i] = min(2000, g_ppm_output[i]);
 		}
 		
-		PPM_update_output_channel(PPM_OUTPUT_CHANNEL0 | PPM_OUTPUT_CHANNEL1 | PPM_OUTPUT_CHANNEL2);
-					
+
+		PPM_update_output_channel(PPM_OUTPUT_CHANNEL0 | PPM_OUTPUT_CHANNEL1 | PPM_OUTPUT_CHANNEL2);					
 		
+
+
+		// calculate new target & targetM ( the lock target)
+		switch (mode)
+		{
+		case acrobatic:
+			{
+				float rc[3] = {g_ppm_input[1] * ACRO_ROLL_RATE * 0.008, g_ppm_input[2] * ACRO_PITCH_RATE * 0.008, g_ppm_input[3] * ACRO_YAW_RATE * 0.008};
+
+				for(int i=0; i<3; i++)
+					if (error_pid[i][0] + rc[i] > ACRO_MAX_ROLL_OFFSET)
+						rc[i] = 0;
+
+				vector_rotate(&target, rc);
+				vector_rotate(&targetM, rc);
+			}
+			break;
+		}
+
+
+		GPIO_SetBits(GPIOA, GPIO_Pin_4);
+
+		// wait for next 8ms
 		while(getus()-start_tick < 8000)
 			;
 	}
