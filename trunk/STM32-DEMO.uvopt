@@ -175,6 +175,11 @@
           <WinNumber>1</WinNumber>
           <ItemText>gyro</ItemText>
         </Ww>
+        <Ww>
+          <count>2</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>rc</ItemText>
+        </Ww>
       </WatchWindow1>
       <DebugFlag>
         <trace>0</trace>
@@ -222,10 +227,10 @@
       <FileType>8</FileType>
       <tvExp>0</tvExp>
       <Focus>0</Focus>
-      <ColumnNumber>26</ColumnNumber>
+      <ColumnNumber>8</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>313</TopLine>
-      <CurrentLine>320</CurrentLine>
+      <TopLine>68</TopLine>
+      <CurrentLine>91</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>.\main.cpp</PathWithFileName>
       <FilenameWithoutPath>main.cpp</FilenameWithoutPath>
@@ -320,8 +325,8 @@
       <Focus>0</Focus>
       <ColumnNumber>0</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>0</TopLine>
-      <CurrentLine>0</CurrentLine>
+      <TopLine>47</TopLine>
+      <CurrentLine>60</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>.\common\I2C.c</PathWithFileName>
       <FilenameWithoutPath>I2C.c</FilenameWithoutPath>
@@ -369,7 +374,7 @@
       <ColumnNumber>0</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
       <TopLine>51</TopLine>
-      <CurrentLine>82</CurrentLine>
+      <CurrentLine>87</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>.\common\printf.c</PathWithFileName>
       <FilenameWithoutPath>printf.c</FilenameWithoutPath>
@@ -400,7 +405,7 @@
       <Focus>0</Focus>
       <ColumnNumber>0</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>48</TopLine>
+      <TopLine>49</TopLine>
       <CurrentLine>61</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>.\common\timer.c</PathWithFileName>
@@ -552,8 +557,8 @@
       <Focus>0</Focus>
       <ColumnNumber>0</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>0</TopLine>
-      <CurrentLine>0</CurrentLine>
+      <TopLine>1032</TopLine>
+      <CurrentLine>1033</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>.\stm32\FWlib\src\stm32f10x_i2c.c</PathWithFileName>
       <FilenameWithoutPath>stm32f10x_i2c.c</FilenameWithoutPath>
@@ -632,8 +637,8 @@
       <Focus>0</Focus>
       <ColumnNumber>0</ColumnNumber>
       <tvExpOptDlg>0</tvExpOptDlg>
-      <TopLine>0</TopLine>
-      <CurrentLine>0</CurrentLine>
+      <TopLine>962</TopLine>
+      <CurrentLine>975</CurrentLine>
       <bDave2>0</bDave2>
       <PathWithFileName>.\stm32\FWlib\src\stm32f10x_usart.c</PathWithFileName>
       <FilenameWithoutPath>stm32f10x_usart.c</FilenameWithoutPath>

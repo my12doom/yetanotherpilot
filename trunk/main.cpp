@@ -88,6 +88,9 @@ int min(int a, int b)
 // return a - b
 float radian_delta(float a, float b)
 {
+	if (a>b)
+		return -radian_delta(b,a);
+	
 	float d1 = a-b;
 	float d2 = -(a+2*PI-b);
 
@@ -169,16 +172,15 @@ int main(void)
 	ground_pressure /= baro_counter * 100;
 	ground_temperature /= baro_counter * 100;
 
-	
-	vector target = {0};
-	vector targetM = {0};
-	target = estAccGyro = accel_avg;
-	targetM = estGyro= estMagGyro = mag_avg;
+	estAccGyro = accel_avg;
+	estGyro= estMagGyro = mag_avg;
 	float accel_1g = vector_length(&accel_avg);	
+	
 	
 	printf("base value measured\r\n");
 
 	mode = manual;
+	float target[3];		// target[roll, pitch, yaw]
 	
 	while(0)
 	{
@@ -228,17 +230,11 @@ int main(void)
 		}
 		else
 		{
-			printf("warning: RC out of controll\r\n");
+			//printf("warning: RC out of controll\r\n");
+			mode = acrobatic;
+			g_ppm_input[0] = g_ppm_input[1] = g_ppm_input[2] = 1500;			
 		}
 
-		// mode changed?
-		if (mode != last_mode)
-		{
-			last_mode = mode;
-
-			target = estAccGyro;
-			targetM = estGyro;
-		}
 
 		// always read sensors and calculate attitude
 		if (read_MPU6050(&p->accel[0])<0 && read_MPU6050(&p->accel[0])<0)
@@ -297,16 +293,21 @@ int main(void)
 			(estGyro.V.y * xxzz - (estGyro.V.x * estAccGyro16.V.x + estGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y )/G);
 
 
-		// apply pid controll
-		float roll_target = atan2(estAccGyro.V.x, estAccGyro.V.z);
-		float pitch_target = atan2(target.V.y, sqrt(target.V.x*target.V.x + target.V.z * target.V.z));
-		float yaw_target = atan2(targetM.V.z * estAccGyro16.V.x - targetM.V.x * estAccGyro16.V.z,
-			(targetM.V.y * xxzz - (targetM.V.x * estAccGyro16.V.x + targetM.V.z * estAccGyro16.V.z) *estAccGyro16.V.y )/G);
-		float error_pid[3][3] = {0};		// error_pid[roll, pitch, yaw][p,i,d]
+		// mode changed?
+		if (mode != last_mode)
+		{
+			last_mode = mode;
 
-		error_pid[0][0] = radian_delta(roll, roll_target);
-		error_pid[1][0] = radian_delta(pitch, pitch_target);
-		error_pid[2][0] = radian_delta(yaw_gyro, yaw_target);
+			target[0] = roll;
+			target[1] = pitch;
+			target[2] = yaw_gyro;
+		}
+		
+		// apply pid controll
+		float error_pid[3][3] = {0};		// error_pid[roll, pitch, yaw][p,i,d]
+		error_pid[0][0] = radian_delta(roll, target[0]);
+		error_pid[1][0] = radian_delta(pitch, target[1]);
+		error_pid[2][0] = radian_delta(yaw_gyro, target[2]);
 		
 
 		g_ppm_output[0] = 1520 + (1-ACRO_MANUAL_FACTOR)*(error_pid[0][0] * pid_factor[0][0] + error_pid[0][1] * pid_factor[0][1] + error_pid[0][2] * pid_factor[0][2]);
@@ -321,23 +322,29 @@ int main(void)
 		}
 		
 
-		PPM_update_output_channel(PPM_OUTPUT_CHANNEL0 | PPM_OUTPUT_CHANNEL1 | PPM_OUTPUT_CHANNEL2);					
+		PPM_update_output_channel(PPM_OUTPUT_CHANNEL0 | PPM_OUTPUT_CHANNEL1 | PPM_OUTPUT_CHANNEL2);
 		
-
+		float PI180 = 180/PI;
+		
+		
+		printf("\r roll,pitch,yaw/yaw2 = %f,%f,%f,%f, target roll,pitch,yaw = %f,%f,%f, error = %f,%f,%f", roll*PI180, pitch*PI180, yaw_est*PI180, yaw_gyro*PI180, target[0]*PI180, target[1]*PI180, target[2]*PI180,
+			error_pid[0][0]*PI180, error_pid[1][0]*PI180, error_pid[2][0]*PI180);
 
 		// calculate new target & targetM ( the lock target)
 		switch (mode)
 		{
 		case acrobatic:
 			{
-				float rc[3] = {g_ppm_input[1] * ACRO_ROLL_RATE * 0.008, g_ppm_input[2] * ACRO_PITCH_RATE * 0.008, g_ppm_input[3] * ACRO_YAW_RATE * 0.008};
+				float rc[3] = {(float)(g_ppm_input[0] - 1520) / 480 * ACRO_ROLL_RATE * interval, 
+											(float)(g_ppm_input[1] - 1520) / 480 * ACRO_PITCH_RATE * interval,
+											(float)(g_ppm_input[2] - 1520) / 480 * ACRO_YAW_RATE * interval};
 
 				for(int i=0; i<3; i++)
-					if (error_pid[i][0] + rc[i] > ACRO_MAX_ROLL_OFFSET)
+				{
+					if (abs(error_pid[i][0] + rc[i]) > ACRO_MAX_ROLL_OFFSET)
 						rc[i] = 0;
-
-				vector_rotate(&target, rc);
-				vector_rotate(&targetM, rc);
+					target[i] += rc[i];
+				}
 			}
 			break;
 		}
