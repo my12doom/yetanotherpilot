@@ -44,7 +44,7 @@ int waitFlag_and_reset(I2C_TypeDef* I2Cx, int flag)
 		timeout--;
 		if (timeout == 0)
 		{
-			printf("I2C Flag Error, resetting\r\n");
+			//printf("I2C Flag Error, resetting\r\n");
 			I2C_Reset();
 
 			return -1;
@@ -62,7 +62,7 @@ int checkEvent_and_reset(I2C_TypeDef* I2Cx, int event)
 		timeout--;
 		if (timeout == 0)
 		{
-			printf("I2C Error, resetting\r\n");
+			//printf("I2C Error, resetting\r\n");
 			I2C_Reset();
 
 			return -1;			
