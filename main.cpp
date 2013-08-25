@@ -23,9 +23,9 @@ extern "C"
 #define RC_TIMEOUT 1000000				// 1 seconds
 #define RC_RANGE 400
 
-#define ACRO_ROLL_RATE (PI)				// 180 degree/s
-#define ACRO_PITCH_RATE (PI/2)			// 90 degree/s
-#define ACRO_YAW_RATE (PI/4)			// 45 degree/s
+#define ACRO_ROLL_RATE (PI*3/2)				// 270 degree/s
+#define ACRO_PITCH_RATE (PI)			// 180 degree/s
+#define ACRO_YAW_RATE (PI/2)			// 90 degree/s
 #define ACRO_MAX_ROLL_OFFSET (PI/6)		// 30 degree, max roll advance before airframe can response in acrobatic mode
 #define ACRO_MAX_PITCH_OFFSET (PI/6)	// 30 degree, max pitch advance before airframe can response in acrobatic mode
 #define ACRO_MAX_YAW_OFFSET (PI/6)		// 30 degree, max yaw advance before airframe can response in acrobatic mode
