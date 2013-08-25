@@ -21,6 +21,7 @@ extern "C"
 #define interval (0.008)
 
 #define RC_TIMEOUT 1000000				// 1 seconds
+#define RC_RANGE 400
 
 #define ACRO_ROLL_RATE (PI)				// 180 degree/s
 #define ACRO_PITCH_RATE (PI/2)			// 90 degree/s
@@ -30,13 +31,27 @@ extern "C"
 #define ACRO_MAX_YAW_OFFSET (PI/6)		// 30 degree, max yaw advance before airframe can response in acrobatic mode
 #define ACRO_MANUAL_FACTOR (0.3)		// final output in acrobatic mode, 70% pid, 30% rc
 
+
 static float pid_factor[3][3] = 
 {
-	{0.2, 0, 0,},						// roll p, i, d
-	{0.2, 0, 0,},						// pitch p, i, d
-	{0.2, 0, 0,},						// yaw p, i, d
+	{1, 0, 0,},						// roll p, i, d
+	{1, 0, 0,},						// pitch p, i, d
+	{1, 0, 0,},						// yaw p, i, d
 };
 
+static int rc_reverse[3] = 								// -1 = reverse, 1 = normal, 0 = disable, won't affect mannual mode
+{
+	1,			// roll
+	1,			// pitch
+	1,			// yaw
+};
+
+static int sensor_reverse[3] = 						// -1 = reverse, 1 = normal, 0 = disable, won't affect mannual mode
+{
+	1,			// roll
+	1,			// pitch
+	-1,			// yaw
+};
 
 typedef struct
 {
@@ -70,6 +85,14 @@ int max(int a, int b)
 	return b;
 }
 
+float limit(float v, float low, float high)
+{
+	if (v < low)
+		return low;
+	if (v > high)
+		return high;
+	return v;
+}
 
 float fmax(float a, float b)
 {
@@ -84,19 +107,28 @@ int min(int a, int b)
 	return b;
 }
 
-// a & b : -PI ~ PI
-// return a - b
-float radian_delta(float a, float b)
+float radian_add(float a, float b)
 {
-	if (a>b)
-		return -radian_delta(b,a);
+	a += b;
+	if (a>=PI)
+		a -= 2*PI;
+	if (a<-PI)
+		a += 2*PI;
 	
-	float d1 = a-b;
-	float d2 = -(a+2*PI-b);
-
-	return abs(d1) > abs(d2) ? d2 : d1;
+	return a;
 }
 
+// a & b : -PI ~ PI
+// return a - b
+float radian_sub(float a, float b)
+{
+	float v1 = a-b;
+	float v2 = a+2*PI-b;
+	float v3 = a-2*PI-b;
+	
+	v1 = abs(v1)>abs(v2) ? v2 : v1;
+	return abs(v1)>abs(v3) ? v3 : v1;
+}
 
 int main(void)
 {
@@ -211,12 +243,13 @@ int main(void)
 	// the main loop
 
 	int last_mode = mode;
-
+	int rc_zero[] = {1520, 1520, 1520};
 	while(1)
 	{
 		static const float factor = 0.995;
 		static const float factor_1 = 1-factor;
 		int start_tick = getus();
+		bool rc_works = false;
 		
 		GPIO_ResetBits(GPIOA, GPIO_Pin_4);
 
@@ -227,6 +260,7 @@ int main(void)
 				mode = manual;
 			else
 				mode = acrobatic;
+			rc_works = true;
 		}
 		else
 		{
@@ -234,7 +268,8 @@ int main(void)
 			mode = acrobatic;
 			g_ppm_input[0] = g_ppm_input[1] = g_ppm_input[2] = 1500;			
 		}
-
+		
+		
 
 		// always read sensors and calculate attitude
 		if (read_MPU6050(&p->accel[0])<0 && read_MPU6050(&p->accel[0])<0)
@@ -292,6 +327,7 @@ int main(void)
 		float yaw_gyro = atan2(estGyro.V.z * estAccGyro16.V.x - estGyro.V.x * estAccGyro16.V.z,
 			(estGyro.V.y * xxzz - (estGyro.V.x * estAccGyro16.V.x + estGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y )/G);
 
+		float pos[3] = {roll, pitch, yaw_gyro};
 
 		// mode changed?
 		if (mode != last_mode)
@@ -301,27 +337,49 @@ int main(void)
 			target[0] = roll;
 			target[1] = pitch;
 			target[2] = yaw_gyro;
+			
+			rc_zero[0] = g_ppm_input[0];
+			rc_zero[1] = g_ppm_input[1];
+			rc_zero[2] = g_ppm_input[2];
 		}
 		
-		// apply pid controll
-		float error_pid[3][3] = {0};		// error_pid[roll, pitch, yaw][p,i,d]
-		error_pid[0][0] = radian_delta(roll, target[0]);
-		error_pid[1][0] = radian_delta(pitch, target[1]);
-		error_pid[2][0] = radian_delta(yaw_gyro, target[2]);
+		if (!rc_works)
+		{
+			target[0] = -PI;
+			target[1] = 0;
+			target[2] = yaw_gyro;			
+		}
 		
-
-		g_ppm_output[0] = 1520 + (1-ACRO_MANUAL_FACTOR)*(error_pid[0][0] * pid_factor[0][0] + error_pid[0][1] * pid_factor[0][1] + error_pid[0][2] * pid_factor[0][2]);
-		g_ppm_output[1] = 1520 + (1-ACRO_MANUAL_FACTOR)*(error_pid[0][0] * pid_factor[0][0] + error_pid[0][1] * pid_factor[0][1] + error_pid[0][2] * pid_factor[0][2]);
-		g_ppm_output[2] = 1520 + (1-ACRO_MANUAL_FACTOR)*(error_pid[0][0] * pid_factor[0][0] + error_pid[0][1] * pid_factor[0][1] + error_pid[0][2] * pid_factor[0][2]);
-
+		// apply pid controll and output
+		float error_pid[3][3] = {0};		// error_pid[roll, pitch, yaw][p,i,d]
 		for(int i=0; i<3; i++)
 		{
-			g_ppm_output[i] += g_ppm_input[i] * ACRO_MANUAL_FACTOR;
-			g_ppm_output[i] = max(1000, g_ppm_output[i]);
-			g_ppm_output[i] = min(2000, g_ppm_output[i]);
+			error_pid[i][0] = radian_sub(pos[i], target[i]) * sensor_reverse[i];
+			float fly_controll = 0;
+			for(int j=0; j<3; j++)
+				fly_controll += limit(error_pid[i][j]/ ACRO_MAX_ROLL_OFFSET, -1, 1) * pid_factor[i][j];
+			fly_controll *= (1-ACRO_MANUAL_FACTOR)*RC_RANGE;
+			int rc = rc_reverse[i]*(g_ppm_input[i] - rc_zero[i]);
+			
+			//if (rc * fly_controll> 0)
+				g_ppm_output[i] = 1520 + fly_controll + rc * ACRO_MANUAL_FACTOR;
+			//else
+			//	g_ppm_output[i] = 1520 + fly_controll;
+			
+			
+			g_ppm_output[i] = limit(g_ppm_output[i], 1000, 2000);
 		}
-		
 
+		if (mode == manual)
+		{
+			for(int i=0; i<3; i++)
+			{
+				g_ppm_output[i] = g_ppm_input[i];
+			}
+		}
+
+		for(int i=0; i<3; i++)
+			g_ppm_output[i] = g_ppm_output[i]/10*10;
 		PPM_update_output_channel(PPM_OUTPUT_CHANNEL0 | PPM_OUTPUT_CHANNEL1 | PPM_OUTPUT_CHANNEL2);
 		
 		float PI180 = 180/PI;
@@ -329,21 +387,27 @@ int main(void)
 		
 		printf("\r roll,pitch,yaw/yaw2 = %f,%f,%f,%f, target roll,pitch,yaw = %f,%f,%f, error = %f,%f,%f", roll*PI180, pitch*PI180, yaw_est*PI180, yaw_gyro*PI180, target[0]*PI180, target[1]*PI180, target[2]*PI180,
 			error_pid[0][0]*PI180, error_pid[1][0]*PI180, error_pid[2][0]*PI180);
+		
+		printf(",out= %d, %d, %d, %d, input=%d,%d,%d", g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[2]);
 
-		// calculate new target & targetM ( the lock target)
+
+		// calculate new target
 		switch (mode)
 		{
 		case acrobatic:
 			{
-				float rc[3] = {(float)(g_ppm_input[0] - 1520) / 480 * ACRO_ROLL_RATE * interval, 
-											(float)(g_ppm_input[1] - 1520) / 480 * ACRO_PITCH_RATE * interval,
-											(float)(g_ppm_input[2] - 1520) / 480 * ACRO_YAW_RATE * interval};
+				float rc[3] = {(float)(g_ppm_input[0] - rc_zero[0]) / RC_RANGE * ACRO_ROLL_RATE * interval, 
+											(float)(g_ppm_input[1] - rc_zero[1]) / RC_RANGE * ACRO_PITCH_RATE * interval,
+											(float)(g_ppm_input[2] - rc_zero[2]) / RC_RANGE * ACRO_YAW_RATE * interval};
 
 				for(int i=0; i<3; i++)
 				{
-					if (abs(error_pid[i][0] + rc[i]) > ACRO_MAX_ROLL_OFFSET)
-						rc[i] = 0;
-					target[i] += rc[i];
+					float new_target = radian_add(target[i], -rc[i] * rc_reverse[i] * sensor_reverse[i]);
+					float new_error = abs(radian_sub(pos[i], new_target));
+					if (new_error > ACRO_MAX_ROLL_OFFSET && new_error > abs(error_pid[i][0]))
+						;
+					else
+						target[i] = new_target;
 				}
 			}
 			break;
