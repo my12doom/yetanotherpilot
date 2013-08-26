@@ -267,7 +267,7 @@ void NRF_TX_Mode(void)
 
 	SPI_NRF_WriteReg(NRF_WRITE_REG + EN_RXADDR, 0x01); //使能通道0的接收地址
 
-	SPI_NRF_WriteReg(NRF_WRITE_REG + SETUP_RETR, 0x1a); //设置自动重发间隔时间:500us + 86us;最大自动重发次数:10次
+	SPI_NRF_WriteReg(NRF_WRITE_REG + SETUP_RETR, 0x02); //设置自动重发间隔时间:250us + 86us;最大自动重发次数:2次
 
 	SPI_NRF_WriteReg(NRF_WRITE_REG + RF_CH, CHANAL);    //设置RF通道为CHANAL
 

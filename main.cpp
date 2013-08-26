@@ -26,18 +26,26 @@ extern "C"
 #define ACRO_ROLL_RATE (PI*3/2)				// 270 degree/s
 #define ACRO_PITCH_RATE (PI)			// 180 degree/s
 #define ACRO_YAW_RATE (PI/2)			// 90 degree/s
-#define ACRO_MAX_ROLL_OFFSET (PI/6)		// 30 degree, max roll advance before airframe can response in acrobatic mode
-#define ACRO_MAX_PITCH_OFFSET (PI/6)	// 30 degree, max pitch advance before airframe can response in acrobatic mode
-#define ACRO_MAX_YAW_OFFSET (PI/6)		// 30 degree, max yaw advance before airframe can response in acrobatic mode
 #define ACRO_MANUAL_FACTOR (0.3)		// final output in acrobatic mode, 70% pid, 30% rc
 
 
-static float pid_factor[3][3] = 
+static float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
 {
-	{1, 0, 0,},						// roll p, i, d
-	{1, 0, 0,},						// pitch p, i, d
-	{1, 0, 0,},						// yaw p, i, d
+	{1, 0, 0,},
+	{1, 0, 0,},
+	{1, 0, 0,},
 };
+
+static float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]
+{
+	{PI/6, PI*6, 1},
+	{PI/6, PI*6, 1},
+	{PI/6, PI*6, 1},
+};
+
+#define ACRO_MAX_ROLL_OFFSET (pid_limit[0][0])		// 30 degree, max roll advance before airframe can response in acrobatic mode
+#define ACRO_MAX_PITCH_OFFSET (pid_limit[1][0])	// 30 degree, max pitch advance before airframe can response in acrobatic mode
+#define ACRO_MAX_YAW_OFFSET (pid_limit[2][0])		// 30 degree, max yaw advance before airframe can response in acrobatic mode
 
 static int rc_reverse[3] = 								// -1 = reverse, 1 = normal, 0 = disable, won't affect mannual mode
 {
@@ -59,8 +67,8 @@ typedef struct
 	short accel[3];	
 	short temperature1;	
 	short gyro[3];		// roll, pitch, yaw	
-	long temperature2;
-	long pressure;	
+	int pressure_temperature[2];		// MS5611
+	int64_t time;
 } sensor_data;
 
 enum fly_mode
@@ -136,7 +144,8 @@ int main(void)
 	SysTick_Config(720);
 	printf_init();
 	SPI_NRF_Init();
-	printf("NRF_Check() = %d\r\n", NRF_Check());
+	int nrf = NRF_Check();
+	printf("NRF_Check() = %d\r\n", nrf);
 	PPM_init(1);
 	I2C_init(0x30);
 	init_timer();
@@ -153,7 +162,8 @@ int main(void)
 
 
 	int mode = initializing;
-	sensor_data *p = new sensor_data;
+	u8 data[TX_PLOAD_WIDTH];
+	sensor_data *p = (sensor_data*)data;
 	vector estAccGyro = {0};			// for roll & pitch
 	vector estMagGyro = {0};			// for yaw
 	vector estGyro = {0};				// for gyro only yaw, yaw lock on this
@@ -244,6 +254,8 @@ int main(void)
 
 	int last_mode = mode;
 	int rc_zero[] = {1520, 1520, 1520};
+	float error_pid[3][3] = {0};		// error_pid[roll, pitch, yaw][p,i,d]
+
 	while(1)
 	{
 		static const float factor = 0.995;
@@ -282,6 +294,17 @@ int main(void)
 		{
 			printf("read_HMC5883 error!\r\n");
 			continue;
+		}
+		
+		// MS5611 never return invalid value even on error, so no retry
+		read_MS5611(p->pressure_temperature);
+		
+		// send raw sensor data back if NRF exists
+		// max delay : (250+86)us, 2 retry, 672us
+		if (nrf == 0)
+		{
+			p->time = getus();
+			NRF_Tx_Dat(data);
 		}
 		
 		static const float GYRO_SCALE = 2000.0 * PI / 180 / 8192 * interval / 4 / 10;		// full scale: +/-2000 deg/s  +/-8192, 8ms interval, divided into 10 piece to better use small angle approximation
@@ -350,14 +373,18 @@ int main(void)
 			target[2] = yaw_gyro;			
 		}
 		
-		// apply pid controll and output
-		float error_pid[3][3] = {0};		// error_pid[roll, pitch, yaw][p,i,d]
+		// calculate new pid & apply pid controll & output
 		for(int i=0; i<3; i++)
 		{
-			error_pid[i][0] = radian_sub(pos[i], target[i]) * sensor_reverse[i];
+			float new_p = radian_sub(pos[i], target[i]) * sensor_reverse[i];
+			error_pid[i][1] += new_p;																	// I
+			error_pid[i][1] = limit(error_pid[i][1], -pid_limit[i][1], pid_limit[i][1]);
+			error_pid[i][2] = new_p - error_pid[i][2];								// D
+			error_pid[i][0] = new_p;																	// P
+			
 			float fly_controll = 0;
 			for(int j=0; j<3; j++)
-				fly_controll += limit(error_pid[i][j]/ ACRO_MAX_ROLL_OFFSET, -1, 1) * pid_factor[i][j];
+				fly_controll += limit(error_pid[i][j]/ pid_limit[i][j], -1, 1) * pid_factor[i][j];
 			fly_controll *= (1-ACRO_MANUAL_FACTOR)*RC_RANGE;
 			int rc = rc_reverse[i]*(g_ppm_input[i] - rc_zero[i]);
 			
@@ -404,7 +431,7 @@ int main(void)
 				{
 					float new_target = radian_add(target[i], -rc[i] * rc_reverse[i] * sensor_reverse[i]);
 					float new_error = abs(radian_sub(pos[i], new_target));
-					if (new_error > ACRO_MAX_ROLL_OFFSET && new_error > abs(error_pid[i][0]))
+					if (new_error > pid_limit[i][0] && new_error > abs(error_pid[i][0]))
 						;
 					else
 						target[i] = new_target;
