@@ -7,18 +7,18 @@
 
   <Targets>
     <Target>
-      <TargetName>YetAnotherPilot</TargetName>
+      <TargetName>YetAnotherPilotStation</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
       <TargetOption>
         <TargetCommonOption>
-          <Device>STM32F103C8</Device>
+          <Device>STM32F103ZE</Device>
           <Vendor>STMicroelectronics</Vendor>
-          <Cpu>IRAM(0x20000000-0x20004FFF) IROM(0x8000000-0x800FFFF) CLOCK(8000000) CPUTYPE("Cortex-M3")</Cpu>
+          <Cpu>IRAM(0x20000000-0x2000FFFF) IROM(0x8000000-0x807FFFF) CLOCK(8000000) CPUTYPE("Cortex-M3")</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
-          <StartupFile>"STARTUP\ST\STM32F10x\startup_stm32f10x_md.s" ("STM32 Medium Density Line Startup Code")</StartupFile>
-          <FlashDriverDll>UL2CM3(-O14 -S0 -C0 -N00("ARM Cortex-M3") -D00(1BA00477) -L00(4) -FO7 -FD20000000 -FC800 -FN1 -FF0STM32F10x_128 -FS08000000 -FL010000)</FlashDriverDll>
-          <DeviceId>4235</DeviceId>
+          <StartupFile>"STARTUP\ST\STM32F10x\startup_stm32f10x_hd.s" ("STM32 High Density Line Startup Code")</StartupFile>
+          <FlashDriverDll>UL2CM3(-O14 -S0 -C0 -N00("ARM Cortex-M3") -D00(1BA00477) -L00(4) -FO7 -FD20000000 -FC800 -FN1 -FF0STM32F10x_512 -FS08000000 -FL080000)</FlashDriverDll>
+          <DeviceId>4216</DeviceId>
           <RegisterFile>stm32f10x.h</RegisterFile>
           <MemoryEnv></MemoryEnv>
           <Cmp></Cmp>
@@ -29,7 +29,7 @@
           <SLE66CMisc></SLE66CMisc>
           <SLE66AMisc></SLE66AMisc>
           <SLE66LinkerMisc></SLE66LinkerMisc>
-          <SFDFile>SFD\ST\STM32F1xx\STM32F103xx.sfrSVD=SFD\ST\STM32F1xx\STM32F103xx.sfr</SFDFile>
+          <SFDFile>SFD\ST\STM32F1xx\STM32F103xx.sfr</SFDFile>
           <UseEnv>0</UseEnv>
           <BinPath></BinPath>
           <IncludePath></IncludePath>
@@ -43,8 +43,8 @@
             <NotGenerated>0</NotGenerated>
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
-          <OutputDirectory>..\Output\</OutputDirectory>
-          <OutputName>yetanotherpilot</OutputName>
+          <OutputDirectory>.\output\station\</OutputDirectory>
+          <OutputName>station</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
           <CreateHexFile>1</CreateHexFile>
@@ -102,11 +102,11 @@
           <SimDllName>SARMCM3.DLL</SimDllName>
           <SimDllArguments></SimDllArguments>
           <SimDlgDll>DARMSTM.DLL</SimDlgDll>
-          <SimDlgDllArguments>-pSTM32F103C8</SimDlgDllArguments>
+          <SimDlgDllArguments>-pSTM32F103ZE</SimDlgDllArguments>
           <TargetDllName>SARMCM3.DLL</TargetDllName>
           <TargetDllArguments></TargetDllArguments>
           <TargetDlgDll>TARMSTM.DLL</TargetDlgDll>
-          <TargetDlgDllArguments>-pSTM32F103C8</TargetDlgDllArguments>
+          <TargetDlgDllArguments>-pSTM32F103ZE</TargetDlgDllArguments>
         </DllOption>
         <DebugOption>
           <OPTHX>
@@ -267,12 +267,12 @@
               <IRAM>
                 <Type>0</Type>
                 <StartAddress>0x20000000</StartAddress>
-                <Size>0x5000</Size>
+                <Size>0x10000</Size>
               </IRAM>
               <IROM>
                 <Type>1</Type>
                 <StartAddress>0x8000000</StartAddress>
-                <Size>0x10000</Size>
+                <Size>0x80000</Size>
               </IROM>
               <XRAM>
                 <Type>0</Type>
@@ -297,7 +297,7 @@
               <OCR_RVCT4>
                 <Type>1</Type>
                 <StartAddress>0x8000000</StartAddress>
-                <Size>0x10000</Size>
+                <Size>0x80000</Size>
               </OCR_RVCT4>
               <OCR_RVCT5>
                 <Type>1</Type>
@@ -322,7 +322,7 @@
               <OCR_RVCT9>
                 <Type>0</Type>
                 <StartAddress>0x20000000</StartAddress>
-                <Size>0x5000</Size>
+                <Size>0x10000</Size>
               </OCR_RVCT9>
               <OCR_RVCT10>
                 <Type>0</Type>
@@ -334,7 +334,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>1</Optim>
+            <Optim>2</Optim>
             <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>0</OneElfS>
@@ -389,47 +389,12 @@
       </TargetOption>
       <Groups>
         <Group>
-          <GroupName>sensors</GroupName>
-          <Files>
-            <File>
-              <FileName>HMC5883.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\sensors\HMC5883.c</FilePath>
-            </File>
-            <File>
-              <FileName>MPU6050.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\sensors\MPU6050.c</FilePath>
-            </File>
-            <File>
-              <FileName>MS5611.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\sensors\MS5611.c</FilePath>
-            </File>
-          </Files>
-        </Group>
-        <Group>
           <GroupName>common</GroupName>
           <Files>
-            <File>
-              <FileName>adc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\common\adc.c</FilePath>
-            </File>
-            <File>
-              <FileName>I2C.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\common\I2C.c</FilePath>
-            </File>
             <File>
               <FileName>NRF24L01.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\common\NRF24L01.c</FilePath>
-            </File>
-            <File>
-              <FileName>PPM.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\common\PPM.c</FilePath>
             </File>
             <File>
               <FileName>printf.c</FileName>
@@ -440,11 +405,6 @@
               <FileName>timer.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\common\timer.c</FilePath>
-            </File>
-            <File>
-              <FileName>vector.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\common\vector.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -526,6 +486,11 @@
               <FileType>1</FileType>
               <FilePath>.\stm32\FWlib\src\misc.c</FilePath>
             </File>
+            <File>
+              <FileName>stm32f10x_fsmc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\stm32\FWlib\src\stm32f10x_fsmc.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -555,6 +520,26 @@
               <FileName>station.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\station.cpp</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>LCD</GroupName>
+          <Files>
+            <File>
+              <FileName>arc_lcd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\LCD\arc_lcd.c</FilePath>
+            </File>
+            <File>
+              <FileName>AsciiLib.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\LCD\AsciiLib.c</FilePath>
+            </File>
+            <File>
+              <FileName>HzLib.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\LCD\HzLib.c</FilePath>
             </File>
           </Files>
         </Group>
