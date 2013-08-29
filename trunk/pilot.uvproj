@@ -43,7 +43,7 @@
             <NotGenerated>0</NotGenerated>
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
-          <OutputDirectory>..\Output\</OutputDirectory>
+          <OutputDirectory>.\output\pilot\</OutputDirectory>
           <OutputName>yetanotherpilot</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
@@ -392,9 +392,9 @@
           <GroupName>pilot</GroupName>
           <Files>
             <File>
-              <FileName>main.cpp</FileName>
+              <FileName>pilot.cpp</FileName>
               <FileType>8</FileType>
-              <FilePath>.\main.cpp</FilePath>
+              <FilePath>.\pilot.cpp</FilePath>
             </File>
           </Files>
         </Group>
@@ -535,26 +535,6 @@
               <FileName>misc.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\stm32\FWlib\src\misc.c</FilePath>
-            </File>
-          </Files>
-        </Group>
-        <Group>
-          <GroupName>fat</GroupName>
-          <Files>
-            <File>
-              <FileName>diskio.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\fat\diskio.c</FilePath>
-            </File>
-            <File>
-              <FileName>ff.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\fat\ff.c</FilePath>
-            </File>
-            <File>
-              <FileName>sdcard.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\fat\sdcard.c</FilePath>
             </File>
           </Files>
         </Group>
