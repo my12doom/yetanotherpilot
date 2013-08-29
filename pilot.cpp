@@ -137,57 +137,6 @@ float radian_sub(float a, float b)
 	return abs(v1)>abs(v3) ? v3 : v1;
 }
 
-extern "C"
-{
-#include "fat/ff.h"
-#include "fat/sdcard.h"
-#include "stm32f10x_sdio.h"
-}
-
-extern SD_CardInfo SDCardInfo;
-extern SD_Error Status ;
-
-FATFS fs;
-FRESULT res;         // FatFs function common result code 
-
-void WriteSDFile(void)
-{
-	FIL file;
-	disk_initialize(0);
-	res = f_mount(0, &fs);
-	res = f_open(&file, "1055.txt", FA_OPEN_ALWAYS | FA_WRITE | FA_READ);
-	res = f_lseek(&file,file.fsize);
-	f_printf (&file,"%s, %d\r\n", " Hello PILOT4!", (int)getus());
-	f_close(&file); 
-	f_mount(0, NULL);
-}
-SD_Error SD_InitAndConfig(void)
-{
-  Status = SD_Init();
-  
-  if (Status == SD_OK)
-  {	
-    /*----------------- Read CSD/CID MSD registers ------------------*/
-    Status = SD_GetCardInfo(&SDCardInfo);
-  }
-  if (Status == SD_OK)
-  {
-	/*----------------- Select Card --------------------------------*/
-    Status = SD_SelectDeselect((u32) (SDCardInfo.RCA << 16));
-  }
-  if (Status == SD_OK)
-  {
-    Status = SD_EnableWideBusOperation(SDIO_BusWide_4b);
-  }
-  /* Set Device Transfer Mode to DMA */
-  if (Status == SD_OK)
-  { 
-    Status = SD_SetDeviceMode(SD_DMA_MODE);
-  }	 
-return Status;
-}
-
-#include <misc.h>
 int main(void)
 {
 	// Basic Initialization
@@ -201,25 +150,7 @@ int main(void)
 	init_timer();
 	init_MPU6050();
 	init_HMC5883();	
-	init_MS5611();
-
-	
-	NVIC_InitTypeDef NVIC_InitStructure;
-
-  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
-	
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_InitStructure.NVIC_IRQChannel = SDIO_IRQn;
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-  NVIC_Init(&NVIC_InitStructure);
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
-  SD_InitAndConfig();
-   WriteSDFile();
-		
-  while (1)
-  {
-  }
+	init_MS5611();	
 
 	// use PA-04 as cycle debugger
 	GPIO_InitTypeDef GPIO_InitStructure;
