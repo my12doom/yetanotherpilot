@@ -4,7 +4,7 @@
 #include "stm32f10x.h"
 
 // definition and prototypes
-#define CHANAL 20		// 通信频道
+#define CHANAL 100		// 通信频道
 #define TX_ADR_WIDTH    5   //5字节的地址宽度
 #define RX_ADR_WIDTH    5   //5字节的地址宽度
 #define TX_PLOAD_WIDTH  32  //20字节的用户数据宽度
