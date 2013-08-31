@@ -196,13 +196,14 @@ __inline void ARC_LCD_WriteReg(uint16_t LCD_Index, uint16_t LCD_Data)
   */
 void ARC_LCD_WriteGRAM(const uint16_t *LCD_RegValue, uint32_t NumValue)
 {
-    ARC_LCD_WriteRegIndex(LCD_REG_22H);
-    
-    for(; NumValue; NumValue--)
-    {
-        ARC_LCD_WriteRegData_NoCS(*LCD_RegValue);
-        LCD_RegValue++;
-    }
+	const uint16_t *dst = LCD_RegValue + NumValue;
+
+	ARC_LCD_WriteRegIndex(LCD_REG_22H);
+	
+	for(; LCD_RegValue<dst; LCD_RegValue++)
+	{
+			ARC_LCD_WriteRegData_NoCS(*LCD_RegValue);
+	}
 }
 
 /**
@@ -803,6 +804,14 @@ int32_t ARC_LCD_Init(void)
     ARC_LCD_RCC_Init();
     ARC_LCD_GPIO_Init();
 	ARC_LCD_FSMCConfig();
+
+	// reset the LCD
+	GPIO_SetBits(GPIOE, GPIO_Pin_1);
+	delay_ms(50);
+	GPIO_ResetBits(GPIOE, GPIO_Pin_1);
+	delay_ms(10);
+	GPIO_SetBits(GPIOE, GPIO_Pin_1);
+	delay_ms(10);
     
     DeviceCode = ARC_LCD_ID_Check();
 

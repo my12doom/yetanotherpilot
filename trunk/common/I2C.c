@@ -37,7 +37,7 @@ int I2C_Reset()
 
 int waitFlag_and_reset(I2C_TypeDef* I2Cx, int flag)
 {
-	int timeout = 50000;
+	int timeout = 500;
 	
 	while (I2C_GetFlagStatus(I2Cx, flag))
 	{
@@ -55,7 +55,7 @@ int waitFlag_and_reset(I2C_TypeDef* I2Cx, int flag)
 }
 int checkEvent_and_reset(I2C_TypeDef* I2Cx, int event)
 {
-	int timeout = 50000;
+	int timeout = 500;
 	
 	while (!I2C_CheckEvent(I2Cx, event))
 	{
@@ -91,7 +91,7 @@ int I2C_init(u8 OwnAddress1)
 	I2C_InitStructure.I2C_OwnAddress1 = OwnAddress1;
 	I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;
 	I2C_InitStructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
-	I2C_InitStructure.I2C_ClockSpeed = 100000;
+	I2C_InitStructure.I2C_ClockSpeed = 400000;
 	I2C_Cmd(I2C2, ENABLE);
 	I2C_Init(I2C2, &I2C_InitStructure);
 	I2C_AcknowledgeConfig(I2C2, ENABLE);	
