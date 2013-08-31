@@ -1,5 +1,8 @@
 #include "NRF24L01.h"
-#include "stm32f10x_spi.h"
+#include <stm32f10x_spi.h>
+#include <stm32f10x_exti.h>
+#include <string.h>
+#include "misc.h"
 #include "..\common\timer.h"
 
 #define NRF_CSN_HIGH(x) GPIO_SetBits(GPIOA,GPIO_Pin_1)
@@ -49,39 +52,94 @@ u8 SPI_NRF_ReadBuf(u8 reg,u8 *pBuf,u8 bytes);
 u8 SPI_NRF_WriteReg(u8 reg,u8 dat);
 u8 SPI_NRF_ReadReg(u8 reg);
 
-u8 TX_ADDRESS[TX_ADR_WIDTH] = {0x34, 0x43, 0x10, 0x10, 0x01}; //发送地址
-u8 RX_ADDRESS[RX_ADR_WIDTH] = {0x34, 0x43, 0x10, 0x10, 0x01}; //发送地址
+u8 TX_ADDRESS[TX_ADR_WIDTH] = {0xb0,0x3d,0x12,0x34,0x01}; //发送地址
+u8 RX_ADDRESS[RX_ADR_WIDTH] = {0xb0,0x3d,0x12,0x34,0x01}; //发送地址
+
+u8 tx_queue[TX_QUEUE_SIZE * TX_PLOAD_WIDTH];
+int tx_queue_count = 0;
+int busy = 0;
+int rxmode = 0;
+int rxirq = 0;
+
+static void lockEXTI3()
+{
+	NVIC_DisableIRQ(EXTI3_IRQn);
+	__DSB();
+	__ISB();
+}
+
+static void unlockEXTI3()
+{
+	NVIC_EnableIRQ(EXTI3_IRQn);
+}
+
+static void handleQueue()
+{
+	lockEXTI3();
+	
+	if (busy)
+	{
+		unlockEXTI3();
+		return;
+	}
+
+	if (tx_queue_count > 0)
+	{
+		busy = 1;
+		
+		//ce为低，进入待机模式1*/
+		NRF_CE_LOW();
+
+		//写数据到TX BUF 最大 32个字节*/
+		SPI_NRF_WriteBuf(WR_TX_PLOAD, tx_queue, TX_PLOAD_WIDTH);
+
+		//CE为高，txbuf非空，发送数据包 */
+		NRF_CE_HIGH();
+
+		tx_queue_count --;
+		memmove(tx_queue, tx_queue+TX_PLOAD_WIDTH, TX_PLOAD_WIDTH * tx_queue_count);
+	}
+
+	unlockEXTI3();
+}
 
 void SPI_NRF_Init(void)
 {
+	u8 state;
 	SPI_InitTypeDef  SPI_InitStructure;
 	GPIO_InitTypeDef GPIO_InitStructure;
+	
+	//使能 GPIOB,GPIOD,复用功能时钟
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_AFIO, ENABLE);
 
-	//使能 GPIOB,GPIOD,复用功能时钟*/
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOE | RCC_APB2Periph_AFIO, ENABLE);
-
-	//使能 SPI1 时钟*/
+	//使能 SPI1 时钟
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
 
-	//配置 SPI_NRF_SPI 的 SCK,MISO,MOSI 引脚，GPIOA^5,GPIOA^6,GPIOA^7 */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5 | GPIO_Pin_6 | GPIO_Pin_7;
+	//配置 SPI_NRF_SPI 的 SCK,MISO,MOSI 引脚，GPIOA^5,GPIOA^6,GPIOA^7
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP; //复用功能
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+#ifdef STATION
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3 | GPIO_Pin_4 | GPIO_Pin_5;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
+#else
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5 | GPIO_Pin_6 | GPIO_Pin_7;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
+#endif
 
-	//配置 SPI_NRF_SPI 的 CE 引脚，GPIOA^2 和 SPI_NRF_SPI 的 CSN 引脚: NSS GPIOA^1*/
+	//配置 SPI_NRF_SPI 的 CE 引脚，GPIOA^2 和 SPI_NRF_SPI 的 CSN 引脚: NSS GPIOA^1
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_1;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-	//配置 SPI_NRF_SPI 的IRQ 引脚，GPIOA^3*/
+	//配置 SPI_NRF_SPI 的IRQ 引脚，GPIOA^3
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU ;  //上拉输入
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-	// 这是自定义的宏，用于拉高 csn 引脚，NRF 进入空闲状态 */
+	// 这是自定义的宏，用于拉高 csn 引脚，NRF 进入空闲状态
 	NRF_CSN_HIGH();
 
 	SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex; //双线全双工
@@ -95,8 +153,58 @@ void SPI_NRF_Init(void)
 	SPI_InitStructure.SPI_CRCPolynomial = 7;
 	SPI_Init(SPI1, &SPI_InitStructure);
 
-	// Enable SPI1  */
+	// Enable SPI1
 	SPI_Cmd(SPI1, ENABLE);
+	
+	
+#ifdef STATION
+	GPIO_PinRemapConfig(GPIO_Remap_SPI1, ENABLE);
+	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);
+#endif
+
+#ifndef STATION
+	state = SPI_NRF_ReadReg(STATUS);
+	SPI_NRF_WriteReg(NRF_WRITE_REG + STATUS, state);	// 清除TX_DS或MAX_RT中断标志
+	SPI_NRF_WriteReg(FLUSH_TX, NOP);		//清除TX FIFO寄存器
+#endif
+}
+int t3 = 0;
+int tx_ok = 0;
+int max_retry = 0;
+void EXTI3_IRQHandler(void)
+{
+	u8 state;
+	EXTI_ClearITPendingBit(EXTI_Line3);
+	
+	t3++;	
+	
+	if (rxmode)
+	{
+		rxirq = 1;
+		return ;
+	}
+	
+	lockEXTI3();
+	// 读取状态寄存器的值
+	state = SPI_NRF_ReadReg(STATUS);
+
+	// 清除TX_DS或MAX_RT中断标志
+	SPI_NRF_WriteReg(NRF_WRITE_REG + STATUS, state);
+
+	SPI_NRF_WriteReg(FLUSH_TX, NOP);		//清除TX FIFO寄存器
+
+	// 判断中断类型
+	if(state & MAX_TX)						//达到最大重发次数
+		max_retry++;
+
+	else if(state & TX_OK)					//发送完成
+		tx_ok++;
+	else
+		;
+	busy = 0;
+	unlockEXTI3();
+
+	handleQueue();
 }
 
 
@@ -232,6 +340,7 @@ void power_off()
 void NRF_RX_Mode(void)
 
 {
+	rxmode = 1;
 	power_off();
 	NRF_CE_LOW();
 
@@ -256,8 +365,27 @@ void NRF_RX_Mode(void)
 
 void NRF_TX_Mode(void)
 {
+	EXTI_InitTypeDef EXTI_InitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
+	
+	rxmode = 0;
 	power_off();
 	NRF_CE_LOW();
+
+	// Set EXTI
+	EXTI_ClearITPendingBit(EXTI_Line3);
+	GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource3);
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+	EXTI_InitStructure.EXTI_Line = EXTI_Line3;
+	EXTI_Init(&EXTI_InitStructure);
+	
+	NVIC_InitStructure.NVIC_IRQChannel = EXTI3_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
 
 	SPI_NRF_WriteBuf(NRF_WRITE_REG + TX_ADDR, TX_ADDRESS, TX_ADR_WIDTH); //写TX节点地址
 
@@ -267,7 +395,7 @@ void NRF_TX_Mode(void)
 
 	SPI_NRF_WriteReg(NRF_WRITE_REG + EN_RXADDR, 0x01); //使能通道0的接收地址
 
-	SPI_NRF_WriteReg(NRF_WRITE_REG + SETUP_RETR, 0x02); //设置自动重发间隔时间:250us + 86us;最大自动重发次数:2次
+	SPI_NRF_WriteReg(NRF_WRITE_REG + SETUP_RETR, 0x1a); //设置自动重发间隔时间:250us + 86us;最大自动重发次数:5次
 
 	SPI_NRF_WriteReg(NRF_WRITE_REG + RF_CH, CHANAL);    //设置RF通道为CHANAL
 
@@ -289,36 +417,25 @@ void NRF_TX_Mode(void)
 */
 u8 NRF_Tx_Dat(u8 *txbuf)
 {
-	u8 state;
+	lockEXTI3();
 
-	//ce为低，进入待机模式1*/
-	NRF_CE_LOW();
+	if (tx_queue_count < TX_QUEUE_SIZE &&!(tx_queue_count >= TX_QUEUE_SIZE/2 && getus()%2==0))		// 50% packet drop if queue is more than half full
+	{			
+		memcpy(tx_queue+TX_PLOAD_WIDTH*tx_queue_count, txbuf, TX_PLOAD_WIDTH);
 
-	//写数据到TX BUF 最大 32个字节*/
-	SPI_NRF_WriteBuf(WR_TX_PLOAD, txbuf, TX_PLOAD_WIDTH);
+		tx_queue_count ++;
 
-	//CE为高，txbuf非空，发送数据包 */
-	NRF_CE_HIGH();
+		unlockEXTI3();
 
-	//等待发送完成中断 */
-	while(NRF_Read_IRQ() != 0);
+		handleQueue();
 
-	//读取状态寄存器的值 */
-	state = SPI_NRF_ReadReg(STATUS);
-
-	//清除TX_DS或MAX_RT中断标志*/
-	SPI_NRF_WriteReg(NRF_WRITE_REG + STATUS, state);
-
-	SPI_NRF_WriteReg(FLUSH_TX, NOP);		//清除TX FIFO寄存器
-
-	//判断中断类型*/
-	if(state & MAX_TX)						//达到最大重发次数
-		return MAX_TX;
-
-	else if(state & TX_OK)					//发送完成
 		return TX_OK;
+	}
 	else
-		return ERROR;						//其他原因发送失败
+	{
+		unlockEXTI3();
+		return TX_BUSY;
+	}
 }
 
 

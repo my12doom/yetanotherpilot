@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stm32f10x.h>
 #include <math.h>
+#include "RFData.h"
 
 extern "C"
 {
@@ -59,16 +60,6 @@ static int sensor_reverse[3] = 						// -1 = reverse, 1 = normal, 0 = disable, w
 	1,			// pitch
 	-1,			// yaw
 };
-
-typedef struct
-{
-	short mag[3];	
-	short accel[3];	
-	short temperature1;	
-	short gyro[3];		// roll, pitch, yaw	
-	int pressure_temperature[2];		// MS5611
-	int64_t time;
-} sensor_data;
 
 enum fly_mode
 {
@@ -145,13 +136,26 @@ int main(void)
 	SPI_NRF_Init();
 	int nrf = NRF_Check();
 	printf("NRF_Check() = %d\r\n", nrf);
+	if (nrf == 0)
+		NRF_TX_Mode();
 	PPM_init(1);
 	I2C_init(0x30);
 	init_timer();
 	init_MPU6050();
 	init_HMC5883();	
-	init_MS5611();	
-
+	init_MS5611();
+	
+	
+	while(0)
+	{
+		int us = getus();
+		u8 data[32];
+		NRF_Tx_Dat(data);
+		
+		while(getus()-us < 8000)
+			;
+	}
+	
 	// use PA-04 as cycle debugger
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_4;
@@ -163,6 +167,7 @@ int main(void)
 	int mode = initializing;
 	u8 data[TX_PLOAD_WIDTH];
 	sensor_data *p = (sensor_data*)data;
+	sensor_data old;
 	vector estAccGyro = {0};			// for roll & pitch
 	vector estMagGyro = {0};			// for yaw
 	vector estGyro = {0};				// for gyro only yaw, yaw lock on this
@@ -222,7 +227,7 @@ int main(void)
 
 	mode = manual;
 	float target[3];		// target[roll, pitch, yaw]
-	
+		
 	while(0)
 	{
 		double temperature = 0;
@@ -263,7 +268,7 @@ int main(void)
 		bool rc_works = false;
 		
 		GPIO_ResetBits(GPIOA, GPIO_Pin_4);
-
+		
 		// if rc works and is switched to bypass mode, pass the PPM inputs directly to outputs
 		if (g_ppm_input_update[3] > getus() - RC_TIMEOUT )
 		{
@@ -283,30 +288,75 @@ int main(void)
 		
 
 		// always read sensors and calculate attitude
-		if (read_MPU6050(&p->accel[0])<0 && read_MPU6050(&p->accel[0])<0)
+		int I2C_time = getus();
+		int I2C_retry = 5;
+		while (read_MPU6050(&p->accel[0])<0 && I2C_retry > 0)
 		{
-			printf("read_MPU6050 error!\r\n");
-			continue;
+			I2C_retry--;
+			//printf("read_MPU6050 error!\r\n");
 		}
 		
-		if (read_HMC5883(&p->mag[0])<0 && read_HMC5883(&p->mag[0])<0)
+		while (read_HMC5883(&p->mag[0])<0 && I2C_retry > 0)
 		{
-			printf("read_HMC5883 error!\r\n");
-			continue;
+			I2C_retry--;
+			//printf("read_HMC5883 error!\r\n");
 		}
 		
 		// MS5611 never return invalid value even on error, so no retry
-		read_MS5611(p->pressure_temperature);
+		int ms5611[2];
+		read_MS5611(ms5611);
 		
-		// send raw sensor data back if NRF exists
-		// max delay : (250+86)us, 2 retry, 672us
+		if (I2C_retry == 0)
+		{
+			*p = old;
+		}
+		else
+		{
+			old = *p;
+		}
+		
+		
+		// send raw sensor data and IMU data back if NRF exists
+		// max delay : (250+86)us, 2 retry, 1008us each packet, 2016us total
 		if (nrf == 0)
 		{
-			p->time = getus();
-			NRF_Tx_Dat(data);
+			int64_t time = getus();
+			
+			rf_data to_send;
+			to_send.time = (time & (~TAG_MASK)) | TAG_SENSOR_DATA;
+			to_send.data.sensor = *p;
+			
+			int tx_result;
+			tx_result = NRF_Tx_Dat((u8*)&to_send);
+			
+			static int t1 = 0, t2=0;
+			if (tx_result == TX_OK)
+				t1++;
+			
+			imu_data imu = 
+			{
+				{estAccGyro.array[0], estAccGyro.array[1], estAccGyro.array[2]},
+				{estGyro.array[0], estGyro.array[1], estGyro.array[2]},
+				{estMagGyro.array[0], estMagGyro.array[1], estMagGyro.array[2]},
+				ms5611[0],
+				ms5611[1],
+			};
+			
+			to_send.time = (time & (~TAG_MASK)) | TAG_IMU_DATA;
+			to_send.data.imu = imu;
+			
+			tx_result = NRF_Tx_Dat((u8*)&to_send);
+			if (tx_result == TX_OK)
+				t2++;
+			
+			extern int tx_ok;
+			extern int max_retry;
+			printf("\r t1,t2,ok,timeout=%d,%d,%d,%d", t1, t2, tx_ok, max_retry);
 		}
 		
 		static const float GYRO_SCALE = 2000.0 * PI / 180 / 8192 * interval / 4 / 10;		// full scale: +/-2000 deg/s  +/-8192, 8ms interval, divided into 10 piece to better use small angle approximation
+		
+		
 		vector gyro = {-p->gyro[0], -p->gyro[1], -p->gyro[2]};
 		vector acc = {-p->accel[1], p->accel[0], p->accel[2]};
 		vector mag = {p->mag[1], -p->mag[0], -p->mag[2]};
@@ -411,11 +461,13 @@ int main(void)
 		float PI180 = 180/PI;
 		
 		
-		printf("\r roll,pitch,yaw/yaw2 = %f,%f,%f,%f, target roll,pitch,yaw = %f,%f,%f, error = %f,%f,%f", roll*PI180, pitch*PI180, yaw_est*PI180, yaw_gyro*PI180, target[0]*PI180, target[1]*PI180, target[2]*PI180,
+		/*
+		printf("\nroll,pitch,yaw/yaw2 = %f,%f,%f,%f, target roll,pitch,yaw = %f,%f,%f, error = %f,%f,%f", roll*PI180, pitch*PI180, yaw_est*PI180, yaw_gyro*PI180, target[0]*PI180, target[1]*PI180, target[2]*PI180,
 			error_pid[0][0]*PI180, error_pid[1][0]*PI180, error_pid[2][0]*PI180);
 		
 		printf(",out= %d, %d, %d, %d, input=%d,%d,%d", g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[2]);
-
+		*/
+		
 
 		// calculate new target
 		switch (mode)
@@ -444,6 +496,6 @@ int main(void)
 
 		// wait for next 8ms
 		while(getus()-start_tick < 8000)
-			;
+			;		
 	}
 }
