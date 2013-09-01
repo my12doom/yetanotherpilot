@@ -2,10 +2,13 @@
 #include <stm32f10x.h>
 #include <misc.h>
 #include <stm32f10x_fsmc.h>
+#include <math.h>
 #include "RFData.h"
+
 
 extern "C"
 {
+#include "common/vector.h"
 #include "common/printf.h"
 #include "common/NRF24L01.h"
 #include "common/common.h"
@@ -57,7 +60,8 @@ int main(void)
 	
 	ARC_LCD_Init();
 	ARC_LCD_Clear(0);
-	uint8_t tmp[32];
+	uint8_t tmp[40];
+	uint8_t tmp2[40];
 	sprintf((char*)tmp, "Æô¶¯ok,ºÄÊ±%dÎ¢Ãë, NRF=%d", (int)getus(), nrf);
 	printf("%s\r\n", tmp);
 	ARC_LCD_Clear(0);
@@ -100,6 +104,9 @@ int main(void)
 	int t1 = 0;
 	int t2 = 0;
 	int t4=0;
+	imu_data imu = {0};
+	sensor_data sensor = {0};
+	int type = 3;
 	while(1)
 	{
 		int result = NRF_Rx_Dat((u8*)&recv);
@@ -107,28 +114,36 @@ int main(void)
 		if (result & RX_OK)
 		{
 			int64_t time = recv.time & (~TAG_MASK);
-			int type = 3;
 			if ((recv.time & TAG_MASK) == TAG_SENSOR_DATA)
 			{
 				type = 1;
 				t1 ++;
+				
+				sensor = recv.data.sensor;
 			}
 			else if ((recv.time & TAG_MASK) == TAG_IMU_DATA)
 			{
 				type =2;
 				t2 ++;
+				imu = recv.data.imu;
 			}
 			else
 			{
 				// unknown data
-				t4++;
 			}
 			
+			t4++;
 			ref = 1;
 
 			sprintf((char*)tmp, "%dms, t123=%d,%d,%d,%d", int(time/1000), t1, t2, t4);
 			if (t4 %100 == 0)
 				printf("%dms, t123=%d,%d,%d\r\n", int(time/1000), t1, t2, t4);
+			
+			for(int i=0; i<16; i++)
+			{
+				sprintf((char*)tmp+2*i, "%02x", ((u8*)&recv)[i]);
+				sprintf((char*)tmp2+2*i, "%02x", ((u8*)&recv)[i+16]);
+			}
 		}
 		else
 		{
@@ -136,10 +151,22 @@ int main(void)
 		}
 		
 		
-		if (ref)
+		if (ref && (t4%20==0))
 		{
+			vector estAccGyro = {imu.estAccGyro[0], imu.estAccGyro[1], imu.estAccGyro[2]};
+			vector estMagGyro = {imu.estMagGyro[0], imu.estMagGyro[1], imu.estMagGyro[2]};
+			vector estAccGyro16 = estAccGyro;
+			vector_divide(&estAccGyro16, 16);
+			float xxzz = (estAccGyro16.V.x*estAccGyro16.V.x + estAccGyro16.V.z * estAccGyro16.V.z);
+			float G = sqrt(xxzz+estAccGyro16.V.y*estAccGyro16.V.y);
+			float yaw_est = atan2(estMagGyro.V.z * estAccGyro16.V.x - estMagGyro.V.x * estAccGyro16.V.z,
+				(estMagGyro.V.y * xxzz - (estMagGyro.V.x * estAccGyro16.V.x + estMagGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y )/G);
+			
+			//sprintf((char*)tmp, "%d,%d,%d       ", sensor.accel[0], sensor.accel[1], sensor.accel[2]);
+			//sprintf((char*)tmp, "%f", yaw_est * 180 / 3.1415926);
 			ARC_LCD_Clear(0);
 			ARC_LCD_ShowString(0, 0, tmp);
+			ARC_LCD_ShowString(0, 16, tmp2);
 		}
 		
 		//printf("\rt1=%d, t2=%d", t1, t2);

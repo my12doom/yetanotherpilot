@@ -5,7 +5,8 @@
 #include <misc.h>
 
 u32 g_ppm_input_start[4];
-u16 g_ppm_input[4];
+float g_ppm_input[4];
+const float RC = 1.0f/(2*3.1415926 * 40);	// 40hz low pass filter
 u16 g_ppm_output[8] = {1500,1500,1500,1500,1500,1500,1500,1500};
 int64_t g_ppm_input_update[4] = {0};
 int g_enable_input;
@@ -36,10 +37,17 @@ void EXTI9_5_IRQHandler(void)
 		else
 		{
 			u32 now = TIM_GetCounter(TIM4);
+			float t_delta = (getus() - g_ppm_input_update[channel]) / 1000.0f;
+			float alpha = t_delta / (t_delta + RC);
+			int new_raw_value = 0;
 			if (now > g_ppm_input_start[channel])
-				g_ppm_input[channel] = now - g_ppm_input_start[channel];
+				new_raw_value = now - g_ppm_input_start[channel];
 			else
-				g_ppm_input[channel] = now + 10000 - g_ppm_input_start[channel];
+				new_raw_value = now + 10000 - g_ppm_input_start[channel];
+
+			g_ppm_input[channel] = g_ppm_input[channel] * (1-alpha) + alpha * new_raw_value;
+
+
 			g_ppm_input_update[channel] = getus();
 		}
 		
