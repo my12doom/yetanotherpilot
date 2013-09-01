@@ -186,11 +186,13 @@ int main(void)
 		if (read_MPU6050(p->accel)<0 && read_MPU6050(p->accel)<0)
 		{
 			printf("warning, MPU6050 sensor error during initializing\r\n");
+			i--;
 			continue;
 		}
 		if (read_HMC5883(p->mag)<0 && read_HMC5883(p->mag)<0)
 		{
 			printf("warning, HMC5883 sensor error during initializing\r\n");
+			i--;
 			continue;
 		}
 
@@ -209,7 +211,7 @@ int main(void)
 		vector_add(&accel_avg, &acc);
 		vector_add(&mag_avg, &mag);
 
-		delayms(1);
+		delayms(2);
 	}
 	
 	vector_divide(&gyro_zero, 1000);
@@ -257,7 +259,7 @@ int main(void)
 	// the main loop
 
 	int last_mode = mode;
-	int rc_zero[] = {1520, 1520, 1520};
+	float rc_zero[] = {1520, 1520, 1520};
 	float error_pid[3][3] = {0};		// error_pid[roll, pitch, yaw][p,i,d]
 
 	while(1)
@@ -290,16 +292,18 @@ int main(void)
 		// always read sensors and calculate attitude
 		int I2C_time = getus();
 		int I2C_retry = 5;
-		while (read_MPU6050(&p->accel[0])<0 && I2C_retry > 0)
+		while (read_MPU6050(&p->accel[0])<0 && getus()- I2C_time < 5000)
 		{
 			I2C_retry--;
-			//printf("read_MPU6050 error!\r\n");
+			printf("read_MPU6050 error!\r\n");
+			*p = old;
 		}
 		
-		while (read_HMC5883(&p->mag[0])<0 && I2C_retry > 0)
+		while (read_HMC5883(&p->mag[0])<0 && getus()- I2C_time < 5000)
 		{
 			I2C_retry--;
-			//printf("read_HMC5883 error!\r\n");
+			printf("read_HMC5883 error!\r\n");
+			*p = old;
 		}
 		
 		// MS5611 never return invalid value even on error, so no retry
@@ -351,7 +355,7 @@ int main(void)
 			
 			extern int tx_ok;
 			extern int max_retry;
-			printf("\r t1,t2,ok,timeout=%d,%d,%d,%d", t1, t2, tx_ok, max_retry);
+			//printf("\r t1,t2,ok,timeout=%d,%d,%d,%d", t1, t2, tx_ok, max_retry);
 		}
 		
 		static const float GYRO_SCALE = 2000.0 * PI / 180 / 8192 * interval / 4 / 10;		// full scale: +/-2000 deg/s  +/-8192, 8ms interval, divided into 10 piece to better use small angle approximation
@@ -362,6 +366,8 @@ int main(void)
 		vector mag = {p->mag[1], -p->mag[0], -p->mag[2]};
 		vector_sub(&gyro, &gyro_zero);
 		vector_multiply(&gyro, GYRO_SCALE);
+		
+		printf("gyro:%d,%d,%d\r\n", p->gyro[0], p->gyro[1], p->gyro[2]);
 		
 
 		for(int j=0; j<10; j++)
@@ -461,12 +467,10 @@ int main(void)
 		float PI180 = 180/PI;
 		
 		
-		/*
-		printf("\nroll,pitch,yaw/yaw2 = %f,%f,%f,%f, target roll,pitch,yaw = %f,%f,%f, error = %f,%f,%f", roll*PI180, pitch*PI180, yaw_est*PI180, yaw_gyro*PI180, target[0]*PI180, target[1]*PI180, target[2]*PI180,
+		printf("\rroll,pitch,yaw/yaw2 = %f,%f,%f,%f, target roll,pitch,yaw = %f,%f,%f, error = %f,%f,%f", roll*PI180, pitch*PI180, yaw_est*PI180, yaw_gyro*PI180, target[0]*PI180, target[1]*PI180, target[2]*PI180,
 			error_pid[0][0]*PI180, error_pid[1][0]*PI180, error_pid[2][0]*PI180);
 		
-		printf(",out= %d, %d, %d, %d, input=%d,%d,%d", g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[2]);
-		*/
+		printf(",out= %d, %d, %d, %d, input=%f,%f,%f", g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[2]);
 		
 
 		// calculate new target

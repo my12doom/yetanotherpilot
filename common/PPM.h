@@ -4,7 +4,7 @@
 #include "stm32f10x.h"
 
 // constants and enums
-extern u16 g_ppm_input[4];
+extern float g_ppm_input[4];
 extern int64_t g_ppm_input_update[4];
 extern u16 g_ppm_output[8];
 
