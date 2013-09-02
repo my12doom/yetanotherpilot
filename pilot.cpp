@@ -22,6 +22,7 @@ extern "C"
 
 #define RC_TIMEOUT 1000000				// 1 seconds
 #define RC_RANGE 400
+#define RC_DEAD_ZONE 5
 
 #define ACRO_ROLL_RATE (PI*3/2)				// 270 degree/s
 #define ACRO_PITCH_RATE (PI)			// 180 degree/s
@@ -460,8 +461,6 @@ int main(void)
 			}
 		}
 
-		for(int i=0; i<3; i++)
-			g_ppm_output[i] = g_ppm_output[i]/10*10;
 		PPM_update_output_channel(PPM_OUTPUT_CHANNEL0 | PPM_OUTPUT_CHANNEL1 | PPM_OUTPUT_CHANNEL2);
 		
 		float PI180 = 180/PI;
@@ -478,13 +477,19 @@ int main(void)
 		{
 		case acrobatic:
 			{
-				float rc[3] = {(float)(g_ppm_input[0] - rc_zero[0]) / RC_RANGE * ACRO_ROLL_RATE * interval, 
-											(float)(g_ppm_input[1] - rc_zero[1]) / RC_RANGE * ACRO_PITCH_RATE * interval,
-											(float)(g_ppm_input[2] - rc_zero[2]) / RC_RANGE * ACRO_YAW_RATE * interval};
+				static const float rate[3] = {ACRO_ROLL_RATE * interval / RC_RANGE, 
+														ACRO_PITCH_RATE * interval / RC_RANGE,
+														ACRO_YAW_RATE * interval / RC_RANGE};
 
 				for(int i=0; i<3; i++)
 				{
-					float new_target = radian_add(target[i], -rc[i] * rc_reverse[i] * sensor_reverse[i]);
+					float rc = g_ppm_input[i] - rc_zero[i];
+					if (abs(rc) < RC_DEAD_ZONE)
+						rc = 0;
+					else
+						rc *= rate[i];
+					
+					float new_target = radian_add(target[i], -rc * rc_reverse[i] * sensor_reverse[i]);
 					float new_error = abs(radian_sub(pos[i], new_target));
 					if (new_error > pid_limit[i][0] && new_error > abs(error_pid[i][0]))
 						;

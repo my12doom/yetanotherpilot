@@ -9,7 +9,7 @@
 #define RX_ADR_WIDTH    5   //5字节的地址宽度
 #define TX_PLOAD_WIDTH  32  //20字节的用户数据宽度
 #define RX_PLOAD_WIDTH  32  //20字节的用户数据宽度
-#define TX_QUEUE_SIZE 50
+#define TX_QUEUE_SIZE 8
 #define MAX_TX  	0x10  //达到最大发送次数中断
 #define TX_OK   	0x20  //TX发送完成中断
 #define RX_OK   	0x40  //接收到数据中断
