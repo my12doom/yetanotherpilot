@@ -17,6 +17,8 @@ extern "C"
 #include "stm32f10x_sdio.h"
 }
 
+
+
 SD_Error SD_InitAndConfig(void)
 {
 	SD_CardInfo SDCardInfo;
@@ -44,9 +46,16 @@ SD_Error SD_InitAndConfig(void)
 
 #include "LCD/arc_lcd.h"
 uint16_t buf[512];
+	
+	uint8_t tmp[20];
+	uint8_t tmp2[20];
+	uint8_t tmp3[20];
+	uint8_t tmp4[20];
+	uint8_t yawstr[50];
 
 int main(void)
 {
+
 
 	// Basic Initialization
 	SysTick_Config(720);
@@ -60,8 +69,6 @@ int main(void)
 	
 	ARC_LCD_Init();
 	ARC_LCD_Clear(0);
-	uint8_t tmp[40];
-	uint8_t tmp2[40];
 	sprintf((char*)tmp, "Æô¶¯ok,ºÄÊ±%dÎ¢Ãë, NRF=%d", (int)getus(), nrf);
 	printf("%s\r\n", tmp);
 	ARC_LCD_Clear(0);
@@ -97,7 +104,6 @@ int main(void)
 	f_write(&file, "\x12\x34\x56\x78", 4, &done);	
 	f_close(&file); 
 	*/
-	
 	
 	int name = 0;
 	rf_data recv;
@@ -139,10 +145,12 @@ int main(void)
 			if (t4 %100 == 0)
 				printf("%dms, t123=%d,%d,%d\r\n", int(time/1000), t1, t2, t4);
 			
-			for(int i=0; i<16; i++)
+			for(int i=0; i<8; i++)
 			{
 				sprintf((char*)tmp+2*i, "%02x", ((u8*)&recv)[i]);
-				sprintf((char*)tmp2+2*i, "%02x", ((u8*)&recv)[i+16]);
+				sprintf((char*)tmp2+2*i, "%02x", ((u8*)&recv)[i+8]);
+				sprintf((char*)tmp3+2*i, "%02x", ((u8*)&recv)[i+16]);
+				sprintf((char*)tmp4+2*i, "%02x", ((u8*)&recv)[i+24]);
 			}
 		}
 		else
@@ -162,11 +170,14 @@ int main(void)
 			float yaw_est = atan2(estMagGyro.V.z * estAccGyro16.V.x - estMagGyro.V.x * estAccGyro16.V.z,
 				(estMagGyro.V.y * xxzz - (estMagGyro.V.x * estAccGyro16.V.x + estMagGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y )/G);
 			
-			//sprintf((char*)tmp, "%d,%d,%d       ", sensor.accel[0], sensor.accel[1], sensor.accel[2]);
-			//sprintf((char*)tmp, "%f", yaw_est * 180 / 3.1415926);
+			sprintf((char*)yawstr, "%d,%d,%d,  %f     ", sensor.accel[0], sensor.accel[1], sensor.accel[2], yaw_est * 180 / 3.1415926);
+			//sprintf((char*)yawstr, "%f", yaw_est * 180 / 3.1415926);
 			ARC_LCD_Clear(0);
 			ARC_LCD_ShowString(0, 0, tmp);
 			ARC_LCD_ShowString(0, 16, tmp2);
+			ARC_LCD_ShowString(0, 32, tmp3);
+			ARC_LCD_ShowString(0, 48, tmp4);
+			ARC_LCD_ShowString(0, 64, yawstr);
 		}
 		
 		//printf("\rt1=%d, t2=%d", t1, t2);

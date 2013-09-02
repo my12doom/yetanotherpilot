@@ -70,20 +70,6 @@ enum fly_mode
 	fly_by_wire,
 };
 
-int abs(int i)
-{
-	if (i>0)
-		return i;
-	return -i;
-}
-
-int max(int a, int b)
-{
-	if (a>b)
-		return a;
-	return b;
-}
-
 float limit(float v, float low, float high)
 {
 	if (v < low)
@@ -91,19 +77,6 @@ float limit(float v, float low, float high)
 	if (v > high)
 		return high;
 	return v;
-}
-
-float fmax(float a, float b)
-{
-	if (a>b)
-		return a;
-	return b;
-}
-int min(int a, int b)
-{
-	if (a<b)
-		return a;
-	return b;
 }
 
 float radian_add(float a, float b)
@@ -275,9 +248,9 @@ int main(void)
 		// if rc works and is switched to bypass mode, pass the PPM inputs directly to outputs
 		if (g_ppm_input_update[3] > getus() - RC_TIMEOUT )
 		{
-			if (g_ppm_input[3] < 1520)
+			if (g_ppm_input[3] > 1666)
 				mode = manual;
-			else
+			else if (g_ppm_input[3] < 1666)
 				mode = acrobatic;
 			rc_works = true;
 		}
