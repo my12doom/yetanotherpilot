@@ -2,6 +2,7 @@
 #define __I2C_H__
 
 #include "stm32f10x.h"
+#include "config.h"
 
 // return 0 on success, -1 on error
 

@@ -132,13 +132,13 @@ int main(void)
 {
 	// Basic Initialization
 	SysTick_Config(720);
+	PPM_init(1);
 	printf_init();
 	SPI_NRF_Init();
 	int nrf = NRF_Check();
 	printf("NRF_Check() = %d\r\n", nrf);
 	if (nrf == 0)
 		NRF_TX_Mode();
-	PPM_init(1);
 	I2C_init(0x30);
 	init_timer();
 	init_MPU6050();
