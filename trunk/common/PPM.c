@@ -6,7 +6,6 @@
 
 u32 g_ppm_input_start[4];
 float g_ppm_input[4];
-const float RC = 1.0f/(2*3.1415926 * 40);	// 40hz low pass filter
 u16 g_ppm_output[8] = {1500,1500,1500,1500,1500,1500,1500,1500};
 int64_t g_ppm_input_update[4] = {0};
 int g_enable_input;
@@ -36,8 +35,9 @@ void EXTI9_5_IRQHandler(void)
 			g_ppm_input_start[channel] = TIM_GetCounter(TIM4);
 		else
 		{
+			const float RC = 0.00795f;//1.0f/(2*3.1415926 * 20);	// 20hz low pass filter
 			u32 now = TIM_GetCounter(TIM4);
-			float t_delta = (getus() - g_ppm_input_update[channel]) / 1000.0f;
+			float t_delta = (getus() - g_ppm_input_update[channel]) / 1000000.0f;
 			float alpha = t_delta / (t_delta + RC);
 			int new_raw_value = 0;
 			if (now > g_ppm_input_start[channel])
@@ -73,7 +73,7 @@ static void GPIO_Config(int enable_input)
 
 	// open B6 B7 B8 B9 as input or ouput according to option
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_6 | GPIO_Pin_7 | GPIO_Pin_8 | GPIO_Pin_9;
-	GPIO_InitStructure.GPIO_Mode = enable_input ? GPIO_Mode_IN_FLOATING : GPIO_Mode_AF_PP;
+	GPIO_InitStructure.GPIO_Mode = enable_input ? GPIO_Mode_IPU : GPIO_Mode_AF_PP;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 
 	// remap TIM3
@@ -169,8 +169,8 @@ static void Timer_Config(int enable_input)
 
 
 		NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;
-		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
-		NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
+		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+		NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 		NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 		NVIC_Init(&NVIC_InitStructure);
 	}

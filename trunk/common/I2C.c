@@ -2,6 +2,7 @@
 #include <stm32f10x_i2c.h>
 #include <stdio.h>
 #include "timer.h"
+#include "i2c_sw.h"
 
 int I2C_Reset()
 {
@@ -74,6 +75,7 @@ int checkEvent_and_reset(I2C_TypeDef* I2Cx, int event)
 
 int I2C_init(u8 OwnAddress1)
 {
+#ifndef SW_I2C
 	I2C_InitTypeDef I2C_InitStructure;
 	GPIO_InitTypeDef GPIO_InitStructure;
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C2,ENABLE);
@@ -94,11 +96,27 @@ int I2C_init(u8 OwnAddress1)
 	I2C_InitStructure.I2C_ClockSpeed = 100000;
 	I2C_Cmd(I2C2, ENABLE);
 	I2C_Init(I2C2, &I2C_InitStructure);
-	I2C_AcknowledgeConfig(I2C2, ENABLE);	
+	I2C_AcknowledgeConfig(I2C2, ENABLE);
 
 	return I2C_Reset();
+#else
+	I2C2_SW_Configuration();
+	return 0;
+#endif
 }
 
+#ifdef SW_I2C
+int I2C_ReadReg(u8 SlaveAddress, u8 startRegister, u8*out, int count)
+{
+	return I2C_SW_ReadReg(SlaveAddress, startRegister, out, count);
+}
+
+int I2C_WriteReg(u8 SlaveAddress, u8 Register, u8 data)
+{
+	I2C_SW_WriteByte(SlaveAddress, Register, data);
+	return 0;
+}
+#else
 int I2C_ReadReg(u8 SlaveAddress, u8 startRegister, u8*out, int count)
 {
 	int i;
@@ -184,3 +202,4 @@ int I2C_WriteReg(u8 SlaveAddress, u8 Register, u8 data)
 	I2C_GenerateSTOP(I2C2, ENABLE);	
 	return 0;
 }
+#endif
