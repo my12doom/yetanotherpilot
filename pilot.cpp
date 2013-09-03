@@ -23,6 +23,7 @@ extern "C"
 #define RC_TIMEOUT 1000000				// 1 seconds
 #define RC_RANGE 400
 #define RC_DEAD_ZONE 5
+#define BARO_OSS 50
 
 #define ACRO_ROLL_RATE (PI*3/2)				// 270 degree/s
 #define ACRO_PITCH_RATE (PI)			// 180 degree/s
@@ -152,6 +153,7 @@ int main(void)
 	vector accel_avg = {0};
 	double ground_pressure = 0;
 	double ground_temperature = 0;
+	double altitude = -999;
 	int baro_counter = 0;
 
 	// static base value detection
@@ -172,12 +174,7 @@ int main(void)
 		}
 
 		int baro[2];
-		if (read_MS5611(baro) == 0)
-		{
-			ground_pressure += baro[0];
-			ground_temperature += baro[1];
-			baro_counter ++;
-		}
+		read_MS5611(baro);
 		
 		vector gyro = {-p->gyro[0], -p->gyro[1], -p->gyro[2]};
 		vector acc = {-p->accel[1], p->accel[0], p->accel[2]};
@@ -205,30 +202,9 @@ int main(void)
 	mode = manual;
 	float target[3];		// target[roll, pitch, yaw]
 		
-	while(0)
-	{
-		double temperature = 0;
-		double pressure = 0;
-		int OSS = 50;
-		for(int i=0; i<OSS; i++)
-		{
-			int data[2];
-			while (read_MS5611(data) != 0) 
-				;
-
-			pressure += data[0];
-			temperature += data[1];			
-			printf("\r%d/%d", i, OSS);
-		}
-
-		pressure /= OSS * 100;
-		temperature /= OSS * 100;
-
-		double scaling = (double)pressure / ground_pressure;
-		double temp = ((double)ground_temperature) + 273.15f;
-		double altitude = 153.8462f * temp * (1.0f - exp(0.190259f * log(scaling)));
-		printf("pressure,temperature=%f, %f, ground pressure & temperature=%f, %f, height=%f, time=%f\r\n", pressure, temperature, ground_pressure, ground_temperature, altitude, (double)getus()/1000000);
-	}
+	double temperature = 0;
+	double pressure = 0;
+	int oss = BARO_OSS;
 	
 
 	// the main loop
@@ -273,19 +249,48 @@ int main(void)
 		{
 			I2C_retry--;
 			printf("read_MPU6050 error!\r\n");
-			*p = old;
 		}
 		
 		while (read_HMC5883(&p->mag[0])<0 && getus()- I2C_time < 5000)
 		{
 			I2C_retry--;
 			printf("read_HMC5883 error!\r\n");
-			*p = old;
 		}
 		
 		// MS5611 never return invalid value even on error, so no retry
 		int ms5611[2];
-		read_MS5611(ms5611);
+		int ms5611result = read_MS5611(ms5611);
+
+		// calculate altitude
+		if (ms5611result == 0)
+		{
+			pressure += ms5611[0];
+			temperature += ms5611[1];
+			oss --;
+
+			if (oss == 0)
+			{
+				oss = BARO_OSS;
+				pressure /= BARO_OSS*100;
+				temperature /= BARO_OSS*100;
+				
+				if (ground_pressure >0 && ground_pressure > 0)
+				{
+					double scaling = (double)pressure / ground_pressure;
+					double temp = ((double)ground_temperature) + 273.15f;
+					altitude = 153.8462f * temp * (1.0f - exp(0.190259f * log(scaling)));
+					printf("\r\npressure,temperature=%f, %f, ground pressure & temperature=%f, %f, height=%f, time=%f\r\n", pressure, temperature, ground_pressure, ground_temperature, altitude, (double)getus()/1000000);
+				}
+				else
+				{
+					ground_pressure = pressure;
+					ground_temperature = temperature;
+				}
+
+				pressure = 0;
+				temperature = 0;				
+			}
+		}
 		
 		if (I2C_retry == 0)
 		{
@@ -298,7 +303,6 @@ int main(void)
 		
 		
 		// send raw sensor data and IMU data back if NRF exists
-		// max delay : (250+86)us, 2 retry, 1008us each packet, 2016us total
 		if (nrf == 0)
 		{
 			int64_t time = getus();
@@ -333,6 +337,19 @@ int main(void)
 			extern int tx_ok;
 			extern int max_retry;
 			//printf("\r t1,t2,ok,timeout=%d,%d,%d,%d", t1, t2, tx_ok, max_retry);
+			
+			pilot_data pilot = 
+			{
+				mode,
+				{error_pid[0][0]*180*100/PI, error_pid[1][0]*180*100/PI, error_pid[2][0]*180*100/PI},
+				{target[0]*180*100/PI, target[1]*180*100/PI, target[2]*180*100/PI},
+				altitude * 100,
+				{g_ppm_input[0], g_ppm_input[1], g_ppm_input[2]}
+			};
+
+			to_send.time = (time & (~TAG_MASK)) | TAG_PILOT_DATA;
+			to_send.data.pilot = pilot;
+			tx_result = NRF_Tx_Dat((u8*)&to_send);
 		}
 		
 		static const float GYRO_SCALE = 2000.0 * PI / 180 / 8192 * interval / 4 / 10;		// full scale: +/-2000 deg/s  +/-8192, 8ms interval, divided into 10 piece to better use small angle approximation
@@ -371,8 +388,9 @@ int main(void)
 		}
 
 		// calculate attitude, unit is radian, range +/-PI
-		float roll = atan2(estAccGyro.V.x, estAccGyro.V.z);
-		float pitch = atan2(estAccGyro.V.y, sqrt(estAccGyro.V.x*estAccGyro.V.x + estAccGyro.V.z * estAccGyro.V.z));
+		float roll = radian_add(atan2(estAccGyro.V.x, estAccGyro.V.z), PI);
+		float pitch = atan2(estAccGyro.V.y, (estAccGyro.V.z > 0 ? 1 : -1) * sqrt(estAccGyro.V.x*estAccGyro.V.x + estAccGyro.V.z * estAccGyro.V.z));
+		pitch = radian_add(pitch, PI);
 		vector estAccGyro16 = estAccGyro;
 		vector_divide(&estAccGyro16, 16);
 		float xxzz = (estAccGyro16.V.x*estAccGyro16.V.x + estAccGyro16.V.z * estAccGyro16.V.z);
