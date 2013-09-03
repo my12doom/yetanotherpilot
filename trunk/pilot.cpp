@@ -59,7 +59,7 @@ static int rc_reverse[3] = 								// -1 = reverse, 1 = normal, 0 = disable, won
 static int sensor_reverse[3] = 						// -1 = reverse, 1 = normal, 0 = disable, won't affect mannual mode
 {
 	1,			// roll
-	1,			// pitch
+	-1,			// pitch
 	-1,			// yaw
 };
 
@@ -427,8 +427,8 @@ int main(void)
 		static int64_t last_rc_work = 0;
 		if (!rc_works)
 		{
-			target[0] = -PI/18;						// 10 degree bank
-			target[1] = (getus() - last_rc_work > 10000000) ? PI/18 : 0;						// 10 degree pitch down
+			target[0] = -PI/18*sensor_reverse[0];						// 10 degree bank
+			target[1] = (getus() - last_rc_work > 10000000) ? PI/18*sensor_reverse[1] : 0;						// 10 degree pitch down
 			target[2] = yaw_gyro;
 		}
 		else
