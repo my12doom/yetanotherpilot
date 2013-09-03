@@ -6,9 +6,13 @@
 
 u32 g_ppm_input_start[4];
 float g_ppm_input[4];
-u16 g_ppm_output[8] = {1500,1500,1500,1500,1500,1500,1500,1500};
+int ppm_raw_input[4][3];						//	[channel][v1, v2, v3], median filter with window-size=3
+int ppm_raw_input_counter[4] = {0};
+u16 g_ppm_output[8] = {0};
 int64_t g_ppm_input_update[4] = {0};
 int g_enable_input;
+int tbl[3];
+
 
 // PPM input handler
 void EXTI9_5_IRQHandler(void)
@@ -39,16 +43,32 @@ void EXTI9_5_IRQHandler(void)
 			u32 now = TIM_GetCounter(TIM4);
 			float t_delta = (getus() - g_ppm_input_update[channel]) / 1000000.0f;
 			float alpha = t_delta / (t_delta + RC);
-			int new_raw_value = 0;
+			int *p = &ppm_raw_input_counter[channel];
+			(*p)++;
+			*p &= 3;		// %=4
 			if (now > g_ppm_input_start[channel])
-				new_raw_value = now - g_ppm_input_start[channel];
+				ppm_raw_input[channel][*p] = now - g_ppm_input_start[channel];
 			else
-				new_raw_value = now + 10000 - g_ppm_input_start[channel];
+				ppm_raw_input[channel][*p] = now + 10000 - g_ppm_input_start[channel];
+			
+			// median filter then 20hz LPF filter
+			{
+				int t;				
+				#define swap(a,b) {t = a; a=b; b=t;}
+				tbl[0] = ppm_raw_input[channel][0];
+				tbl[1] = ppm_raw_input[channel][1];
+				tbl[2] = ppm_raw_input[channel][2];
+				if (tbl[0] > tbl[1])
+					swap(tbl[0], tbl[1]);
+				if (tbl[1] > tbl[2])
+					swap(tbl[1], tbl[2]);
+				if (tbl[0] > tbl[1])
+					swap(tbl[0], tbl[1]);
+				
+				g_ppm_input[channel] = g_ppm_input[channel] * (1-alpha) + alpha * tbl[1];
 
-			g_ppm_input[channel] = g_ppm_input[channel] * (1-alpha) + alpha * new_raw_value;
-
-
-			g_ppm_input_update[channel] = getus();
+				g_ppm_input_update[channel] = getus();
+			}
 		}
 		
 		EXTI_ClearITPendingBit(line_tbl[channel]);
@@ -235,8 +255,12 @@ void PPM_update_output_channel(int channel_to_update)
 
 void PPM_init(int enable_input)
 {
+	int i;
+	for(i=0; i<4; i++)
+		ppm_raw_input[i][0] = ppm_raw_input[i][1] = ppm_raw_input[i][2] = 1520;
+	
 	g_enable_input = enable_input;
 	GPIO_Config(enable_input);
 	Timer_Config(enable_input);
-	PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
+	PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);	
 }
