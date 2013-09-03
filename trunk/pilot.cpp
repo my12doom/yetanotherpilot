@@ -68,6 +68,7 @@ enum fly_mode
 	manual,
 	acrobatic,
 	fly_by_wire,
+	rc_fail,
 };
 
 float limit(float v, float low, float high)
@@ -246,12 +247,14 @@ int main(void)
 		GPIO_ResetBits(GPIOA, GPIO_Pin_4);
 		
 		// if rc works and is switched to bypass mode, pass the PPM inputs directly to outputs
-		if (g_ppm_input_update[3] > getus() - RC_TIMEOUT )
+		if (g_ppm_input_update[3] > getus() - RC_TIMEOUT)
 		{
 			if (g_ppm_input[3] > 1666)
 				mode = manual;
 			else if (g_ppm_input[3] < 1666)
 				mode = acrobatic;
+			else
+				mode = rc_fail;
 			rc_works = true;
 		}
 		else
@@ -341,7 +344,7 @@ int main(void)
 		vector_sub(&gyro, &gyro_zero);
 		vector_multiply(&gyro, GYRO_SCALE);
 		
-		printf("gyro:%d,%d,%d\r\n", p->gyro[0], p->gyro[1], p->gyro[2]);
+		//printf("gyro:%d,%d,%d\r\n", p->gyro[0], p->gyro[1], p->gyro[2]);
 		
 
 		for(int j=0; j<10; j++)
@@ -423,7 +426,7 @@ int main(void)
 			//	g_ppm_output[i] = 1520 + fly_controll;
 			
 			
-			g_ppm_output[i] = limit(g_ppm_output[i], 1000, 2000);
+			g_ppm_output[i] = limit(g_ppm_output[i], 1000, 2000);			
 		}
 
 		if (mode == manual)
@@ -442,9 +445,8 @@ int main(void)
 		printf("\rroll,pitch,yaw/yaw2 = %f,%f,%f,%f, target roll,pitch,yaw = %f,%f,%f, error = %f,%f,%f", roll*PI180, pitch*PI180, yaw_est*PI180, yaw_gyro*PI180, target[0]*PI180, target[1]*PI180, target[2]*PI180,
 			error_pid[0][0]*PI180, error_pid[1][0]*PI180, error_pid[2][0]*PI180);
 		
-		printf(",out= %d, %d, %d, %d, input=%f,%f,%f", g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[2]);
+		printf(",out= %d, %d, %d, %d, input=%f,%f,%f,%f", g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3]);
 		
-
 		// calculate new target
 		switch (mode)
 		{
