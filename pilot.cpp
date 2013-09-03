@@ -218,24 +218,27 @@ int main(void)
 		static const float factor = 0.995;
 		static const float factor_1 = 1-factor;
 		int start_tick = getus();
-		bool rc_works = false;
+		bool rc_works = true;
 		
 		GPIO_ResetBits(GPIOA, GPIO_Pin_4);
 		
 		// if rc works and is switched to bypass mode, pass the PPM inputs directly to outputs
 		if (g_ppm_input_update[3] > getus() - RC_TIMEOUT)
 		{
-			if (g_ppm_input[3] > 1666)
+			if (g_ppm_input[3] < 1333)
 				mode = manual;
-			else if (g_ppm_input[3] < 1666)
+			else if (g_ppm_input[3] > 1666)
 				mode = acrobatic;
 			else
+			{
 				mode = rc_fail;
-			rc_works = true;
+				rc_works = false;
+			}
 		}
 		else
 		{
 			//printf("warning: RC out of controll\r\n");
+			rc_works = false;
 			mode = acrobatic;
 			g_ppm_input[0] = g_ppm_input[1] = g_ppm_input[2] = 1500;			
 		}
@@ -320,11 +323,11 @@ int main(void)
 			
 			imu_data imu = 
 			{
+				ms5611[0],
+				ms5611[1],
 				{estAccGyro.array[0], estAccGyro.array[1], estAccGyro.array[2]},
 				{estGyro.array[0], estGyro.array[1], estGyro.array[2]},
 				{estMagGyro.array[0], estMagGyro.array[1], estMagGyro.array[2]},
-				ms5611[0],
-				ms5611[1],
 			};
 			
 			to_send.time = (time & (~TAG_MASK)) | TAG_IMU_DATA;
@@ -340,11 +343,11 @@ int main(void)
 			
 			pilot_data pilot = 
 			{
-				mode,
+				altitude * 100,
 				{error_pid[0][0]*180*100/PI, error_pid[1][0]*180*100/PI, error_pid[2][0]*180*100/PI},
 				{target[0]*180*100/PI, target[1]*180*100/PI, target[2]*180*100/PI},
-				altitude * 100,
-				{g_ppm_input[0], g_ppm_input[1], g_ppm_input[2]}
+				{g_ppm_input[0], g_ppm_input[1], g_ppm_input[2]},
+				mode,
 			};
 
 			to_send.time = (time & (~TAG_MASK)) | TAG_PILOT_DATA;
@@ -416,11 +419,21 @@ int main(void)
 			rc_zero[2] = g_ppm_input[2];
 		}
 		
+		
+		// rc protecting:
+		// level fligh for 10 second
+		// 5 degree pitch down if still no rc responding.
+		// currently no throttle protection
+		static int64_t last_rc_work = 0;
 		if (!rc_works)
 		{
-			target[0] = -PI;
-			target[1] = 0;
-			target[2] = yaw_gyro;			
+			target[0] = -PI/18;						// 10 degree bank
+			target[1] = (getus() - last_rc_work > 10000000) ? -PI/18 : 0;						// 10 degree pitch down
+			target[2] = yaw_gyro;
+		}
+		else
+		{
+			last_rc_work = getus();
 		}
 		
 		// calculate new pid & apply pid controll & output
