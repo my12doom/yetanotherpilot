@@ -11,20 +11,20 @@ typedef struct
 
 typedef struct
 {
+	unsigned short temperature;		// 2 byte
+	int pressure;					// 4 byte
 	short estAccGyro[3];			// 6 byte
 	short estGyro[3];				// 6 byte
 	short estMagGyro[3];			// 6 byte
-	unsigned short temperature;		// 2 byte
-	int pressure;					// 4 byte
 } imu_data;
 
 typedef struct
 {
-	unsigned char fly_mode;					// 1 byte
+	int altitude;							// 4 byte, unit base: 0.01 meter relative to launch ground.
 	short error[3];							// 6 byte, unit base: 0.01 degree, range: -18000 ~ 18000
 	short target[3];						// 6 byte, unit base: 0.01 degree, range: -18000 ~ 18000
-	int altitude;							// 4 byte, unit base: 0.01 meter relative to launch ground.
 	short rc[3];							// 6 byte, roll, pitch, yaw channel, switch is ignored.
+	unsigned char fly_mode;					// 1 byte
 } pilot_data;
 
 typedef struct
