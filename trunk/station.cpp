@@ -93,7 +93,7 @@ int main(void)
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_Init(&NVIC_InitStructure);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
-	SD_InitAndConfig();
+	SD_Error sd = SD_InitAndConfig();
 	
 	FATFS fs;
 	FIL file;
@@ -107,7 +107,7 @@ int main(void)
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12 | GPIO_Pin_13;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 	
-	while(true)
+	while(sd == SD_OK)
 	{
 		
 		sprintf((char*)yawstr, "%d.dat", done ++);
@@ -162,14 +162,19 @@ int main(void)
 				error_packet ++;
 			}
 			
-			f_write(&file, &recv, 32, &done);
 			
 			last_packet_time = getus();
 			packet_types |= type;
 			packet++;
 			
-			if ((packet % (512/32) == 0))
-				f_sync(&file);
+			if (sd == SD_OK)
+			{
+				res = f_write(&file, &recv, 32, &done);
+				if (res != FR_OK)
+					sd = SD_ERROR;
+				if ((packet % (512/32) == 0))
+					f_sync(&file);
+			}
 		}
 		
 		
@@ -215,6 +220,10 @@ int main(void)
 				ARC_LCD_ShowString(0, 110, "WARNING");
 				sprintf((char*)yawstr, "NRF NOT RESPONSING %x", packet_types);
 				ARC_LCD_ShowString(0, 126, yawstr);
+			}
+			if (sd != SD_OK)
+			{
+				ARC_LCD_ShowString(0, 142, "SDCARD ERROR");
 			}
 			
 			last_update = getus();
