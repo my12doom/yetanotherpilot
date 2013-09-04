@@ -57,6 +57,9 @@ int main(int argc, char **argv)
 		if (n++ %50 == 0)
 		fprintf(fo, "%.2f,%.2f,%d,%d,%d,%d\r\n", float(time/1000000.0f), pilot.altitude*10.0,
 				sensor.accel[0], sensor.accel[1], pilot.error[2], sensor.accel[2]);
+				// accel[0]前进方向，机尾方向为正
+				// accel[1]机翼方向，右机翼方向为正
+				// accel[2]垂直方向，往上为正
 	}
 
 	fclose(fo);
