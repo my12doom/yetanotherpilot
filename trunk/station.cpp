@@ -2,7 +2,12 @@
 #include <stm32f10x.h>
 #include <misc.h>
 #include <stm32f10x_fsmc.h>
+#include <stm32f10x_rcc.h>
+#include <stm32f10x_rtc.h>
+#include <stm32f10x_bkp.h>
+#include <stm32f10x_pwr.h>
 #include <math.h>
+#include <time.h>
 #include "RFData.h"
 
 
@@ -19,6 +24,9 @@ extern "C"
 
 
 #define PI 3.14159265
+FRESULT set_timestamp(char *filename);
+void RTC_Init();
+
 
 float radian_add(float a, float b)
 {
@@ -29,6 +37,13 @@ float radian_add(float a, float b)
 		a += 2*PI;
 	
 	return a;
+}
+
+time_t build_time;
+struct tm current_time()
+{
+	time_t t = build_time + RTC_GetCounter();
+	return *localtime (&t);
 }
 
 SD_Error SD_InitAndConfig(void)
@@ -84,6 +99,8 @@ int main(void)
 	NRF_RX_Mode();
 	init_timer();
 	
+	RTC_Init();
+	
 
 	// SD CARD
 	NVIC_InitTypeDef NVIC_InitStructure;	
@@ -115,6 +132,8 @@ int main(void)
 		if (res == FR_OK)
 			break;
 	}
+	
+	set_timestamp((char*)yawstr);
 		
 	// LCD
 	ARC_LCD_Init();
@@ -218,7 +237,7 @@ int main(void)
 			if ((getus() - last_packet_time > 2000000))
 			{
 				ARC_LCD_ShowString(0, 110, "WARNING");
-				sprintf((char*)yawstr, "NRF NOT RESPONSING %x", packet_types);
+				sprintf((char*)yawstr, "NRF NOT RESPONDING %x", packet_types);
 				ARC_LCD_ShowString(0, 126, yawstr);
 			}
 			if (sd != SD_OK)
@@ -226,7 +245,102 @@ int main(void)
 				ARC_LCD_ShowString(0, 142, "SDCARD ERROR");
 			}
 			
+			int t = RTC_GetCounter();
+			struct tm time = current_time();
+			sprintf((char*)yawstr, "%d‘¬%d»’ %02d:%02d:%02d", time.tm_mon+1, time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
+			ARC_LCD_ShowString(0, 300, yawstr);
+			
 			last_update = getus();
-		}		
+		}
 	}	
+}
+
+
+FRESULT set_timestamp2 (char *obj, int year, int month, int mday, int hour, int min, int sec)
+{
+    FILINFO fno;
+
+    fno.fdate = (WORD)(((year - 1980) * 512U) | month * 32U | mday);
+    fno.ftime = (WORD)(hour * 2048U | min * 32U | sec / 2U);
+
+    return f_utime(obj, &fno);
+}
+FRESULT set_timestamp(char *filename)
+{
+	struct tm time = current_time();
+	return set_timestamp2(filename, time.tm_year-1900, time.tm_mon+1, time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
+}
+
+void RTC_Init()
+{	
+	const unsigned char MonthStr[12][4] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov","Dec"};
+	unsigned char temp_str[4] = {0, 0, 0, 0}, i = 0;
+
+	int year, month = 0, day, hour, minute, second;
+	sscanf(__DATE__, "%s %2d %4d", temp_str, &day, &year);
+	sscanf(__TIME__, "%2d:%2d:%2d", &hour, &minute, &second);
+	for (i = 0; i < 12; i++)
+	{
+		if (temp_str[0] == MonthStr[i][0] && temp_str[1] == MonthStr[i][1] && temp_str[2] == MonthStr[i][2])
+		{
+			month = i+1;
+			break;
+		}
+	}	
+	printf("build time: %d-%d-%d %d-%02d-%02d\r\n", year, month, day, hour, minute, second);
+	struct tm tm = {second, minute, hour, day, month-1, year-1900};
+	build_time = mktime(&tm);
+	
+	if (BKP_ReadBackupRegister(BKP_DR1) != (build_time&0xffff))
+	{
+		// Backup data register value is not correct or not yet programmed (when
+		// the first time the program is executed) 
+		printf("\r\nThis is a RTC demo!\r\n");
+		printf("\r\n\n RTC not yet configured....");
+		
+		// Enable PWR and BKP clocks 
+		RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR | RCC_APB1Periph_BKP, ENABLE);
+		
+		// Allow access to BKP Domain 
+		PWR_BackupAccessCmd(ENABLE);
+		
+		// Reset Backup Domain 
+		BKP_DeInit();
+		
+		// Enable LSE 
+		RCC_LSEConfig(RCC_LSE_ON);
+		// Wait till LSE is ready 
+		while (RCC_GetFlagStatus(RCC_FLAG_LSERDY) == RESET)
+		{}
+		
+		// Select LSE as RTC Clock Source 
+		RCC_RTCCLKConfig(RCC_RTCCLKSource_LSE);
+		
+		// Enable RTC Clock 
+		RCC_RTCCLKCmd(ENABLE);
+		
+		// Wait for RTC registers synchronization 
+		RTC_WaitForSynchro();
+		
+		// Wait until last write operation on RTC registers has finished 
+		RTC_WaitForLastTask();
+		
+		// Enable the RTC Second 
+		RTC_ITConfig(RTC_IT_SEC, ENABLE);
+		
+		// Wait until last write operation on RTC registers has finished 
+		RTC_WaitForLastTask();
+		
+		// Set RTC prescaler: set RTC period to 1sec 
+		RTC_SetPrescaler(32767); // RTC period = RTCCLK/RTC_PR = (32.768 KHz)/(32767+1) 
+		
+		// Wait until last write operation on RTC registers has finished 
+		RTC_WaitForLastTask();
+		
+				
+		// Adjust time by values entred by the user on the hyperterminal 
+		RTC_SetCounter(0);
+		
+		BKP_WriteBackupRegister(BKP_DR1, (build_time&0xffff));
+	}
 }

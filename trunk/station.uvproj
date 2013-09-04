@@ -496,6 +496,21 @@
               <FileType>1</FileType>
               <FilePath>.\stm32\FWlib\src\stm32f10x_fsmc.c</FilePath>
             </File>
+            <File>
+              <FileName>stm32f10x_bkp.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\stm32\FWlib\src\stm32f10x_bkp.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f10x_rtc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\stm32\FWlib\src\stm32f10x_rtc.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f10x_pwr.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\stm32\FWlib\src\stm32f10x_pwr.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
