@@ -75,6 +75,7 @@ SD_Error SD_InitAndConfig(void)
 uint16_t buf[512];	
 uint8_t tmp[20];
 uint8_t yawstr[50];
+char filename[20];
 imu_data imu = {0};
 sensor_data sensor = {0};
 pilot_data pilot = {0};
@@ -127,13 +128,17 @@ int main(void)
 	while(sd == SD_OK)
 	{
 		
-		sprintf((char*)yawstr, "%d.dat", done ++);
-		res = f_open(&file, (char*)yawstr, FA_CREATE_NEW | FA_WRITE | FA_READ);
+		sprintf(filename, "%d.dat", done ++);
+		res = f_open(&file, filename, FA_CREATE_NEW | FA_WRITE | FA_READ);
 		if (res == FR_OK)
+		{
+			f_close(&file);
+			set_timestamp(filename);
+			res = f_open(&file, filename, FA_OPEN_EXISTING | FA_WRITE | FA_READ);
 			break;
+		}
 	}
 	
-	set_timestamp((char*)yawstr);
 		
 	// LCD
 	ARC_LCD_Init();
@@ -192,7 +197,10 @@ int main(void)
 				if (res != FR_OK)
 					sd = SD_ERROR;
 				if ((packet % (512/32) == 0))
+				{
 					f_sync(&file);
+					set_timestamp(filename);
+				}
 			}
 		}
 		
@@ -231,18 +239,21 @@ int main(void)
 				ARC_LCD_ShowString(0, 64, yawstr);
 				sprintf((char*)yawstr, "RC:%d %d %d", pilot.rc[0], pilot.rc[1], pilot.rc[2]);
 				ARC_LCD_ShowString(0, 80, yawstr);
+				sprintf((char*)yawstr, "accel:%d %d %d, %.2f", sensor.accel[0], sensor.accel[1], sensor.accel[2], 
+					sqrt((float)sensor.accel[0]*sensor.accel[0] + sensor.accel[1]*sensor.accel[1] + sensor.accel[2] * sensor.accel[2]));
+				ARC_LCD_ShowString(0, 96, yawstr);
 				
 			}
 			
 			if ((getus() - last_packet_time > 2000000))
 			{
-				ARC_LCD_ShowString(0, 110, "WARNING");
+				ARC_LCD_ShowString(0, 130, "WARNING");
 				sprintf((char*)yawstr, "NRF NOT RESPONDING %x", packet_types);
-				ARC_LCD_ShowString(0, 126, yawstr);
+				ARC_LCD_ShowString(0, 146, yawstr);
 			}
 			if (sd != SD_OK)
 			{
-				ARC_LCD_ShowString(0, 142, "SDCARD ERROR");
+				ARC_LCD_ShowString(0, 162, "SDCARD ERROR");
 			}
 			
 			int t = RTC_GetCounter();
@@ -268,7 +279,7 @@ FRESULT set_timestamp2 (char *obj, int year, int month, int mday, int hour, int 
 FRESULT set_timestamp(char *filename)
 {
 	struct tm time = current_time();
-	return set_timestamp2(filename, time.tm_year-1900, time.tm_mon+1, time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
+	return set_timestamp2(filename, time.tm_year+1900, time.tm_mon+1, time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
 }
 
 void RTC_Init()
