@@ -158,9 +158,18 @@ int main(void)
 	int64_t last_update = 0;
 	int64_t pilot_time = 0;
 	int64_t last_packet_time = 0;
+	int packet_speed = 0;
+	int packet_speed_counter = 0;
+	int packet_speed_time = getus();
 	while(1)
 	{
 		int result = NRF_Rx_Dat((u8*)&recv);
+		if (getus() - packet_speed_time > 1000000)
+		{
+			packet_speed = packet_speed_counter;
+			packet_speed_counter = 0;
+			packet_speed_time = getus();
+		}
 		if (result & RX_OK)
 		{
 			pilot_time = recv.time & (~TAG_MASK);
@@ -190,6 +199,7 @@ int main(void)
 			last_packet_time = getus();
 			packet_types |= type;
 			packet++;
+			packet_speed_counter++;
 			
 			if (sd == SD_OK)
 			{
@@ -258,12 +268,14 @@ int main(void)
 			
 			int t = RTC_GetCounter();
 			struct tm time = current_time();
-			sprintf((char*)yawstr, "%d‘¬%d»’ %02d:%02d:%02d", time.tm_mon+1, time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
+			sprintf((char*)yawstr, "packet speed:%d", packet_speed);
+			ARC_LCD_ShowString(0, 284, yawstr);
+			sprintf((char*)yawstr, "%d-%d %02d:%02d:%02d", time.tm_mon+1, time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
 			ARC_LCD_ShowString(0, 300, yawstr);
 			
 			last_update = getus();
 		}
-	}	
+	}
 }
 
 
