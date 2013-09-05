@@ -107,6 +107,7 @@ float radian_sub(float a, float b)
 int main(void)
 {
 	// Basic Initialization
+	ADC1_Init();
 	SysTick_Config(720);
 	PPM_init(1);
 	printf_init();
@@ -121,17 +122,7 @@ int main(void)
 	init_HMC5883();	
 	init_MS5611();
 	
-	
-	while(0)
-	{
-		int us = getus();
-		u8 data[32];
-		NRF_Tx_Dat(data);
 		
-		while(getus()-us < 8000)
-			;
-	}
-	
 	// use PA-04 as cycle debugger
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_4;
@@ -183,6 +174,12 @@ int main(void)
 		vector_add(&accel_avg, &acc);
 		vector_add(&mag_avg, &mag);
 
+		// RC pass through
+		for(int i=0; i<6; i++)
+			g_ppm_output[i] = floor(g_ppm_input[i]+0.5);
+
+		PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
+
 		delayms(2);
 	}
 	
@@ -210,7 +207,7 @@ int main(void)
 	// the main loop
 
 	int last_mode = mode;
-	float rc_zero[] = {1520, 1520, 1520};
+	float rc_zero[] = {1520, 1520, 1520, 1520, 1520, 1520};
 	float error_pid[3][3] = {0};		// error_pid[roll, pitch, yaw][p,i,d]
 
 	while(1)
@@ -223,11 +220,11 @@ int main(void)
 		GPIO_ResetBits(GPIOA, GPIO_Pin_4);
 		
 		// if rc works and is switched to bypass mode, pass the PPM inputs directly to outputs
-		if (g_ppm_input_update[3] > getus() - RC_TIMEOUT)
+		if (g_ppm_input_update[5] > getus() - RC_TIMEOUT)
 		{
-			if (g_ppm_input[3] < 1333)
+			if (g_ppm_input[5] < 1333)
 				mode = manual;
-			else if (g_ppm_input[3] > 1666)
+			else if (g_ppm_input[5] > 1666)
 				mode = acrobatic;
 			else
 			{
@@ -239,8 +236,7 @@ int main(void)
 		{
 			//printf("warning: RC out of controll\r\n");
 			rc_works = false;
-			mode = acrobatic;
-			g_ppm_input[0] = g_ppm_input[1] = g_ppm_input[2] = 1500;			
+			mode = rc_fail;	
 		}
 		
 		
@@ -346,7 +342,7 @@ int main(void)
 				altitude * 100,
 				{error_pid[0][0]*180*100/PI, error_pid[1][0]*180*100/PI, error_pid[2][0]*180*100/PI},
 				{target[0]*180*100/PI, target[1]*180*100/PI, target[2]*180*100/PI},
-				{g_ppm_input[0], g_ppm_input[1], g_ppm_input[2]},
+				{g_ppm_input[0], g_ppm_input[1], g_ppm_input[3]},
 				mode,
 			};
 
@@ -414,15 +410,14 @@ int main(void)
 			target[1] = pitch;
 			target[2] = yaw_gyro;
 			
-			rc_zero[0] = g_ppm_input[0];
-			rc_zero[1] = g_ppm_input[1];
-			rc_zero[2] = g_ppm_input[2];
+			for(int i=0; i<6; i++)
+				rc_zero[i] = g_ppm_input[i];
 		}
 		
 		
 		// rc protecting:
-		// level fligh for 10 second
-		// 5 degree pitch down if still no rc responding.
+		// level flight for 10 second
+		// 10 degree pitch down if still no rc responding.
 		// currently no throttle protection
 		static int64_t last_rc_work = 0;
 		if (!rc_works)
@@ -449,34 +444,41 @@ int main(void)
 			for(int j=0; j<3; j++)
 				fly_controll += limit(error_pid[i][j]/ pid_limit[i][j], -1, 1) * pid_factor[i][j];
 			fly_controll *= (1-ACRO_MANUAL_FACTOR)*RC_RANGE;
-			int rc = rc_reverse[i]*(g_ppm_input[i] - rc_zero[i]);
+			int rc = rc_reverse[i]*(g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i]);
 			
 			//if (rc * fly_controll> 0)
-				g_ppm_output[i] = 1520 + fly_controll + rc * ACRO_MANUAL_FACTOR;
+				g_ppm_output[i] = floor(1520 + fly_controll + rc * ACRO_MANUAL_FACTOR + 0.5);
 			//else
 			//	g_ppm_output[i] = 1520 + fly_controll;
 			
 			
-			g_ppm_output[i] = limit(g_ppm_output[i], 1000, 2000);			
+			g_ppm_output[i] = limit(g_ppm_output[i], 1000, 2000);
 		}
 
+		// throttle pass through
+		g_ppm_output[2] = floor(g_ppm_input[2]+0.5);
+
+		// manual flight pass through
 		if (mode == manual)
 		{
-			for(int i=0; i<3; i++)
-			{
-				g_ppm_output[i] = g_ppm_input[i];
-			}
+			for(int i=0; i<6; i++)
+				g_ppm_output[i] = floor(g_ppm_input[i]+0.5);
 		}
 
-		PPM_update_output_channel(PPM_OUTPUT_CHANNEL0 | PPM_OUTPUT_CHANNEL1 | PPM_OUTPUT_CHANNEL2);
+		PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
 		
 		float PI180 = 180/PI;
 		
+		/*
 		
 		printf("\rroll,pitch,yaw/yaw2 = %f,%f,%f,%f, target roll,pitch,yaw = %f,%f,%f, error = %f,%f,%f", roll*PI180, pitch*PI180, yaw_est*PI180, yaw_gyro*PI180, target[0]*PI180, target[1]*PI180, target[2]*PI180,
 			error_pid[0][0]*PI180, error_pid[1][0]*PI180, error_pid[2][0]*PI180);
 		
-		printf(",out= %d, %d, %d, %d, input=%f,%f,%f,%f", g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3]);
+		printf(",out= %d, %d, %d, %d, input=%f,%f,%f,%f", g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5]);
+		
+		*/
+		
+		printf("\rinput:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,", g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5], g_ppm_input[4], g_ppm_input[5]);
 		
 		// calculate new target
 		switch (mode)
@@ -489,7 +491,7 @@ int main(void)
 
 				for(int i=0; i<3; i++)
 				{
-					float rc = g_ppm_input[i] - rc_zero[i];
+					float rc = g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i];
 					if (abs(rc) < RC_DEAD_ZONE)
 						rc = 0;
 					else

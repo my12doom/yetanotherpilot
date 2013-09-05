@@ -160,7 +160,7 @@ int main(void)
 	int64_t last_packet_time = 0;
 	int packet_speed = 0;
 	int packet_speed_counter = 0;
-	int packet_speed_time = getus();
+	int64_t packet_speed_time = getus();
 	while(1)
 	{
 		int result = NRF_Rx_Dat((u8*)&recv);
