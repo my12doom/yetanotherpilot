@@ -1,10 +1,10 @@
 #include <stm32f10x.h>
 
-#define SCL_HI     GPIOB->BSRR = GPIO_Pin_10
-#define SCL_LO     GPIOB->BRR  = GPIO_Pin_10
-#define SDA_HI     GPIOB->BSRR = GPIO_Pin_11
-#define SDA_LO     GPIOB->BRR  = GPIO_Pin_11
-#define SDA_STATE  GPIOB->IDR  & GPIO_Pin_11
+#define SCL_HI     GPIOA->BSRR = GPIO_Pin_12
+#define SCL_LO     GPIOA->BRR  = GPIO_Pin_12
+#define SDA_HI     GPIOA->BSRR = GPIO_Pin_15
+#define SDA_LO     GPIOA->BRR  = GPIO_Pin_15
+#define SDA_STATE  GPIOA->IDR  & GPIO_Pin_15
 
 static void I2C_Delay(void);
 

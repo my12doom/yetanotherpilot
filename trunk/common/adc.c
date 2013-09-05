@@ -9,12 +9,12 @@ static void ADC1_GPIO_Config(void)
 	GPIO_InitTypeDef GPIO_InitStructure;
 	
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);	
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_GPIOC, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_GPIOA, ENABLE);
 	
 	// Configure PC.01  as analog input
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
-	GPIO_Init(GPIOC, &GPIO_InitStructure);
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
 }
 
 static void ADC1_Mode_Config(void)
@@ -49,7 +49,7 @@ static void ADC1_Mode_Config(void)
 	ADC_Init(ADC1, &ADC_InitStructure);
 	
 	RCC_ADCCLKConfig(RCC_PCLK2_Div8); 
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_11, 1, ADC_SampleTime_239Cycles5);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_4, 1, ADC_SampleTime_239Cycles5);
 	
 	ADC_DMACmd(ADC1, ENABLE);
 	

@@ -4,8 +4,8 @@
 #include "stm32f10x.h"
 
 // constants and enums
-extern float g_ppm_input[4];
-extern int64_t g_ppm_input_update[4];
+extern float g_ppm_input[6];
+extern int64_t g_ppm_input_update[6];
 extern u16 g_ppm_output[8];
 
 enum PPM_OUTPUT_CHANNEL
