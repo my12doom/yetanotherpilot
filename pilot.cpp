@@ -282,7 +282,7 @@ int main(void)
 					double scaling = (double)pressure / ground_pressure;
 					double temp = ((double)ground_temperature) + 273.15f;
 					altitude = 153.8462f * temp * (1.0f - exp(0.190259f * log(scaling)));
-					printf("\r\npressure,temperature=%f, %f, ground pressure & temperature=%f, %f, height=%f, time=%f\r\n", pressure, temperature, ground_pressure, ground_temperature, altitude, (double)getus()/1000000);
+					//printf("\r\npressure,temperature=%f, %f, ground pressure & temperature=%f, %f, height=%f, time=%f\r\n", pressure, temperature, ground_pressure, ground_temperature, altitude, (double)getus()/1000000);
 				}
 				else
 				{
@@ -493,18 +493,18 @@ int main(void)
 		
 		// messure voltage
 		int adc_oss = 0;
-		for(int i=0; i<200; i++)
+		for(int i=0; i<50; i++)
 		{
 			adc_oss += ADC_ConvertedValue;
 			delayus(10);
 		}
-		adc_oss *= 5 * ref_vaoltage / 4095 * resistor_total / resistor_vaoltage;		// now unit is mV
+		adc_oss *= 20 * ref_vaoltage / 4095 * resistor_total / resistor_vaoltage;		// now unit is mV
 		if (p->voltage <0)
 			p->voltage = adc_oss;
 		else
-			p->voltage = p->voltage * 0.95 + 0.05 * adc_oss;
+			p->voltage = p->voltage * 0.95 + 0.05 * adc_oss;			// simple low pass
 		
-		printf("\rinput:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5], g_ppm_input[4], g_ppm_input[5], p->voltage/1000.0 );
+		//printf("\rinput:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5], g_ppm_input[4], g_ppm_input[5], p->voltage/1000.0 );
 		
 		// calculate new target
 		switch (mode)
