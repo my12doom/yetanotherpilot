@@ -24,6 +24,9 @@ extern "C"
 #define RC_RANGE 400
 #define RC_DEAD_ZONE 5
 #define BARO_OSS 50
+#define ref_vaoltage 3.366
+#define resistor_total 61.3
+#define resistor_vaoltage 9.89
 
 #define ACRO_ROLL_RATE (PI*3/2)				// 270 degree/s
 #define ACRO_PITCH_RATE (PI)			// 180 degree/s
@@ -123,9 +126,9 @@ int main(void)
 	init_MS5611();
 	
 		
-	// use PA-04 as cycle debugger
+	// use PA-11 as cycle debugger
 	GPIO_InitTypeDef GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_4;
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_11;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
@@ -146,6 +149,7 @@ int main(void)
 	double ground_temperature = 0;
 	double altitude = -999;
 	int baro_counter = 0;
+	p->voltage = -1;
 
 	// static base value detection
 	for(int i=0; i<1000; i++)
@@ -217,7 +221,7 @@ int main(void)
 		int start_tick = getus();
 		bool rc_works = true;
 		
-		GPIO_ResetBits(GPIOA, GPIO_Pin_4);
+		GPIO_ResetBits(GPIOA, GPIO_Pin_11);
 		
 		// if rc works and is switched to bypass mode, pass the PPM inputs directly to outputs
 		if (g_ppm_input_update[5] > getus() - RC_TIMEOUT)
@@ -342,12 +346,21 @@ int main(void)
 				altitude * 100,
 				{error_pid[0][0]*180*100/PI, error_pid[1][0]*180*100/PI, error_pid[2][0]*180*100/PI},
 				{target[0]*180*100/PI, target[1]*180*100/PI, target[2]*180*100/PI},
-				{g_ppm_input[0], g_ppm_input[1], g_ppm_input[3]},
 				mode,
 			};
 
 			to_send.time = (time & (~TAG_MASK)) | TAG_PILOT_DATA;
 			to_send.data.pilot = pilot;
+			tx_result = NRF_Tx_Dat((u8*)&to_send);
+
+			ppm_data ppm = 
+			{
+				{g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3], g_ppm_input[4], g_ppm_input[5]},
+				{g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_output[4], g_ppm_output[5]},
+			};
+
+			to_send.time = (time & (~TAG_MASK)) | TAG_PPM_DATA;
+			to_send.data.ppm = ppm;
 			tx_result = NRF_Tx_Dat((u8*)&to_send);
 		}
 		
@@ -478,7 +491,20 @@ int main(void)
 		
 		*/
 		
-		printf("\rinput:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,", g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5], g_ppm_input[4], g_ppm_input[5]);
+		// messure voltage
+		int adc_oss = 0;
+		for(int i=0; i<200; i++)
+		{
+			adc_oss += ADC_ConvertedValue;
+			delayus(10);
+		}
+		adc_oss *= 5 * ref_vaoltage / 4095 * resistor_total / resistor_vaoltage;		// now unit is mV
+		if (p->voltage <0)
+			p->voltage = adc_oss;
+		else
+			p->voltage = p->voltage * 0.95 + 0.05 * adc_oss;
+		
+		printf("\rinput:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5], g_ppm_input[4], g_ppm_input[5], p->voltage/1000.0 );
 		
 		// calculate new target
 		switch (mode)
@@ -509,7 +535,7 @@ int main(void)
 		}
 
 
-		GPIO_SetBits(GPIOA, GPIO_Pin_4);
+		GPIO_SetBits(GPIOA, GPIO_Pin_11);
 
 		// wait for next 8ms
 		while(getus()-start_tick < 8000)
