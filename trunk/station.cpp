@@ -246,7 +246,7 @@ int main(void)
 					(estGyro.V.y * xxzz - (estGyro.V.x * estAccGyro16.V.x + estGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y )/G);
 
 				
-				sprintf((char*)yawstr, "RolPitYaw:%.2f %.2f %.2f", roll * 180 / 3.1415926, pitch * 180 / 3.1415926, yaw_est * 180 / 3.1415926);
+				sprintf((char*)yawstr, "RolPitHead:%.2f %.2f %.2f", roll * 180 / 3.1415926, pitch * 180 / 3.1415926, yaw_est * 180 / 3.1415926);
 				ARC_LCD_ShowString(0, 0, yawstr);
 				sprintf((char*)yawstr, "mode:%s time:%.2f", mode_tbl[pilot.fly_mode], pilot_time / 1000000.0f);
 				ARC_LCD_ShowString(0, 16, yawstr);
