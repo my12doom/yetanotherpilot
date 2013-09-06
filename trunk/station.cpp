@@ -79,6 +79,7 @@ char filename[20];
 imu_data imu = {0};
 sensor_data sensor = {0};
 pilot_data pilot = {0};
+ppm_data ppm = {0};
 
 const char *mode_tbl[] = 
 {
@@ -161,6 +162,7 @@ int main(void)
 	int packet_speed = 0;
 	int packet_speed_counter = 0;
 	int64_t packet_speed_time = getus();
+	float voltage;
 	while(1)
 	{
 		int result = NRF_Rx_Dat((u8*)&recv);
@@ -189,6 +191,13 @@ int main(void)
 				type = 4;
 				pilot = recv.data.pilot;
 			}
+
+			else if ((recv.time & TAG_MASK) == TAG_PPM_DATA)
+			{
+				type = 5;
+				ppm = recv.data.ppm;
+			}
+
 			else
 			{
 				// unknown data
@@ -247,11 +256,17 @@ int main(void)
 				ARC_LCD_ShowString(0, 48, yawstr);
 				sprintf((char*)yawstr, "altitude:%.2f", pilot.altitude/100.f);
 				ARC_LCD_ShowString(0, 64, yawstr);
-				sprintf((char*)yawstr, "RC:%d %d %d", pilot.rc[0], pilot.rc[1], pilot.rc[2]);
+				sprintf((char*)yawstr, "RC:");
 				ARC_LCD_ShowString(0, 80, yawstr);
+				sprintf((char*)yawstr, "%04d %04d %04d %04d %04d %04d", ppm.in[0], ppm.in[1], ppm.in[2], ppm.in[3], ppm.in[4], ppm.in[5]);
+				ARC_LCD_ShowString(0, 96, yawstr);
+				sprintf((char*)yawstr, "%04d %04d %04d %04d %04d %04d", ppm.out[0], ppm.out[1], ppm.out[2], ppm.out[3], ppm.out[4], ppm.out[5]);
+				ARC_LCD_ShowString(0, 112, yawstr);
+				
+				
 				sprintf((char*)yawstr, "accel:%d %d %d, %.2f", sensor.accel[0], sensor.accel[1], sensor.accel[2], 
 					sqrt((float)sensor.accel[0]*sensor.accel[0] + sensor.accel[1]*sensor.accel[1] + sensor.accel[2] * sensor.accel[2]));
-				ARC_LCD_ShowString(0, 96, yawstr);
+				ARC_LCD_ShowString(0, 128, yawstr);
 				
 			}
 			
@@ -268,6 +283,8 @@ int main(void)
 			
 			int t = RTC_GetCounter();
 			struct tm time = current_time();
+			sprintf((char*)yawstr, "voltage:%.2fV", sensor.voltage/1000.0f);
+			ARC_LCD_ShowString(0, 268, yawstr);
 			sprintf((char*)yawstr, "packet speed:%d", packet_speed);
 			ARC_LCD_ShowString(0, 284, yawstr);
 			sprintf((char*)yawstr, "%d-%d %02d:%02d:%02d", time.tm_mon+1, time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
