@@ -373,6 +373,7 @@ void NRF_TX_Mode(void)
 	NRF_CE_LOW();
 
 	// Set EXTI
+	/*
 	EXTI_ClearITPendingBit(EXTI_Line3);
 	GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource3);
 	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
@@ -386,6 +387,7 @@ void NRF_TX_Mode(void)
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
+	*/
 
 	SPI_NRF_WriteBuf(NRF_WRITE_REG + TX_ADDR, TX_ADDRESS, TX_ADR_WIDTH); //Ð´TX½ÚµãµØÖ·
 
@@ -417,7 +419,10 @@ void NRF_TX_Mode(void)
 */
 u8 NRF_Tx_Dat(u8 *txbuf)
 {
-	lockEXTI3();
+	if (NRF_Read_IRQ() == 0)
+		EXTI3_IRQHandler();
+	
+	lockEXTI3();	
 
 	if (tx_queue_count < TX_QUEUE_SIZE &&!(tx_queue_count >= TX_QUEUE_SIZE/2 && getus()%2==0))		// 50% packet drop if queue is more than half full
 	{			

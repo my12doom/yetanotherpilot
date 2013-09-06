@@ -132,6 +132,8 @@ int main(void)
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	
+	GPIO_SetBits(GPIOA, GPIO_Pin_11);
 
 
 	int mode = initializing;
@@ -224,11 +226,11 @@ int main(void)
 		GPIO_ResetBits(GPIOA, GPIO_Pin_11);
 		
 		// if rc works and is switched to bypass mode, pass the PPM inputs directly to outputs
-		if (g_ppm_input_update[5] > getus() - RC_TIMEOUT)
+		if (g_ppm_input_update[4] > getus() - RC_TIMEOUT)
 		{
-			if (g_ppm_input[5] < 1333)
+			if (g_ppm_input[4] < 1333)
 				mode = manual;
-			else if (g_ppm_input[5] > 1666)
+			else if (g_ppm_input[4] > 1666)
 				mode = acrobatic;
 			else
 			{
@@ -438,10 +440,14 @@ int main(void)
 			target[0] = -PI/18*sensor_reverse[0];						// 10 degree bank
 			target[1] = (getus() - last_rc_work > 10000000) ? PI/18*sensor_reverse[1] : 0;						// 10 degree pitch down
 			target[2] = yaw_gyro;
+			g_ppm_output[2] = (getus() - last_rc_work > 10000000) ? 1178 : 1350;		// 1350 should be enough to maintain altitude for my plane, 1178 should harm nobody
 		}
 		else
 		{
 			last_rc_work = getus();
+			// throttle pass through
+			if (rc_works)
+				g_ppm_output[2] = floor(g_ppm_input[2]+0.5);
 		}
 		
 		// calculate new pid & apply pid controll & output
@@ -460,16 +466,14 @@ int main(void)
 			int rc = rc_reverse[i]*(g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i]);
 			
 			//if (rc * fly_controll> 0)
-				g_ppm_output[i] = floor(1520 + fly_controll + rc * ACRO_MANUAL_FACTOR + 0.5);
+				g_ppm_output[i==2?3:i] = floor(1520 + fly_controll + rc * ACRO_MANUAL_FACTOR + 0.5);
 			//else
-			//	g_ppm_output[i] = 1520 + fly_controll;
+			//	g_ppm_output[i==2?3:i] = 1520 + fly_controll;
 			
 			
-			g_ppm_output[i] = limit(g_ppm_output[i], 1000, 2000);
+			g_ppm_output[i==2?3:i] = limit(g_ppm_output[i==2?3:i], 1000, 2000);
 		}
 
-		// throttle pass through
-		g_ppm_output[2] = floor(g_ppm_input[2]+0.5);
 
 		// manual flight pass through
 		if (mode == manual)
@@ -490,6 +494,13 @@ int main(void)
 		printf(",out= %d, %d, %d, %d, input=%f,%f,%f,%f", g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5]);
 		
 		*/
+		
+		static int last_ppm = 1120;
+		if ((int)floor(g_ppm_input[2]) != last_ppm)
+		{
+			printf("newppm:%d\r\n", (int)floor(g_ppm_input[2]));
+			last_ppm = floor(g_ppm_input[2]);
+		}
 		
 		// messure voltage
 		int adc_oss = 0;
