@@ -20,6 +20,7 @@ int main(int argc, char **argv)
 	pilot_data pilot = {0};
 	imu_data imu = {0};
 	sensor_data sensor = {0};
+	ppm_data ppm = {0};
 
 
 	FILE * f = fopen(argv[1], "rb");
@@ -38,6 +39,8 @@ int main(int argc, char **argv)
 			pilot = rf.data.pilot;
 		else if ((rf.time & TAG_MASK) ==  TAG_SENSOR_DATA)
 			sensor = rf.data.sensor;
+		else if ((rf.time & TAG_MASK) ==  TAG_PPM_DATA)
+			ppm = rf.data.ppm;
 		else
 		{
 			printf("unknown data %x, skipping\r\n", int((rf.time & TAG_MASK)>>56));
@@ -54,9 +57,10 @@ int main(int argc, char **argv)
 		lasttime = time;
 
 
-		if (n++ %50 == 0)
-		fprintf(fo, "%.2f,%.2f,%d,%d,%d,%d\r\n", float(time/1000000.0f), pilot.altitude*10.0,
-				sensor.accel[0], sensor.accel[1], pilot.error[2], sensor.accel[2]);
+// 		if (n++ %50 == 0)
+// 		fprintf(fo, "%.2f,%.2f,%d,%d,%d,%d\r\n", float(time/1000000.0f), pilot.altitude*10.0,
+// 				sensor.accel[0], sensor.accel[1], pilot.error[2], sensor.accel[2]);
+		fprintf(fo, "%.2f,%d,%d,%d,%d\r\n", float(time/1000000.0f), ppm.in[0], ppm.in[1], ppm.in[2], ppm.in[3]);
 				// accel[0]前进方向，机尾方向为正
 				// accel[1]机翼方向，右机翼方向为正
 				// accel[2]垂直方向，往上为正
