@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "../common/I2C.h"
 #include "../common/common.h"
+#include "../common/printf.h"
 
 #define MPU6050SlaveAddress 0xD0
 #define MPU6050_REG_WHO_AM_I 0x75
@@ -34,7 +35,7 @@ int init_MPU6050(void)
 {
 	u8 who_am_i = 0;
 
-	printf("start MPU6050\r\n");
+	TRACE("start MPU6050\r\n");
 	delayms(10);
 	I2C_WriteReg(MPU6050SlaveAddress, PWR_MGMT_1, 0x00);
 	I2C_WriteReg(MPU6050SlaveAddress, SMPLRT_DIV, 0x07);
@@ -43,7 +44,7 @@ int init_MPU6050(void)
 	I2C_WriteReg(MPU6050SlaveAddress, ACCEL_CONFIG, 0x08);
 	
 	I2C_ReadReg(MPU6050SlaveAddress, WHO_AM_I, &who_am_i, 1);
-	printf("MPU6050 initialized, WHO_AM_I=%x\r\n", who_am_i);
+	TRACE("MPU6050 initialized, WHO_AM_I=%x\r\n", who_am_i);
 	
 	// enable I2C bypass for AUX I2C and initialize HMC5883 into continues mode
 	I2C_WriteReg(MPU6050SlaveAddress, 0x37, 0x02);

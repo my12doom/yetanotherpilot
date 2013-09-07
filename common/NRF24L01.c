@@ -103,7 +103,7 @@ static void handleQueue()
 	unlockEXTI3();
 }
 
-void SPI_NRF_Init(void)
+void NRF_Init(void)
 {
 	u8 state;
 	SPI_InitTypeDef  SPI_InitStructure;
@@ -441,6 +441,12 @@ u8 NRF_Tx_Dat(u8 *txbuf)
 		unlockEXTI3();
 		return TX_BUSY;
 	}
+}
+
+void NRF_Handle_Queue(void)
+{
+	if (NRF_Read_IRQ() == 0)
+		EXTI3_IRQHandler();	
 }
 
 

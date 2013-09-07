@@ -8,6 +8,7 @@
 #include "ARC_LCD.h"
 #include "ARC_Font.h"
 #include "HzLib.h"
+#include "../common/printf.h"
 
 
 /** @addtogroup Utilities
@@ -837,7 +838,7 @@ int32_t ARC_LCD_Init(void)
 	}
     else
     {
-			printf("ARC_LCD_ID_Check() failed(DeviceCode=%x)\r\n", DeviceCode);
+		TRACE("ARC_LCD_ID_Check() failed(DeviceCode=%x)\r\n", DeviceCode);
         return 1;
     }
 	//ARC_LCD_FSMCConfig(5,2,5);

@@ -49,7 +49,7 @@ void printf_init(void)
 
 void USART1_IRQHandler(void)
 {
-	unsigned int c;
+	unsigned int c = 0;
 	int p = 0;
 	if(USART_GetFlagStatus(USART1,USART_IT_RXNE)==SET)
 	{

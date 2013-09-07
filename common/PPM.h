@@ -3,6 +3,7 @@
 
 #include "stm32f10x.h"
 
+
 // constants and enums
 extern float g_ppm_input[6];
 extern int64_t g_ppm_input_update[6];
@@ -21,6 +22,10 @@ enum PPM_OUTPUT_CHANNEL
 	PPM_OUTPUT_CHANNEL_ALL = 0xff,
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+	
 // configure PPM input and output
 // PPM output is 100Hz
 // it always configure TIM3 with REMAP  = 10, output pin = PB0, PB1, PB4, PB5
@@ -32,5 +37,8 @@ void PPM_init(int enable_input);
 // update the specified output channel
 void PPM_update_output_channel(int channel_to_update);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

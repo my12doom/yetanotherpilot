@@ -6,38 +6,24 @@
 #include <stm32f10x_rtc.h>
 #include <stm32f10x_bkp.h>
 #include <stm32f10x_pwr.h>
+#include <stm32f10x_sdio.h>
+
 #include <math.h>
 #include <time.h>
 #include "RFData.h"
-
-
-extern "C"
-{
 #include "common/vector.h"
 #include "common/printf.h"
 #include "common/NRF24L01.h"
 #include "common/common.h"
+extern "C"
+{
 #include "fat/ff.h"
 #include "fat/sdcard.h"
-#include "stm32f10x_sdio.h"
 }
 
-
-#define PI 3.14159265
 FRESULT set_timestamp(char *filename);
 void RTC_Init();
 
-
-float radian_add(float a, float b)
-{
-	a += b;
-	if (a>=PI)
-		a -= 2*PI;
-	if (a<-PI)
-		a += 2*PI;
-	
-	return a;
-}
 
 time_t build_time;
 struct tm current_time()
@@ -95,7 +81,7 @@ int main(void)
 	// Basic Initialization
 	SysTick_Config(720);
 	printf_init();
-	SPI_NRF_Init();
+	NRF_Init();
 	int nrf = NRF_Check();
 	printf("NRF_Check() = %d\r\n", nrf);
 	NRF_RX_Mode();
@@ -162,7 +148,6 @@ int main(void)
 	int packet_speed = 0;
 	int packet_speed_counter = 0;
 	int64_t packet_speed_time = getus();
-	float voltage;
 	while(1)
 	{
 		int result = NRF_Rx_Dat((u8*)&recv);
@@ -272,13 +257,13 @@ int main(void)
 			
 			if ((getus() - last_packet_time > 2000000))
 			{
-				ARC_LCD_ShowString(0, 130, "WARNING");
+				ARC_LCD_ShowString(0, 150, "WARNING");
 				sprintf((char*)yawstr, "NRF NOT RESPONDING %x", packet_types);
-				ARC_LCD_ShowString(0, 146, yawstr);
+				ARC_LCD_ShowString(0, 166, yawstr);
 			}
 			if (sd != SD_OK)
 			{
-				ARC_LCD_ShowString(0, 162, "SDCARD ERROR");
+				ARC_LCD_ShowString(0, 182, "SDCARD ERROR");
 			}
 			
 			int t = RTC_GetCounter();
