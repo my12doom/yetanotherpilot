@@ -543,6 +543,61 @@
             </File>
           </Files>
         </Group>
+        <Group>
+          <GroupName>nmea</GroupName>
+          <Files>
+            <File>
+              <FileName>context.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\nmea\context.c</FilePath>
+            </File>
+            <File>
+              <FileName>generate.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\nmea\generate.c</FilePath>
+            </File>
+            <File>
+              <FileName>generator.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\nmea\generator.c</FilePath>
+            </File>
+            <File>
+              <FileName>gmath.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\nmea\gmath.c</FilePath>
+            </File>
+            <File>
+              <FileName>info.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\nmea\info.c</FilePath>
+            </File>
+            <File>
+              <FileName>parse.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\nmea\parse.c</FilePath>
+            </File>
+            <File>
+              <FileName>parser.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\nmea\parser.c</FilePath>
+            </File>
+            <File>
+              <FileName>sentence.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\nmea\sentence.c</FilePath>
+            </File>
+            <File>
+              <FileName>time.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\nmea\time.c</FilePath>
+            </File>
+            <File>
+              <FileName>tok.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\nmea\tok.c</FilePath>
+            </File>
+          </Files>
+        </Group>
       </Groups>
     </Target>
   </Targets>
