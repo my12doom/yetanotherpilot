@@ -3,109 +3,17 @@
 #include <math.h>
 #include "RFData.h"
 
-extern "C"
-{
-#include "common/printf.h"
 #include "common/adc.h"
+#include "common/printf.h"
 #include "common/I2C.h"
 #include "common/NRF24L01.h"
 #include "common/PPM.h"
 #include "common/common.h"
 #include "common/vector.h"
+#include "common/config.h"
 #include "sensors/HMC5883.h"
 #include "sensors/MPU6050.h"
 #include "sensors/MS5611.h"
-}
-
-#define PI 3.14159265
-#define interval (0.008)
-
-#define RC_TIMEOUT 1000000				// 1 seconds
-#define RC_RANGE 400
-#define RC_DEAD_ZONE 5
-#define BARO_OSS 50
-#define ref_vaoltage 3.366
-#define resistor_total 61.3
-#define resistor_vaoltage 9.89
-
-#define ACRO_ROLL_RATE (PI*3/2)				// 270 degree/s
-#define ACRO_PITCH_RATE (PI)			// 180 degree/s
-#define ACRO_YAW_RATE (PI/2)			// 90 degree/s
-#define ACRO_MANUAL_FACTOR (0.3)		// final output in acrobatic mode, 70% pid, 30% rc
-
-
-static float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
-{
-	{1, 0, 0,},
-	{1, 0, 0,},
-	{1, 0, 0,},
-};
-
-static float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]
-{
-	{PI/6, PI*6, 1},
-	{PI/6, PI*6, 1},
-	{PI/6, PI*6, 1},
-};
-
-#define ACRO_MAX_ROLL_OFFSET (pid_limit[0][0])		// 30 degree, max roll advance before airframe can response in acrobatic mode
-#define ACRO_MAX_PITCH_OFFSET (pid_limit[1][0])	// 30 degree, max pitch advance before airframe can response in acrobatic mode
-#define ACRO_MAX_YAW_OFFSET (pid_limit[2][0])		// 30 degree, max yaw advance before airframe can response in acrobatic mode
-
-static int rc_reverse[3] = 								// -1 = reverse, 1 = normal, 0 = disable, won't affect mannual mode
-{
-	1,			// roll
-	1,			// pitch
-	1,			// yaw
-};
-
-static int sensor_reverse[3] = 						// -1 = reverse, 1 = normal, 0 = disable, won't affect mannual mode
-{
-	1,			// roll
-	-1,			// pitch
-	-1,			// yaw
-};
-
-enum fly_mode
-{
-	initializing,
-	manual,
-	acrobatic,
-	fly_by_wire,
-	rc_fail,
-};
-
-float limit(float v, float low, float high)
-{
-	if (v < low)
-		return low;
-	if (v > high)
-		return high;
-	return v;
-}
-
-float radian_add(float a, float b)
-{
-	a += b;
-	if (a>=PI)
-		a -= 2*PI;
-	if (a<-PI)
-		a += 2*PI;
-	
-	return a;
-}
-
-// a & b : -PI ~ PI
-// return a - b
-float radian_sub(float a, float b)
-{
-	float v1 = a-b;
-	float v2 = a+2*PI-b;
-	float v3 = a-2*PI-b;
-	
-	v1 = abs(v1)>abs(v2) ? v2 : v1;
-	return abs(v1)>abs(v3) ? v3 : v1;
-}
 
 int main(void)
 {
@@ -114,7 +22,7 @@ int main(void)
 	SysTick_Config(720);
 	PPM_init(1);
 	printf_init();
-	SPI_NRF_Init();
+	NRF_Init();
 	int nrf = NRF_Check();
 	printf("NRF_Check() = %d\r\n", nrf);
 	if (nrf == 0)
@@ -484,9 +392,9 @@ int main(void)
 
 		PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
 		
-		float PI180 = 180/PI;
 		
 		/*
+		float PI180 = 180/PI;
 		
 		printf("\rroll,pitch,yaw/yaw2 = %f,%f,%f,%f, target roll,pitch,yaw = %f,%f,%f, error = %f,%f,%f", roll*PI180, pitch*PI180, yaw_est*PI180, yaw_gyro*PI180, target[0]*PI180, target[1]*PI180, target[2]*PI180,
 			error_pid[0][0]*PI180, error_pid[1][0]*PI180, error_pid[2][0]*PI180);
@@ -550,6 +458,6 @@ int main(void)
 
 		// wait for next 8ms
 		while(getus()-start_tick < 8000)
-			;		
+			NRF_Handle_Queue();		
 	}
 }

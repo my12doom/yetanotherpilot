@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "timer.h"
 #include "i2c_sw.h"
+#include "printf.h"
 
 int I2C_Reset()
 {
@@ -45,7 +46,7 @@ int waitFlag_and_reset(I2C_TypeDef* I2Cx, int flag)
 		timeout--;
 		if (timeout == 0)
 		{
-			//printf("I2C Flag Error, resetting\r\n");
+			TRACE("I2C Flag Error, resetting\r\n");
 			I2C_Reset();
 
 			return -1;
@@ -63,7 +64,7 @@ int checkEvent_and_reset(I2C_TypeDef* I2Cx, int event)
 		timeout--;
 		if (timeout == 0)
 		{
-			//printf("I2C Error, resetting\r\n");
+			TRACE("I2C Error, resetting\r\n");
 			I2C_Reset();
 
 			return -1;			
