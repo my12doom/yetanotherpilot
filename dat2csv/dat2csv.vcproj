@@ -178,6 +178,10 @@
 				RelativePath=".\RFData.h"
 				>
 			</File>
+			<File
+				RelativePath="..\common\vector.c"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Í·ÎÄ¼þ"

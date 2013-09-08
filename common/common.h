@@ -1,8 +1,13 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
-#include "timer.h"
 #include <math.h>
+
+#ifndef WIN32
+#include "timer.h"
+#else
+typedef unsigned char u8;
+#endif
 #include "config.h"
 
 enum fly_mode
