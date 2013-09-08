@@ -57,7 +57,7 @@ int main(void)
 	printf_init();
 	NRF_Init();
 	int nrf = NRF_Check();
-	printf("NRF_Check() = %d\r\n", nrf);
+	TRACE("NRF_Check() = %d\r\n", nrf);
 	if (nrf == 0)
 		NRF_TX_Mode();
 	I2C_init(0x30);
@@ -97,16 +97,16 @@ int main(void)
 	// static base value detection
 	for(int i=0; i<1000; i++)
 	{
-		printf("\r%d/1000", i);
+		TRACE("\r%d/1000", i);
 		if (read_MPU6050(p->accel)<0 && read_MPU6050(p->accel)<0)
 		{
-			printf("warning, MPU6050 sensor error during initializing\r\n");
+			TRACE("warning, MPU6050 sensor error during initializing\r\n");
 			i--;
 			continue;
 		}
 		if (read_HMC5883(p->mag)<0 && read_HMC5883(p->mag)<0)
 		{
-			printf("warning, HMC5883 sensor error during initializing\r\n");
+			TRACE("warning, HMC5883 sensor error during initializing\r\n");
 			i--;
 			continue;
 		}
@@ -141,7 +141,7 @@ int main(void)
 	float accel_1g = vector_length(&accel_avg);	
 	
 	
-	printf("base value measured\r\n");
+	TRACE("base value measured\r\n");
 
 	mode = manual;
 	float target[3];		// target[roll, pitch, yaw]
@@ -181,7 +181,7 @@ int main(void)
 		}
 		else
 		{
-			//printf("warning: RC out of controll\r\n");
+			//TRACE("warning: RC out of controll\r\n");
 			rc_works = false;
 			mode = rc_fail;	
 		}
@@ -194,13 +194,13 @@ int main(void)
 		while (read_MPU6050(&p->accel[0])<0 && getus()- I2C_time < 5000)
 		{
 			I2C_retry--;
-			printf("read_MPU6050 error!\r\n");
+			TRACE("read_MPU6050 error!\r\n");
 		}
 		
 		while (read_HMC5883(&p->mag[0])<0 && getus()- I2C_time < 5000)
 		{
 			I2C_retry--;
-			printf("read_HMC5883 error!\r\n");
+			TRACE("read_HMC5883 error!\r\n");
 		}
 		
 		// MS5611 never return invalid value even on error, so no retry
@@ -225,7 +225,7 @@ int main(void)
 					double scaling = (double)pressure / ground_pressure;
 					double temp = ((double)ground_temperature) + 273.15f;
 					altitude = 153.8462f * temp * (1.0f - exp(0.190259f * log(scaling)));
-					//printf("\r\npressure,temperature=%f, %f, ground pressure & temperature=%f, %f, height=%f, time=%f\r\n", pressure, temperature, ground_pressure, ground_temperature, altitude, (double)getus()/1000000);
+					//TRACE("\r\npressure,temperature=%f, %f, ground pressure & temperature=%f, %f, height=%f, time=%f\r\n", pressure, temperature, ground_pressure, ground_temperature, altitude, (double)getus()/1000000);
 				}
 				else
 				{
@@ -266,8 +266,8 @@ int main(void)
 			
 			imu_data imu = 
 			{
-				ms5611[0],
 				ms5611[1],
+				ms5611[0],
 				{estAccGyro.array[0], estAccGyro.array[1], estAccGyro.array[2]},
 				{estGyro.array[0], estGyro.array[1], estGyro.array[2]},
 				{estMagGyro.array[0], estMagGyro.array[1], estMagGyro.array[2]},
@@ -282,7 +282,7 @@ int main(void)
 			
 			extern int tx_ok;
 			extern int max_retry;
-			//printf("\r t1,t2,ok,timeout=%d,%d,%d,%d", t1, t2, tx_ok, max_retry);
+			//TRACE("\r t1,t2,ok,timeout=%d,%d,%d,%d", t1, t2, tx_ok, max_retry);
 			
 			pilot_data pilot = 
 			{
@@ -316,7 +316,7 @@ int main(void)
 		vector_sub(&gyro, &gyro_zero);
 		vector_multiply(&gyro, GYRO_SCALE);
 		
-		//printf("gyro:%d,%d,%d\r\n", p->gyro[0], p->gyro[1], p->gyro[2]);
+		//TRACE("gyro:%d,%d,%d\r\n", p->gyro[0], p->gyro[1], p->gyro[2]);
 		
 
 		for(int j=0; j<10; j++)
@@ -401,8 +401,9 @@ int main(void)
 			error_pid[i][0] = new_p;																	// P
 			
 			float fly_controll = 0;
+			float p_rc = limit((g_ppm_input[5] - 1000.0) / 520.0, 0, 2);
 			for(int j=0; j<3; j++)
-				fly_controll += limit(error_pid[i][j]/ pid_limit[i][j], -1, 1) * pid_factor[i][j];
+				fly_controll += limit(error_pid[i][j] * p_rc/ pid_limit[i][j], -1, 1) * pid_factor[i][j];
 			fly_controll *= (1-ACRO_MANUAL_FACTOR)*RC_RANGE;
 			int rc = rc_reverse[i]*(g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i]);
 			
@@ -429,17 +430,17 @@ int main(void)
 		/*
 		float PI180 = 180/PI;
 		
-		printf("\rroll,pitch,yaw/yaw2 = %f,%f,%f,%f, target roll,pitch,yaw = %f,%f,%f, error = %f,%f,%f", roll*PI180, pitch*PI180, yaw_est*PI180, yaw_gyro*PI180, target[0]*PI180, target[1]*PI180, target[2]*PI180,
+		TRACE("\rroll,pitch,yaw/yaw2 = %f,%f,%f,%f, target roll,pitch,yaw = %f,%f,%f, error = %f,%f,%f", roll*PI180, pitch*PI180, yaw_est*PI180, yaw_gyro*PI180, target[0]*PI180, target[1]*PI180, target[2]*PI180,
 			error_pid[0][0]*PI180, error_pid[1][0]*PI180, error_pid[2][0]*PI180);
 		
-		printf(",out= %d, %d, %d, %d, input=%f,%f,%f,%f", g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5]);
+		TRACE(",out= %d, %d, %d, %d, input=%f,%f,%f,%f", g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5]);
 		
 		*/
 		
 		static int last_ppm = 1120;
 		if ((int)floor(g_ppm_input[2]) != last_ppm)
 		{
-			printf("newppm:%d\r\n", (int)floor(g_ppm_input[2]));
+			TRACE("newppm:%d\r\n", (int)floor(g_ppm_input[2]));
 			last_ppm = floor(g_ppm_input[2]);
 		}
 		
@@ -456,7 +457,7 @@ int main(void)
 		else
 			p->voltage = p->voltage * 0.95 + 0.05 * adc_oss;			// simple low pass
 		
-		//printf("\rinput:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5], g_ppm_input[4], g_ppm_input[5], p->voltage/1000.0 );
+		//TRACE("\rinput:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5], g_ppm_input[4], g_ppm_input[5], p->voltage/1000.0 );
 		
 		// calculate new target
 		switch (mode)
