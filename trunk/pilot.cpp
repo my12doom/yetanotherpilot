@@ -145,6 +145,7 @@ int main(void)
 
 	mode = manual;
 	float target[3];		// target[roll, pitch, yaw]
+	vector gyroI;	// attitude by gyro only
 		
 	double temperature = 0;
 	double pressure = 0;
@@ -307,7 +308,7 @@ int main(void)
 			tx_result = NRF_Tx_Dat((u8*)&to_send);
 		}
 		
-		static const float GYRO_SCALE = 2000.0 * PI / 180 / 8192 * interval / 4 / 10;		// full scale: +/-2000 deg/s  +/-8192, 8ms interval, divided into 10 piece to better use small angle approximation
+		static const float GYRO_SCALE = 2000.0 * PI / 180 / 32767 * interval;		// full scale: +/-2000 deg/s  +/-31767, 8ms interval
 		
 		
 		vector gyro = {-p->gyro[0], -p->gyro[1], -p->gyro[2]};
@@ -316,15 +317,16 @@ int main(void)
 		vector_sub(&gyro, &gyro_zero);
 		vector_multiply(&gyro, GYRO_SCALE);
 		
-		//TRACE("gyro:%d,%d,%d\r\n", p->gyro[0], p->gyro[1], p->gyro[2]);
 		
 
-		for(int j=0; j<10; j++)
-		{
-			vector_rotate(&estGyro, gyro.array);
-			vector_rotate(&estAccGyro, gyro.array);
-			vector_rotate(&estMagGyro, gyro.array);
-		}
+		vector_rotate(&estGyro, gyro.array);
+		vector_rotate(&estAccGyro, gyro.array);
+		vector_rotate(&estMagGyro, gyro.array);
+		
+		for(int i=0; i<3; i++)
+			gyroI.array[i] = radian_add(gyroI.array[i], gyro.array[i]);
+		
+		//TRACE("gyroI:%f,%f,%f\r", gyroI.array[0] *180/PI, gyroI.array[1]*180/PI, gyroI.array[2]*180/PI);
 		
 		// apply CF filter for Mag
 		vector mag_f = mag;
@@ -355,16 +357,17 @@ int main(void)
 		float yaw_gyro = atan2(estGyro.V.z * estAccGyro16.V.x - estGyro.V.x * estAccGyro16.V.z,
 			(estGyro.V.y * xxzz - (estGyro.V.x * estAccGyro16.V.x + estGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y )/G);
 
-		float pos[3] = {roll, pitch, yaw_gyro};
+		//float pos[3] = {roll, pitch, yaw_gyro};
+		float pos[3] = {gyroI.array[0], gyroI.array[1], gyroI.array[2]};
 
 		// mode changed?
 		if (mode != last_mode)
 		{
 			last_mode = mode;
 
-			target[0] = roll;
-			target[1] = pitch;
-			target[2] = yaw_gyro;
+			target[0] = pos[0];
+			target[1] = pos[1];
+			target[2] = pos[2];
 			
 			for(int i=0; i<6; i++)
 				rc_zero[i] = g_ppm_input[i];
@@ -415,6 +418,9 @@ int main(void)
 			
 			g_ppm_output[i==2?3:i] = limit(g_ppm_output[i==2?3:i], 1000, 2000);
 		}
+		
+		// yaw pass through
+		g_ppm_output[3] = g_ppm_input[3];
 
 
 		// manual flight pass through
@@ -427,7 +433,6 @@ int main(void)
 		PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
 		
 		
-		/*
 		float PI180 = 180/PI;
 		
 		TRACE("\rroll,pitch,yaw/yaw2 = %f,%f,%f,%f, target roll,pitch,yaw = %f,%f,%f, error = %f,%f,%f", roll*PI180, pitch*PI180, yaw_est*PI180, yaw_gyro*PI180, target[0]*PI180, target[1]*PI180, target[2]*PI180,
@@ -435,12 +440,11 @@ int main(void)
 		
 		TRACE(",out= %d, %d, %d, %d, input=%f,%f,%f,%f", g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5]);
 		
-		*/
 		
 		static int last_ppm = 1120;
 		if ((int)floor(g_ppm_input[2]) != last_ppm)
 		{
-			TRACE("newppm:%d\r\n", (int)floor(g_ppm_input[2]));
+			//TRACE("newppm:%d\r\n", (int)floor(g_ppm_input[2]));
 			last_ppm = floor(g_ppm_input[2]);
 		}
 		
