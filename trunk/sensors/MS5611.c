@@ -94,10 +94,11 @@ int read_MS5611(int *data)
 		
 			rawTemperature = ((int)tmp[0] << 16) + ((int)tmp[1] << 8) + (int)tmp[2];
 			DeltaTemp = rawTemperature - (((int32_t)refdata[4]) << 8);
+			new_temperature = ((1<<EXTRA_PRECISION)*2000l + ((DeltaTemp * refdata[5]) >> (23-EXTRA_PRECISION))) / ((1<<EXTRA_PRECISION));
+			
 			if (I2C_WriteReg(MS5611Address, MS561101BA_D1 + OSR, 0x00) < 0)
 				break;
 
-			new_temperature = ((1<<EXTRA_PRECISION)*2000l + ((DeltaTemp * refdata[5]) >> (23-EXTRA_PRECISION))) / ((1<<EXTRA_PRECISION));			
 			last_pressure_time = getus();
 		}
 

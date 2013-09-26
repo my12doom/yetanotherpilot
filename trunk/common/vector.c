@@ -31,6 +31,8 @@ void vector_rotate(vector *v, float *delta)
 	v->V.z -= delta[0]  * v_tmp.V.x + delta[1] * v_tmp.V.y;
 	v->V.x += delta[0]  * v_tmp.V.z - delta[2]   * v_tmp.V.y;
 	v->V.y += delta[1] * v_tmp.V.z + delta[2]   * v_tmp.V.x;
+
+	vector_multiply(v, vector_length(&v_tmp) / vector_length(v));
 }
 
 float vector_length(vector *v)
