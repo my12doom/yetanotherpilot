@@ -411,9 +411,9 @@ int main(void)
 			int rc = rc_reverse[i]*(g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i]);
 			
 			//if (rc * fly_controll> 0)
-				g_ppm_output[i==2?3:i] = floor(1520 + fly_controll + rc * ACRO_MANUAL_FACTOR + 0.5);
+				g_ppm_output[i==2?3:i] = floor(rc_zero[i==2?3:i] + fly_controll + rc * ACRO_MANUAL_FACTOR + 0.5);
 			//else
-			//	g_ppm_output[i==2?3:i] = 1520 + fly_controll;
+			//	g_ppm_output[i==2?3:i] = rc_zero[i==2?3:i] + fly_controll;
 			
 			
 			g_ppm_output[i==2?3:i] = limit(g_ppm_output[i==2?3:i], 1000, 2000);
