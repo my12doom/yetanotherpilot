@@ -42,8 +42,8 @@ static int quadcopter_mixing_matrix[4][3] = // the motor mixing matrix, [motor n
 {
 	{0, +1, -1},			// rear
 	{-1, 0, +1},			// right
-	{+1, 0, +1},			// left
 	{0, -1, -1},			// front
+	{+1, 0, +1},			// left
 };
 
 static float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]
