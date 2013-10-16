@@ -208,6 +208,21 @@ int main(void)
 		int ms5611[2];
 		int ms5611result = read_MS5611(ms5611);
 
+		// messure voltage
+		int adc_oss = 0;
+		for(int i=0; i<50; i++)
+		{
+			adc_oss += ADC_ConvertedValue;
+			delayus(10);
+		}
+		adc_oss *= 20 * ref_vaoltage / 4095 * resistor_total / resistor_vaoltage;		// now unit is mV
+		if (p->voltage <0)
+			p->voltage = adc_oss;
+		else
+			p->voltage = p->voltage * 0.95 + 0.05 * adc_oss;			// simple low pass
+		
+
+
 		// calculate altitude
 		if (ms5611result == 0)
 		{
@@ -359,6 +374,12 @@ int main(void)
 
 		//float pos[3] = {roll, pitch, yaw_gyro};
 		float pos[3] = {gyroI.array[0], gyroI.array[1], gyroI.array[2]};
+		if (mode == quadcopter)
+		{
+			pos[0] = roll;
+			pos[1] = pitch;
+			pos[2] = yaw_gyro;
+		}
 
 		// mode changed?
 		if (mode != last_mode)
@@ -393,8 +414,50 @@ int main(void)
 			if (rc_works)
 				g_ppm_output[2] = floor(g_ppm_input[2]+0.5);
 		}
+
+
+		// calculate new target
+		switch (mode)
+		{
+		case acrobatic:
+			{
+				static const float rate[3] = {ACRO_ROLL_RATE * interval / RC_RANGE, 
+														ACRO_PITCH_RATE * interval / RC_RANGE,
+														ACRO_YAW_RATE * interval / RC_RANGE};
+
+				for(int i=0; i<3; i++)
+				{
+					float rc = g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i];
+					if (abs(rc) < RC_DEAD_ZONE)
+						rc = 0;
+					else
+						rc *= rate[i];
+					
+					float new_target = radian_add(target[i], -rc * rc_reverse[i] * sensor_reverse[i]);
+					float new_error = abs(radian_sub(pos[i], new_target));
+					if (new_error > pid_limit[i][0] && new_error > abs(error_pid[i][0]))
+						;
+					else
+						target[i] = new_target;
+				}
+			}
+			break;
+
+		case quadcopter:
+			{
+				// roll & pitch
+				// RC trim is accepted.
+				for(int i=0; i<2; i++)
+					target[i] = limit((g_ppm_input[i] - RC_CENTER) * rc_reverse[i] * rc_reverse[i] / RC_RANGE, -1, 1) * pid_limit[i][0];
+
+				// yaw:
+				target[2] = radian_add(target[2], limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[i] / RC_RANGE, -1, 1) * ACRO_YAW_RATE * interval);
+			}
+			break;
+		}
 		
 		// calculate new pid & apply pid controll & output
+		float pid[3] = {0}; // total pid for roll, pitch, yaw
 		for(int i=0; i<3; i++)
 		{
 			float new_p = radian_sub(pos[i], target[i]) * sensor_reverse[i];
@@ -403,20 +466,31 @@ int main(void)
 			error_pid[i][2] = new_p - error_pid[i][2];								// D
 			error_pid[i][0] = new_p;																	// P
 			
-			float fly_controll = 0;
+			float pid[i] = 0;
 			float p_rc = limit((g_ppm_input[5] - 1000.0) / 520.0, 0, 2);
 			for(int j=0; j<3; j++)
-				fly_controll += limit(error_pid[i][j] * p_rc/ pid_limit[i][j], -1, 1) * pid_factor[i][j];
-			fly_controll *= (1-ACRO_MANUAL_FACTOR)*RC_RANGE;
+				pid[i] += limit(error_pid[i][j] * p_rc/ pid_limit[i][j], -1, 1) * pid_factor[i][j];
+			pid[i] *= (1-ACRO_MANUAL_FACTOR);
 			int rc = rc_reverse[i]*(g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i]);
 			
-			//if (rc * fly_controll> 0)
-				g_ppm_output[i==2?3:i] = floor(rc_zero[i==2?3:i] + fly_controll + rc * ACRO_MANUAL_FACTOR + 0.5);
+			//if (rc * pid[i]> 0)
+				pid[i] = pid[i] + rc * ACRO_MANUAL_FACTOR / RC_RANGE;
 			//else
-			//	g_ppm_output[i==2?3:i] = rc_zero[i==2?3:i] + fly_controll;
+				pid[i] = pid[i];
 			
 			
-			g_ppm_output[i==2?3:i] = limit(g_ppm_output[i==2?3:i], 1000, 2000);
+			g_ppm_output[i==2?3:i] = limit(rc_zero[i==2?3:i] + pid[i]*RC_RANGE, 1000, 2000);
+		}
+
+		if (mode == quadcopter)
+		{
+			for(int i=0; i<4; i++)
+			{
+				float mix = g_ppm_input[3];
+				for(int j=0; j<3; j++)
+					mix += quadcopter_mixing_matrix[i][j] * pid[j] * QUADCOPTER_MAX_DELTA;
+				g_ppm_output[i] = mix;
+			}
 		}
 		
 		// yaw pass through
@@ -448,48 +522,8 @@ int main(void)
 			last_ppm = floor(g_ppm_input[2]);
 		}
 		
-		// messure voltage
-		int adc_oss = 0;
-		for(int i=0; i<50; i++)
-		{
-			adc_oss += ADC_ConvertedValue;
-			delayus(10);
-		}
-		adc_oss *= 20 * ref_vaoltage / 4095 * resistor_total / resistor_vaoltage;		// now unit is mV
-		if (p->voltage <0)
-			p->voltage = adc_oss;
-		else
-			p->voltage = p->voltage * 0.95 + 0.05 * adc_oss;			// simple low pass
-		
 		//TRACE("\rinput:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5], g_ppm_input[4], g_ppm_input[5], p->voltage/1000.0 );
-		
-		// calculate new target
-		switch (mode)
-		{
-		case acrobatic:
-			{
-				static const float rate[3] = {ACRO_ROLL_RATE * interval / RC_RANGE, 
-														ACRO_PITCH_RATE * interval / RC_RANGE,
-														ACRO_YAW_RATE * interval / RC_RANGE};
 
-				for(int i=0; i<3; i++)
-				{
-					float rc = g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i];
-					if (abs(rc) < RC_DEAD_ZONE)
-						rc = 0;
-					else
-						rc *= rate[i];
-					
-					float new_target = radian_add(target[i], -rc * rc_reverse[i] * sensor_reverse[i]);
-					float new_error = abs(radian_sub(pos[i], new_target));
-					if (new_error > pid_limit[i][0] && new_error > abs(error_pid[i][0]))
-						;
-					else
-						target[i] = new_target;
-				}
-			}
-			break;
-		}
 
 
 		GPIO_SetBits(GPIOA, GPIO_Pin_11);

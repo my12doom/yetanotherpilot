@@ -18,6 +18,7 @@
 #define RC_TIMEOUT 1000000				// 1 seconds
 #define RC_RANGE 400
 #define RC_DEAD_ZONE 5
+#define RC_CENTER 1520
 #define BARO_OSS 50
 #define ref_vaoltage 3.366
 #define resistor_total 61.3
@@ -28,12 +29,21 @@
 #define ACRO_YAW_RATE (PI/2)			// 90 degree/s
 #define ACRO_MANUAL_FACTOR (0.3)		// final output in acrobatic mode, 70% pid, 30% rc
 
+#define QUADCOPTER_MAX_DELTA 100
 
 static float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
 {
 	{1, 0, 0,},
 	{1, 0, 0,},
 	{1, 0, 0,},
+};
+
+static int quadcopter_mixing_matrix[4][3] = // the motor mixing matrix, [motor number] [roll, pitch, yaw]
+{
+	{0, +1, -1},			// rear
+	{-1, 0, +1},			// right
+	{+1, 0, +1},			// left
+	{0, -1, -1},			// front
 };
 
 static float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]

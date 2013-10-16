@@ -16,6 +16,7 @@ enum fly_mode
 	manual,
 	acrobatic,
 	fly_by_wire,
+	quadcopter,
 	rc_fail,
 };
 
