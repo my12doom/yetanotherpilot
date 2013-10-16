@@ -123,7 +123,7 @@ int main(void)
 
 		// RC pass through
 		for(int i=0; i<6; i++)
-			g_ppm_output[i] = floor(g_ppm_input[i]+0.5);
+			g_ppm_output[i] = 1125;//floor(g_ppm_input[i]+0.5);
 
 		PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
 
@@ -173,7 +173,7 @@ int main(void)
 			if (g_ppm_input[4] < 1333)
 				mode = manual;
 			else if (g_ppm_input[4] > 1666)
-				mode = acrobatic;
+				mode = quadcopter;
 			else
 			{
 				mode = rc_fail;
@@ -451,7 +451,7 @@ int main(void)
 					target[i] = limit((g_ppm_input[i] - RC_CENTER) * rc_reverse[i] * rc_reverse[i] / RC_RANGE, -1, 1) * pid_limit[i][0];
 
 				// yaw:
-				target[2] = radian_add(target[2], limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[i] / RC_RANGE, -1, 1) * ACRO_YAW_RATE * interval);
+				target[2] = radian_add(target[2], limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[2] / RC_RANGE, -1, 1) * ACRO_YAW_RATE * interval);
 			}
 			break;
 		}
@@ -466,7 +466,6 @@ int main(void)
 			error_pid[i][2] = new_p - error_pid[i][2];								// D
 			error_pid[i][0] = new_p;																	// P
 			
-			float pid[i] = 0;
 			float p_rc = limit((g_ppm_input[5] - 1000.0) / 520.0, 0, 2);
 			for(int j=0; j<3; j++)
 				pid[i] += limit(error_pid[i][j] * p_rc/ pid_limit[i][j], -1, 1) * pid_factor[i][j];
@@ -486,15 +485,18 @@ int main(void)
 		{
 			for(int i=0; i<4; i++)
 			{
-				float mix = g_ppm_input[3];
+				float mix = g_ppm_input[2];
 				for(int j=0; j<3; j++)
-					mix += quadcopter_mixing_matrix[i][j] * pid[j] * QUADCOPTER_MAX_DELTA;
+					mix += quadcopter_mixing_matrix[i][j] * (pid[j]/pid_limit[j][0]) * QUADCOPTER_MAX_DELTA;
 				g_ppm_output[i] = mix;
+				
+				TRACE("pid[x] = %f, %f, %f", pid[0], pid[1], pid[2]);
 			}
 		}
 		
-		// yaw pass through
-		g_ppm_output[3] = g_ppm_input[3];
+		// yaw pass through for acrobatic
+		else
+			g_ppm_output[3] = g_ppm_input[3];
 
 
 		// manual flight pass through
