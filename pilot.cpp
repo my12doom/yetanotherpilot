@@ -143,7 +143,11 @@ int main(void)
 	
 	TRACE("base value measured\r\n");
 
+#if QUADCOPTER == 1
+	mode = initializing;
+#else
 	mode = manual;
+#endif
 	float target[3];		// target[roll, pitch, yaw]
 	float target_quad_base[3];		// quad base, usually for ground horizontal calibration
 	vector gyroI;	// attitude by gyro only
@@ -383,17 +387,16 @@ int main(void)
 
 		//float pos[3] = {roll, pitch, yaw_gyro};
 		float pos[3] = {gyroI.array[0], gyroI.array[1], gyroI.array[2]};
-		if (mode == quadcopter)
-		{
+		#if QUADCOPTER == 1		
 			pos[0] = roll;
 			pos[1] = pitch;
 			pos[2] = yaw_gyro;
-		}
+		#endif
 
 		// quadcopter startup protection
 		// if not startup in shutdown mode, we flash the light and refuse to work
 		#if QUADCOPTER == 1
-		if (last_mode == initializing && mode == quadcopter)
+		if (last_mode == initializing && mode != shutdown)
 		{
 			while(true)
 			{
@@ -426,10 +429,16 @@ int main(void)
 		static int64_t last_rc_work = 0;
 		if (!rc_works)
 		{
-			target[0] = -PI/18*sensor_reverse[0];						// 10 degree bank
-			target[1] = (getus() - last_rc_work > 10000000) ? PI/18*sensor_reverse[1] : 0;						// 10 degree pitch down
-			target[2] = yaw_gyro;
-			g_ppm_output[2] = (getus() - last_rc_work > 10000000) ? 1178 : 1350;		// 1350 should be enough to maintain altitude for my plane, 1178 should harm nobody
+			#if QUADCOPTER == 1
+				target[0] = target_quad_base[0];
+				target[1] = target_quad_base[1];
+				target[2] = yaw_gyro;
+			#else
+				target[0] = -PI/18*sensor_reverse[0];						// 10 degree bank
+				target[1] = (getus() - last_rc_work > 10000000) ? PI/18*sensor_reverse[1] : 0;						// 10 degree pitch down
+				target[2] = yaw_gyro;
+				g_ppm_output[2] = (getus() - last_rc_work > 10000000) ? 1178 : 1350;		// 1350 should be enough to maintain altitude for my plane, 1178 should harm nobody
+			#endif
 		}
 		else
 		{
@@ -475,7 +484,7 @@ int main(void)
 					target[i] = limit((g_ppm_input[i] - rc_zero[i]) * rc_reverse[i] / RC_RANGE, -1, 1) * pid_limit[i][0] + target_quad_base[i];
 
 				// yaw:
-				target[2] = radian_add(target[2], limit((g_ppm_input[3] - rc_zero[3]) * rc_reverse[2] / RC_RANGE, -1, 1) * ACRO_YAW_RATE * interval);
+				target[2] = limit((g_ppm_input[3] - rc_zero[3]) * rc_reverse[2] / RC_RANGE, -1, 1) * pid_limit[2][0] + yaw_gyro;
 			}
 			break;
 		}
@@ -505,11 +514,11 @@ int main(void)
 			g_ppm_output[i==2?3:i] = limit(rc_zero[i==2?3:i] + pid[i]*RC_RANGE, 1000, 2000);
 		}
 
-		if (mode == quadcopter)
+		if (mode == quadcopter || (!rc_works && QUADCOPTER == 1) )
 		{
 			for(int i=0; i<4; i++)
 			{
-				float mix = g_ppm_input[2];
+				float mix = rc_works ? g_ppm_input[2] : 1200;
 				for(int j=0; j<3; j++)
 					mix += quadcopter_mixing_matrix[i][j] * (pid[j]/pid_limit[j][0]) * QUADCOPTER_MAX_DELTA;
 				g_ppm_output[i] = mix;

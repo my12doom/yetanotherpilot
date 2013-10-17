@@ -60,14 +60,14 @@ static float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I 
 
 static int rc_reverse[3] = 								// -1 = reverse, 1 = normal, 0 = disable, won't affect mannual mode
 {
-	1,			// roll
+	-1,			// roll
 	1,			// pitch
 	1,			// yaw
 };
 
 static int sensor_reverse[3] = 						// -1 = reverse, 1 = normal, 0 = disable, won't affect mannual mode
 {
-	1,			// roll
+	-1,			// roll
 	-1,			// pitch
 	-1,			// yaw
 };
