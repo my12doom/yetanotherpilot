@@ -390,6 +390,21 @@ int main(void)
 			pos[2] = yaw_gyro;
 		}
 
+		// quadcopter startup protection
+		// if not startup in shutdown mode, we flash the light and refuse to work
+		#if QUADCOPTER == 1
+		if (last_mode == initializing && mode == quadcopter)
+		{
+			while(true)
+			{
+				delayms(500);
+				GPIO_SetBits(GPIOA, GPIO_Pin_11);
+				delayms(500);
+				GPIO_ResetBits(GPIOA, GPIO_Pin_11);
+			}
+		}
+		#endif
+
 		// mode changed?
 		if (mode != last_mode)
 		{
