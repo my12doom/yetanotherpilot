@@ -145,6 +145,7 @@ int main(void)
 
 	mode = manual;
 	float target[3];		// target[roll, pitch, yaw]
+	float target_quad_base[3];		// quad base, usually for ground horizontal calibration
 	vector gyroI;	// attitude by gyro only
 		
 	double temperature = 0;
@@ -171,9 +172,17 @@ int main(void)
 		if (g_ppm_input_update[4] > getus() - RC_TIMEOUT)
 		{
 			if (g_ppm_input[4] < 1333)
-				mode = manual;
+				#if QUADCOPTER == 1
+					mode = shutdown;
+				#else
+					mode = manual;
+				#endif
 			else if (g_ppm_input[4] > 1666)
-				mode = quadcopter;
+				#if QUADCOPTER == 1
+					mode = quadcopter;
+				#else
+					mode = acrobatic;
+				#endif
 			else
 			{
 				mode = rc_fail;
@@ -386,9 +395,9 @@ int main(void)
 		{
 			last_mode = mode;
 
-			target[0] = pos[0];
-			target[1] = pos[1];
-			target[2] = pos[2];
+			target_quad_base[0] = target[0] = pos[0];
+			target_quad_base[1] = target[1] = pos[1];
+			target_quad_base[2] = target[2] = pos[2];
 			
 			for(int i=0; i<6; i++)
 				rc_zero[i] = g_ppm_input[i];
@@ -448,10 +457,10 @@ int main(void)
 				// roll & pitch
 				// RC trim is accepted.
 				for(int i=0; i<2; i++)
-					target[i] = limit((g_ppm_input[i] - RC_CENTER) * rc_reverse[i] * rc_reverse[i] / RC_RANGE, -1, 1) * pid_limit[i][0];
+					target[i] = limit((g_ppm_input[i] - rc_zero[i]) * rc_reverse[i] / RC_RANGE, -1, 1) * pid_limit[i][0] + target_quad_base[i];
 
 				// yaw:
-				target[2] = radian_add(target[2], limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[2] / RC_RANGE, -1, 1) * ACRO_YAW_RATE * interval);
+				target[2] = radian_add(target[2], limit((g_ppm_input[3] - rc_zero[3]) * rc_reverse[2] / RC_RANGE, -1, 1) * ACRO_YAW_RATE * interval);
 			}
 			break;
 		}
@@ -505,6 +514,17 @@ int main(void)
 			for(int i=0; i<6; i++)
 				g_ppm_output[i] = floor(g_ppm_input[i]+0.5);
 		}
+
+		if (mode == shutdown)
+		{
+			for(int i=0; i<6; i++)
+			#if QUADCOPTER == 1
+				g_ppm_output[i] = 1125;
+			#else
+				g_ppm_output[i] = i==2 ? 1125 : RC_CENTER;
+			#endif
+		}
+
 
 		PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
 		

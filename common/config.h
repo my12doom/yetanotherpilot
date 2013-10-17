@@ -30,6 +30,7 @@
 #define ACRO_MANUAL_FACTOR (0.3)		// final output in acrobatic mode, 70% pid, 30% rc
 
 #define QUADCOPTER_MAX_DELTA 100
+#define QUADCOPTER 1
 
 static float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
 {

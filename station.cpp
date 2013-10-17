@@ -73,6 +73,8 @@ const char *mode_tbl[] =
 	"manual",
 	"acrobatic",
 	"fly_by_wire",
+	"quadcopter",
+	"shutdown",
 	"rc_fail",
 };
 
