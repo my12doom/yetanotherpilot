@@ -2,7 +2,7 @@
 #define __CONFIG_H__
 
 // printf debug configuration
-#define TRACE printf
+#define TRACE(...) 
 #define ITM_DBG
 #define USART1_DBG
 #define SW_I2C
@@ -12,6 +12,7 @@
 #endif
 
 // pilot configuration
+#define QUADCOPTER 1
 #define PI 3.14159265
 #define interval (0.008)
 
@@ -27,10 +28,13 @@
 #define ACRO_ROLL_RATE (PI*3/2)				// 270 degree/s
 #define ACRO_PITCH_RATE (PI)			// 180 degree/s
 #define ACRO_YAW_RATE (PI/2)			// 90 degree/s
+#if QUADCOPTER == 1
+#define ACRO_MANUAL_FACTOR (0.0)
+#else
 #define ACRO_MANUAL_FACTOR (0.3)		// final output in acrobatic mode, 70% pid, 30% rc
+#endif
 
 #define QUADCOPTER_MAX_DELTA 100
-#define QUADCOPTER 1
 
 static float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
 {
