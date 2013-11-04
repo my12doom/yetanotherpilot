@@ -481,10 +481,10 @@ int main(void)
 				// roll & pitch
 				// RC trim is accepted.
 				for(int i=0; i<2; i++)
-					target[i] = limit((g_ppm_input[i] - rc_zero[i]) * rc_reverse[i] / RC_RANGE, -1, 1) * pid_limit[i][0] + target_quad_base[i];
+					target[i] = limit((g_ppm_input[i] - RC_CENTER) * rc_reverse[i] / RC_RANGE, -1, 1) * pid_limit[i][0] + target_quad_base[i];
 
 				// yaw:
-				target[2] = limit((g_ppm_input[3] - rc_zero[3]) * rc_reverse[2] / RC_RANGE, -1, 1) * pid_limit[2][0] + yaw_gyro;
+				target[2] = limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[2] / RC_RANGE, -1, 1) * pid_limit[2][0] + yaw_gyro;
 			}
 			break;
 		}
@@ -516,7 +516,8 @@ int main(void)
 
 		if (mode == quadcopter || (!rc_works && QUADCOPTER == 1) )
 		{
-			for(int i=0; i<4; i++)
+			int motor_count = sizeof(quadcopter_mixing_matrix) / sizeof(quadcopter_mixing_matrix[0]);
+			for(int i=0; i<motor_count; i++)
 			{
 				float mix = rc_works ? g_ppm_input[2] : 1200;
 				for(int j=0; j<3; j++)
