@@ -481,10 +481,10 @@ int main(void)
 				// roll & pitch
 				// RC trim is accepted.
 				for(int i=0; i<2; i++)
-					target[i] = limit((g_ppm_input[i] - RC_CENTER) * rc_reverse[i] / RC_RANGE, -1, 1) * pid_limit[i][0] + target_quad_base[i];
+					target[i] = limit((g_ppm_input[i] - RC_CENTER) * rc_reverse[i] / RC_RANGE, -1, 1) * quadcopter_range[i];// + target_quad_base[i];
 
 				// yaw:
-				target[2] = limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[2] / RC_RANGE, -1, 1) * pid_limit[2][0] + yaw_gyro;
+				target[2] = limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[2] / RC_RANGE, -1, 1) * quadcopter_range[2] + yaw_gyro;
 			}
 			break;
 		}
@@ -496,8 +496,8 @@ int main(void)
 			float new_p = radian_sub(pos[i], target[i]) * sensor_reverse[i];
 			error_pid[i][1] += new_p;																	// I
 			error_pid[i][1] = limit(error_pid[i][1], -pid_limit[i][1], pid_limit[i][1]);
-			error_pid[i][2] = new_p - error_pid[i][2];								// D
-			error_pid[i][0] = new_p;																	// P
+			error_pid[i][2] = new_p - error_pid[i][2];													// D
+			error_pid[i][0] = limit(new_p, -pid_limit[i][0], pid_limit[i][0]);;																	// P
 			
 			float p_rc = limit((g_ppm_input[5] - 1000.0) / 520.0, 0, 2);
 			for(int j=0; j<3; j++)

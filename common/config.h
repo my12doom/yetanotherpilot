@@ -38,9 +38,16 @@
 
 static float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
 {
-	{1, 0, 0,},
-	{1, 0, 0,},
-	{1, 0, 0,},
+	{0.2, 0.1, 0.01,},
+	{0.2, 0.1, 0.01,},
+	{0.2, 0, 0,},
+};
+
+static float quadcopter_range[3] = 
+{
+	PI/36,			// roll targe on RC full deflection
+	PI/36,			// pitch
+	PI/36,			// yaw
 };
 
 static int quadcopter_mixing_matrix[4][3] = // the motor mixing matrix, [motor number] [roll, pitch, yaw]
@@ -53,9 +60,9 @@ static int quadcopter_mixing_matrix[4][3] = // the motor mixing matrix, [motor n
 
 static float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]
 {
-	{PI/6, PI*6, 1},
-	{PI/6, PI*6, 1},
-	{PI/6, PI*6, 1},
+	{PI/6, PI/3, 1},
+	{PI/6, PI/3, 1},
+	{PI/6, PI/3, 1},
 };
 
 #define ACRO_MAX_ROLL_OFFSET (pid_limit[0][0])		// 30 degree, max roll advance before airframe can response in acrobatic mode
