@@ -7,7 +7,7 @@ typedef struct
 	short accel[3];
 	short temperature1;		// raw temperature by MPU6050
 	short gyro[3];			// roll, pitch, yaw
-	int voltage;	// unit base: mV
+	int voltage;			// unit base: mV
 } sensor_data;
 
 typedef struct
@@ -26,6 +26,12 @@ typedef struct
 	short target[3];						// 6 byte, unit base: 0.01 degree, range: -18000 ~ 18000
 	unsigned char fly_mode;					// 1 byte
 } pilot_data;
+
+typedef struct
+{
+	int I[3];								// 12 byte, I of PID, unit base: 0.01 degree * x(undefined time unit, current implementation is ~8ms)
+	int D[3];								// 12 byte, D of PID, unit base: 0.01 degree / x(undefined time unit, same as I)
+} pilot_data2;
 
 typedef struct
 {
@@ -48,6 +54,7 @@ typedef struct
 #define TAG_SENSOR_DATA	0x1200000000000000
 #define TAG_IMU_DATA	0x8700000000000000
 #define TAG_PILOT_DATA	0x6500000000000000
+#define TAG_PILOT_DATA2	0x6600000000000000
 #define TAG_MASK		0xff00000000000000
 #define TAG_PPM_DATA	0x3300000000000000
 
