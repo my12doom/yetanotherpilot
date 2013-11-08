@@ -498,10 +498,13 @@ int main(void)
 			error_pid[i][1] = limit(error_pid[i][1], -pid_limit[i][1], pid_limit[i][1]);
 			error_pid[i][2] = new_p - error_pid[i][2];													// D
 			error_pid[i][0] = limit(new_p, -pid_limit[i][0], pid_limit[i][0]);;																	// P
+
+			if (error_pid[i][1] * error_pid[i][0] < 0)
+				error_pid[i][1] = 0;					// reset I if overshoot
 			
 			float p_rc = limit((g_ppm_input[5] - 1000.0) / 520.0, 0, 2);
 			for(int j=0; j<3; j++)
-				pid[i] += limit(error_pid[i][j] * p_rc/ pid_limit[i][j], -1, 1) * pid_factor[i][j];
+				pid[i] += limit(error_pid[i][j]/ pid_limit[i][j], -1, 1) * pid_factor[i][j] * p_rc;
 			pid[i] *= (1-ACRO_MANUAL_FACTOR);
 			int rc = rc_reverse[i]*(g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i]);
 			
