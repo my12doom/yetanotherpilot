@@ -47,6 +47,7 @@ typedef struct
 		sensor_data sensor;	// 20 byte
 		imu_data imu;		// 24 byte
 		pilot_data pilot;	// 23 byte
+		pilot_data2 pilot2;	// 24 byte
 		ppm_data ppm;
 	}data;
 } rf_data;

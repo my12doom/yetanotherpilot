@@ -325,6 +325,16 @@ int main(void)
 			to_send.data.pilot = pilot;
 			tx_result = NRF_Tx_Dat((u8*)&to_send);
 
+			pilot_data2 pilot2 = 
+			{
+				{error_pid[0][1]*180*100/PI, error_pid[1][1]*180*100/PI, error_pid[2][1]*180*100/PI},
+				{error_pid[0][2]*180*100/PI, error_pid[1][2]*180*100/PI, error_pid[2][2]*180*100/PI},
+			};
+
+			to_send.time = (time & (~TAG_MASK)) | TAG_PILOT_DATA2;
+			to_send.data.pilot2 = pilot2;
+			tx_result = NRF_Tx_Dat((u8*)&to_send);
+
 			ppm_data ppm = 
 			{
 				{g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3], g_ppm_input[4], g_ppm_input[5]},
