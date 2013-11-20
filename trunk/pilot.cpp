@@ -165,7 +165,7 @@ int main(void)
 
 	while(1)
 	{
-		static const float factor = 0.995;
+		static const float factor = 0.997;
 		static const float factor_1 = 1-factor;
 		int start_tick = getus();
 		bool rc_works = true;
@@ -491,10 +491,10 @@ int main(void)
 				// roll & pitch
 				// RC trim is accepted.
 				for(int i=0; i<2; i++)
-					target[i] = limit((g_ppm_input[i] - RC_CENTER) * rc_reverse[i] / RC_RANGE, -1, 1) * quadcopter_range[i];// + target_quad_base[i];
+					target[i] = limit((g_ppm_input[i] - RC_CENTER) * rc_reverse[i] / RC_RANGE, -1, 1) * quadcopter_range[i] + quadcopter_trim[i];// + target_quad_base[i];
 
 				// yaw:
-				target[2] = limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[2] / RC_RANGE, -1, 1) * quadcopter_range[2] + yaw_gyro;
+				target[2] = limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[2] / RC_RANGE, -1, 1) * quadcopter_range[2] + yaw_gyro + quadcopter_trim[2];
 			}
 			break;
 		}
@@ -506,8 +506,9 @@ int main(void)
 			float new_p = radian_sub(pos[i], target[i]) * sensor_reverse[i];
 			error_pid[i][1] += new_p;																	// I
 			error_pid[i][1] = limit(error_pid[i][1], -pid_limit[i][1], pid_limit[i][1]);
-			error_pid[i][2] = new_p - error_pid[i][2];													// D
-			error_pid[i][0] = limit(new_p, -pid_limit[i][0], pid_limit[i][0]);;																	// P
+			new_p = limit(new_p, -pid_limit[i][0], pid_limit[i][0]);
+			error_pid[i][2] = new_p - error_pid[i][0];													// D
+			error_pid[i][0] = new_p;																	// P
 
 			if (error_pid[i][1] * error_pid[i][0] < 0)
 				error_pid[i][1] = 0;					// reset I if overshoot
@@ -533,6 +534,7 @@ int main(void)
 			for(int i=0; i<motor_count; i++)
 			{
 				float mix = rc_works ? g_ppm_input[2] : 1200;
+				mix = (mix-1100)*0.6 + 1100;
 				for(int j=0; j<3; j++)
 					mix += quadcopter_mixing_matrix[i][j] * (pid[j]/pid_limit[j][0]) * QUADCOPTER_MAX_DELTA;
 				g_ppm_output[i] = mix;
