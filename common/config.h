@@ -38,9 +38,16 @@
 
 static float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
 {
-	{2, 0.25, 0.01,},
-	{2, 0.25, 0.01,},
+	{0.2, 0.05, 6,},
+	{0.2, 0.05, 6,},
 	{0.2, 0, 0,},
+};
+
+static float quadcopter_trim[3] = 
+{
+	-4.5 * PI / 180,				// roll
+	-2.5 * PI / 180,			// pitch
+	0,							// yaw
 };
 
 static float quadcopter_range[3] = 

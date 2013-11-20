@@ -65,8 +65,8 @@ char filename[20];
 imu_data imu = {0};
 sensor_data sensor = {0};
 pilot_data pilot = {0};
+pilot_data2 pilot2 = {0};
 ppm_data ppm = {0};
-
 const char *mode_tbl[] = 
 {
 	"initializing",
@@ -179,6 +179,13 @@ int main(void)
 				pilot = recv.data.pilot;
 			}
 
+			else if ((recv.time & TAG_MASK) == TAG_PILOT_DATA2)
+			{
+				type = 4;
+				pilot2 = recv.data.pilot2;
+			}
+
+
 			else if ((recv.time & TAG_MASK) == TAG_PPM_DATA)
 			{
 				type = 5;
@@ -255,11 +262,15 @@ int main(void)
 					sqrt((float)sensor.accel[0]*sensor.accel[0] + sensor.accel[1]*sensor.accel[1] + sensor.accel[2] * sensor.accel[2]));
 				ARC_LCD_ShowString(0, 128, yawstr);
 				
+				sprintf((char*)yawstr, "%.2f,%.2f,%.2f", pilot.error[0]/100.f, pilot2.I[0]/100.f, pilot2.D[0]/100.f);
+				ARC_LCD_ShowString(0, 144, yawstr);
+
+				sprintf((char*)yawstr, "%.2f,%.2f,%.2f", pilot.error[1]/100.f, pilot2.I[1]/100.f, pilot2.D[1]/100.f);
+				ARC_LCD_ShowString(0, 160, yawstr);
 			}
 			
 			if ((getus() - last_packet_time > 2000000))
 			{
-				ARC_LCD_ShowString(0, 150, "WARNING");
 				sprintf((char*)yawstr, "NRF NOT RESPONDING %x", packet_types);
 				ARC_LCD_ShowString(0, 166, yawstr);
 			}
