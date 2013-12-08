@@ -25,6 +25,11 @@ int strlen(const char*p)
 	return o;
 }
 
+int abs(int x)
+{
+	return x>0 ? x : -x;
+}
+
 int main(void)
 {
 	// NMEA test
@@ -123,7 +128,11 @@ int main(void)
 
 		// RC pass through
 		for(int i=0; i<6; i++)
-			g_ppm_output[i] = 1125;//floor(g_ppm_input[i]+0.5);
+		#if QUADCOPTER == 1
+			g_ppm_output[i] = 1125;
+		#else
+			g_ppm_output[i] = floor(g_ppm_input[i]+0.5);
+		#endif
 
 		PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
 
@@ -364,7 +373,7 @@ int main(void)
 		for(int i=0; i<3; i++)
 			gyroI.array[i] = radian_add(gyroI.array[i], gyro.array[i]);
 		
-		//TRACE("gyroI:%f,%f,%f\r", gyroI.array[0] *180/PI, gyroI.array[1]*180/PI, gyroI.array[2]*180/PI);
+		TRACE("gyroI:%f,%f,%f\r", gyroI.array[0] *180/PI, gyroI.array[1]*180/PI, gyroI.array[2]*180/PI);
 		
 		// apply CF filter for Mag
 		vector mag_f = mag;
@@ -486,6 +495,7 @@ int main(void)
 			}
 			break;
 
+		#if QUADCOPTER == 1
 		case quadcopter:
 			{
 				// roll & pitch
@@ -497,6 +507,7 @@ int main(void)
 				target[2] = limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[2] / RC_RANGE, -1, 1) * quadcopter_range[2] + yaw_gyro + quadcopter_trim[2];
 			}
 			break;
+		#endif
 		}
 		
 		// calculate new pid & apply pid controll & output
@@ -523,12 +534,17 @@ int main(void)
 				pid[i] = pid[i] + rc * ACRO_MANUAL_FACTOR / RC_RANGE;
 			//else
 				pid[i] = pid[i];
+
+
+			int new_v = limit(rc_zero[i==2?3:i] + pid[i]*RC_RANGE, 1000, 2000);
 			
 			
-			g_ppm_output[i==2?3:i] = limit(rc_zero[i==2?3:i] + pid[i]*RC_RANGE, 1000, 2000);
+			//g_ppm_output[i==2?3:i] = abs(new_v - g_ppm_output[i==2?3:i]) > RC_DEAD_ZONE ? new_v : g_ppm_output[i==2?3:i];
+			g_ppm_output[i==2?3:i] = new_v;
 		}
 
-		if (mode == quadcopter || (!rc_works && QUADCOPTER == 1) )
+		#if QUADCOPTER == 1
+		if (mode == quadcopter || (!rc_works) )
 		{
 			int motor_count = sizeof(quadcopter_mixing_matrix) / sizeof(quadcopter_mixing_matrix[0]);
 			for(int i=0; i<motor_count; i++)
@@ -542,9 +558,10 @@ int main(void)
 				TRACE("pid[x] = %f, %f, %f", pid[0], pid[1], pid[2]);
 			}
 		}
+		else
+		#endif
 		
 		// yaw pass through for acrobatic
-		else
 			g_ppm_output[3] = g_ppm_input[3];
 
 
@@ -555,7 +572,7 @@ int main(void)
 				g_ppm_output[i] = floor(g_ppm_input[i]+0.5);
 		}
 
-		if (mode == shutdown)
+		if (mode == shutdown || mode == initializing)
 		{
 			for(int i=0; i<6; i++)
 			#if QUADCOPTER == 1
@@ -575,6 +592,7 @@ int main(void)
 			error_pid[0][0]*PI180, error_pid[1][0]*PI180, error_pid[2][0]*PI180);
 		
 		TRACE(",out= %d, %d, %d, %d, input=%f,%f,%f,%f", g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5]);
+		//TRACE ("error pid[0] = %f,%f,%f", error_pid[0][0], error_pid[0][1], error_pid[0][2]);
 		
 		
 		static int last_ppm = 1120;
@@ -584,7 +602,7 @@ int main(void)
 			last_ppm = floor(g_ppm_input[2]);
 		}
 		
-		//TRACE("\rinput:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5], g_ppm_input[4], g_ppm_input[5], p->voltage/1000.0 );
+		TRACE("input:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5], g_ppm_input[4], g_ppm_input[5], p->voltage/1000.0 );
 
 
 

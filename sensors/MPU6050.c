@@ -3,6 +3,7 @@
 #include "../common/I2C.h"
 #include "../common/common.h"
 #include "../common/printf.h"
+#include "../common/timer.h"
 
 #define MPU6050SlaveAddress 0xD0
 #define MPU6050_REG_WHO_AM_I 0x75
@@ -41,7 +42,7 @@ int init_MPU6050(void)
 	I2C_WriteReg(MPU6050SlaveAddress, SMPLRT_DIV, 0x07);
 	I2C_WriteReg(MPU6050SlaveAddress, MPU6050_CONFIG, 0x06);
 	I2C_WriteReg(MPU6050SlaveAddress, GYRO_CONFIG, 0x18);			// full scale : +/-8192; +/- 2000 degree/s
-	I2C_WriteReg(MPU6050SlaveAddress, ACCEL_CONFIG, 0x08);
+	I2C_WriteReg(MPU6050SlaveAddress, ACCEL_CONFIG, 0x18);
 	
 	I2C_ReadReg(MPU6050SlaveAddress, WHO_AM_I, &who_am_i, 1);
 	TRACE("MPU6050 initialized, WHO_AM_I=%x\r\n", who_am_i);
@@ -55,12 +56,45 @@ int init_MPU6050(void)
 
 // data[0 ~ 7] :
 // accel_x, accel_y, accel_z, raw_temperature, gyro_x, gyro_y, gyro_z
+short gyro_o[3];
+short gyro_raw[3];
+int64_t lastus = -1;
 int read_MPU6050(short*data)
 {	
 	int i;
+	int64_t us;
 	int result = I2C_ReadReg(MPU6050SlaveAddress, ACCEL_XOUT_H, (u8*)data, 14);
 	for(i=0; i<7; i++)
 		swap((u8*)&data[i], 2);
+
+	// apply 5hz high pass filter for gyro data
+	/*
+	us = getus();
+
+	if (lastus == -1)
+	{
+		for(i=0; i<3; i++)
+			gyro_raw[i] = gyro_o[i] = data[i+4];
+	}
+	else
+	{
+		float dt = (us-lastus)/1000000.0f;
+		const float RC = 0.03183f;//1.0f/(2*3.1415926 * 5);	// 5hz High pass filter		
+		float alpha = RC / (dt + RC);
+
+		for(i=0; i<3; i++)
+		{
+			gyro_o[i] = alpha * (gyro_o[i] + data[i+4] - gyro_raw[i]);
+		}
+
+		for(i=0; i<3; i++)
+		{
+			gyro_raw[i] = data[i+4];
+			data[i+4] = gyro_o[i];
+		}
+	}
+	lastus = us;
+	*/
 	
 	return result;
 }
