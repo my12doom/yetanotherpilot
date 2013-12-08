@@ -12,7 +12,7 @@
 #endif
 
 // pilot configuration
-#define QUADCOPTER 1
+#define QUADCOPTER 0
 #define PI 3.14159265
 #define interval (0.008)
 
@@ -30,19 +30,18 @@
 #define ACRO_YAW_RATE (PI/2)			// 90 degree/s
 #if QUADCOPTER == 1
 #define ACRO_MANUAL_FACTOR (0.0)
-#else
-#define ACRO_MANUAL_FACTOR (0.3)		// final output in acrobatic mode, 70% pid, 30% rc
-#endif
-
-#define QUADCOPTER_MAX_DELTA 100
-
 static float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
 {
 	{0.2, 0.05, 6,},
 	{0.2, 0.05, 6,},
 	{0.2, 0, 0,},
 };
-
+static float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]
+{
+	{PI/6, PI/3, 1},
+	{PI/6, PI/3, 1},
+	{PI/6, PI/3, 1},
+};
 static float quadcopter_trim[3] = 
 {
 	-4.5 * PI / 180,				// roll
@@ -64,13 +63,29 @@ static int quadcopter_mixing_matrix[4][3] = // the motor mixing matrix, [motor n
 	{0, -1, -1},			// front
 	{+1, 0, +1},			// left
 };
-
+#else
+#define ACRO_MANUAL_FACTOR (0.3)		// final output in acrobatic mode, 70% pid, 30% rc
+static float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
+{
+	//{0.667, 0.066, 0,},
+	//{0.667, 0.066, 0,},
+	{0, 0.0, 20,},
+	{0, 0.0, 20,},
+	{0, 0, 0,},
+};
 static float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]
 {
-	{PI/6, PI/3, 1},
-	{PI/6, PI/3, 1},
+	{PI/4, PI/2, 1},
+	{PI/4, PI/2, 1},
 	{PI/6, PI/3, 1},
 };
+#endif
+
+#define QUADCOPTER_MAX_DELTA 100
+
+
+
+
 
 #define ACRO_MAX_ROLL_OFFSET (pid_limit[0][0])		// 30 degree, max roll advance before airframe can response in acrobatic mode
 #define ACRO_MAX_PITCH_OFFSET (pid_limit[1][0])	// 30 degree, max pitch advance before airframe can response in acrobatic mode
@@ -78,7 +93,7 @@ static float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I 
 
 static int rc_reverse[3] = 								// -1 = reverse, 1 = normal, 0 = disable, won't affect mannual mode
 {
-	-1,			// roll
+	1,			// roll
 	1,			// pitch
 	1,			// yaw
 };
