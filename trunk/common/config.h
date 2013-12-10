@@ -24,6 +24,7 @@
 #define ref_vaoltage 3.366
 #define resistor_total 61.3
 #define resistor_vaoltage 9.89
+#define MAX_GYRO_BIAS_DRIFT 30
 
 #define ACRO_ROLL_RATE (PI*3/2)				// 270 degree/s
 #define ACRO_PITCH_RATE (PI)			// 180 degree/s
