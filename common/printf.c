@@ -3,13 +3,19 @@
 #include <stdarg.h>
 #include <misc.h>
 #include <stdio.h>
+#include "../nmea/nmea.h"
+nmeaINFO info;
+nmeaPARSER parser;
 
 void printf_init(void)
 {
-#ifdef USART1_DBG
 	GPIO_InitTypeDef GPIO_InitStructure;
 	USART_InitTypeDef USART_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
+
+	// NEMA init
+	nmea_zero_INFO(&info);
+	nmea_parser_init(&parser);
 	
 	/* config USART1 clock */
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1 | RCC_APB2Periph_GPIOA, ENABLE);
@@ -34,7 +40,7 @@ void printf_init(void)
   NVIC_Init(&NVIC_InitStructure);
 	  
 	/* USART1 mode config */
-	USART_InitStructure.USART_BaudRate = 115200;
+	USART_InitStructure.USART_BaudRate = 4800;
 	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
 	USART_InitStructure.USART_StopBits = USART_StopBits_1;
 	USART_InitStructure.USART_Parity = USART_Parity_No ;
@@ -43,9 +49,18 @@ void printf_init(void)
 	USART_Init(USART1, &USART_InitStructure); 
 	USART_Cmd(USART1, ENABLE);
 	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
-#endif
 }
 
+static char str[1024];
+static int n = 0;
+
+static int strlen(const char*p)
+{
+	int o = 0;
+	while (*p++)
+		o++;
+	return o;
+}
 
 void USART1_IRQHandler(void)
 {
@@ -62,7 +77,18 @@ void USART1_IRQHandler(void)
 		USART_ClearITPendingBit(USART1, USART_IT_RXNE);
 	
 	if (p)
-		USART_SendData(USART1, c);
+	{
+		//fputc(c, stdout);
+		//USART_SendData(USART1, c);
+		str[n++] = c;
+		if (c == '\n')
+		{
+			str[n] = NULL;
+			printf(str);
+			nmea_parse(&parser, str, (int)strlen(str), &info);
+			n = 0;
+		}
+	}
 }
 
 #define ITM_Port8(n)    (*((volatile unsigned char *)(0xE0000000+4*n)))

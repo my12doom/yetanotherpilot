@@ -105,8 +105,6 @@ int main(int argc, char **argv)
 			ground_temperature = imu.temperature / 100.0;
 		}
 
-		ground_pressure = 1012;
-
 		double scaling = (double)pressure / ground_pressure;
 		double temp = ((double)ground_temperature) + 273.15f;
 		double altitude = 153.8462f * temp * (1.0f - exp(0.190259f * log(scaling)));
