@@ -1,4 +1,3 @@
-#include <Windows.h>
 #include <stdio.h>
 #include <conio.h>
 #include <math.h>
@@ -35,6 +34,7 @@ int main(int argc, char **argv)
 
 	FILE * f = fopen(argv[1], "rb");
 	FILE * fo = fopen("out.csv", "wb");
+	FILE * gyrof = fopen("gyro.dat", "wb");
 	int n = 0;
 	int packet = 0;
 	int file = 0;
@@ -50,7 +50,10 @@ int main(int argc, char **argv)
 		else if ((rf.time & TAG_MASK) ==  TAG_PILOT_DATA2)
 			pilot2 = rf.data.pilot2;
 		else if ((rf.time & TAG_MASK) ==  TAG_SENSOR_DATA)
+		{
 			sensor = rf.data.sensor;
+			fwrite(sensor.gyro, 1, 6, gyrof);
+		}
 		else if ((rf.time & TAG_MASK) ==  TAG_PPM_DATA)
 			ppm = rf.data.ppm;
 		else
@@ -130,6 +133,7 @@ int main(int argc, char **argv)
 				// estAcc[2], 垂直方向，往上为正
 	}
 
+	fclose(gyrof);
 	fclose(fo);
 	fclose(f);
 
