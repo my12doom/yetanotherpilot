@@ -21,6 +21,9 @@ extern "C"
 #include "fat/sdcard.h"
 }
 
+#include "nmea/nmea.h"
+extern nmeaINFO info;
+
 FRESULT set_timestamp(char *filename);
 void RTC_Init();
 
@@ -57,6 +60,8 @@ SD_Error SD_InitAndConfig(void)
 	return Status;
 }
 
+int8_t keys[4];
+
 #include "LCD/arc_lcd.h"
 uint16_t buf[512];	
 uint8_t tmp[20];
@@ -91,6 +96,13 @@ int main(void)
 	
 	RTC_Init();
 	
+	// controll key
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15; 
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;  
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
+	
 
 	// SD CARD
 	NVIC_InitTypeDef NVIC_InitStructure;	
@@ -107,13 +119,7 @@ int main(void)
 	UINT done;
 	disk_initialize(0);
 	FRESULT res = f_mount(0, &fs);
-	
-	GPIO_InitTypeDef GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode =  GPIO_Mode_IPU;	
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12 | GPIO_Pin_13;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-	
+		
 	while(sd == SD_OK)
 	{
 		
@@ -152,6 +158,10 @@ int main(void)
 	int64_t packet_speed_time = getus();
 	while(1)
 	{
+		// read keys
+		for(int i=0; i<4; i++)
+			keys[i] = GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_12<<i);
+
 		int result = NRF_Rx_Dat((u8*)&recv);
 		if (getus() - packet_speed_time > 1000000)
 		{
@@ -269,6 +279,10 @@ int main(void)
 				ARC_LCD_ShowString(0, 160, yawstr);
 			}
 			
+			// NEMA test
+			sprintf((char*)yawstr, "%d,%d,%.2f,%.2f,%.2f", info.sig, info.fix, (float)info.PDOP, (float)info.HDOP, (float)info.VDOP);
+			ARC_LCD_ShowString(0, 0, yawstr);
+			
 			if ((getus() - last_packet_time > 2000000))
 			{
 				sprintf((char*)yawstr, "NRF NOT RESPONDING %x", packet_types);
@@ -278,6 +292,10 @@ int main(void)
 			{
 				ARC_LCD_ShowString(0, 182, "SDCARD ERROR");
 			}
+			
+			sprintf((char*)yawstr, "key:%d%d%d%d", keys[0], keys[1], keys[2], keys[3]);
+			ARC_LCD_ShowString(104, 182, yawstr);
+
 			
 			int t = RTC_GetCounter();
 			struct tm time = current_time();
