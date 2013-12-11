@@ -438,6 +438,7 @@ int main(void)
 
 
 		// calculate new target
+		float rc_d[3] = {0};
 		switch (mode)
 		{
 		case acrobatic:
@@ -453,11 +454,13 @@ int main(void)
 						rc = 0;
 					else
 						rc *= rate[i];
+
+					rc_d[i] = -rc * rc_reverse[i] * sensor_reverse[i];
 					
-					float new_target = radian_add(target[i], -rc * rc_reverse[i] * sensor_reverse[i]);
+					float new_target = radian_add(target[i], rc_d[i]);
 					float new_error = abs(radian_sub(pos[i], new_target));
 					if (new_error > pid_limit[i][0] && new_error > abs(error_pid[i][0]))
-						;
+						rc_d[i] = 0;
 					else
 						target[i] = new_target;
 				}
@@ -487,7 +490,7 @@ int main(void)
 			error_pid[i][1] += new_p;																	// I
 			error_pid[i][1] = limit(error_pid[i][1], -pid_limit[i][1], pid_limit[i][1]);
 			new_p = limit(new_p, -pid_limit[i][0], pid_limit[i][0]);
-			error_pid[i][2] = new_p - error_pid[i][0];													// D
+			error_pid[i][2] = new_p - error_pid[i][0] - rc_d[i];													// D
 			error_pid[i][0] = new_p;																	// P
 
 			if (error_pid[i][1] * error_pid[i][0] < 0)
