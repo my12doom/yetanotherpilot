@@ -280,8 +280,10 @@ int main(void)
 			}
 			
 			// NEMA test
+			/*
 			sprintf((char*)yawstr, "%d,%d,%.2f,%.2f,%.2f", info.sig, info.fix, (float)info.PDOP, (float)info.HDOP, (float)info.VDOP);
 			ARC_LCD_ShowString(0, 0, yawstr);
+			*/
 			
 			if ((getus() - last_packet_time > 2000000))
 			{

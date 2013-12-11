@@ -68,10 +68,10 @@ static int quadcopter_mixing_matrix[4][3] = // the motor mixing matrix, [motor n
 #define ACRO_MANUAL_FACTOR (0.3)		// final output in acrobatic mode, 70% pid, 30% rc
 static float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
 {
-	//{0.667, 0.066, 0,},
-	//{0.667, 0.066, 0,},
-	{0, 0.0, 20,},
-	{0, 0.0, 20,},
+	{0.667, 0.066, 20,},
+	{0.667, 0.066, 20,},
+	//{0, 0.0, 20,},
+	//{0, 0.0, 20,},
 	{0, 0, 0,},
 };
 static float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]
@@ -101,7 +101,7 @@ static int rc_reverse[3] = 								// -1 = reverse, 1 = normal, 0 = disable, won
 
 static int sensor_reverse[3] = 						// -1 = reverse, 1 = normal, 0 = disable, won't affect mannual mode
 {
-	-1,			// roll
+	1,			// roll
 	-1,			// pitch
 	-1,			// yaw
 };

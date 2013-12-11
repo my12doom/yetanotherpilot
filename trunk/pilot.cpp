@@ -489,8 +489,7 @@ int main(void)
 			float new_p = radian_sub(pos[i], target[i]) * sensor_reverse[i];
 			error_pid[i][1] += new_p;																	// I
 			error_pid[i][1] = limit(error_pid[i][1], -pid_limit[i][1], pid_limit[i][1]);
-			new_p = limit(new_p, -pid_limit[i][0], pid_limit[i][0]);
-			error_pid[i][2] = new_p - error_pid[i][0] - rc_d[i];													// D
+			error_pid[i][2] = new_p - error_pid[i][0] + rc_d[i]* sensor_reverse[i];													// D
 			error_pid[i][0] = new_p;																	// P
 
 			if (error_pid[i][1] * error_pid[i][0] < 0)
@@ -498,7 +497,7 @@ int main(void)
 			
 			float p_rc = limit((g_ppm_input[5] - 1000.0) / 520.0, 0, 2);
 			for(int j=0; j<3; j++)
-				pid[i] += limit(error_pid[i][j]/ pid_limit[i][j], -1, 1) * pid_factor[i][j] * p_rc;
+				pid[i] += limit(limit(error_pid[i][j],-pid_limit[i][j],+pid_limit[i][j]) / pid_limit[i][j], -1, 1) * pid_factor[i][j] * p_rc;
 			pid[i] *= (1-ACRO_MANUAL_FACTOR);
 			int rc = rc_reverse[i]*(g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i]);
 			
@@ -511,8 +510,8 @@ int main(void)
 			int new_v = limit(rc_zero[i==2?3:i] + pid[i]*RC_RANGE, 1000, 2000);
 			
 			
-			//g_ppm_output[i==2?3:i] = abs(new_v - g_ppm_output[i==2?3:i]) > RC_DEAD_ZONE ? new_v : g_ppm_output[i==2?3:i];
-			g_ppm_output[i==2?3:i] = new_v;
+			g_ppm_output[i==2?3:i] = abs(new_v - g_ppm_output[i==2?3:i]) > RC_DEAD_ZONE ? new_v : g_ppm_output[i==2?3:i];
+			//g_ppm_output[i==2?3:i] = new_v;
 		}
 
 		#if QUADCOPTER == 1
