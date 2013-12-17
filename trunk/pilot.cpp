@@ -41,14 +41,14 @@ int main(void)
 	init_MS5611();
 	
 		
-	// use PA-11 as cycle debugger
+	// use PA-0 as cycle debugger
 	GPIO_InitTypeDef GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_11;
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_0;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 	
-	GPIO_SetBits(GPIOA, GPIO_Pin_11);
+	GPIO_SetBits(GPIOA, GPIO_Pin_0);
 
 
 	int mode = initializing;
@@ -148,7 +148,7 @@ int main(void)
 		int start_tick = getus();
 		bool rc_works = true;
 		
-		GPIO_ResetBits(GPIOA, GPIO_Pin_11);
+		GPIO_ResetBits(GPIOA, GPIO_Pin_0);
 		
 		// if rc works and is switched to bypass mode, pass the PPM inputs directly to outputs
 		if (g_ppm_input_update[4] > getus() - RC_TIMEOUT)
@@ -232,7 +232,7 @@ int main(void)
 					double scaling = (double)pressure / ground_pressure;
 					double temp = ((double)ground_temperature) + 273.15f;
 					altitude = 153.8462f * temp * (1.0f - exp(0.190259f * log(scaling)));
-					//TRACE("\r\npressure,temperature=%f, %f, ground pressure & temperature=%f, %f, height=%f, time=%f\r\n", pressure, temperature, ground_pressure, ground_temperature, altitude, (double)getus()/1000000);
+					TRACE("\r\npressure,temperature=%f, %f, ground pressure & temperature=%f, %f, height=%f, time=%f\r\n", pressure, temperature, ground_pressure, ground_temperature, altitude, (double)getus()/1000000);
 				}
 				else
 				{
@@ -389,9 +389,9 @@ int main(void)
 			while(true)
 			{
 				delayms(500);
-				GPIO_SetBits(GPIOA, GPIO_Pin_11);
+				GPIO_SetBits(GPIOA, GPIO_Pin_0);
 				delayms(500);
-				GPIO_ResetBits(GPIOA, GPIO_Pin_11);
+				GPIO_ResetBits(GPIOA, GPIO_Pin_0);
 			}
 		}
 		#endif
@@ -577,7 +577,7 @@ int main(void)
 
 
 
-		GPIO_SetBits(GPIOA, GPIO_Pin_11);
+		GPIO_SetBits(GPIOA, GPIO_Pin_0);
 
 		// wait for next 8ms
 		while(getus()-start_tick < 8000)

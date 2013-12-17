@@ -2,9 +2,9 @@
 
 #define SCL_HI     GPIOA->BSRR = GPIO_Pin_12
 #define SCL_LO     GPIOA->BRR  = GPIO_Pin_12
-#define SDA_HI     GPIOA->BSRR = GPIO_Pin_15
-#define SDA_LO     GPIOA->BRR  = GPIO_Pin_15
-#define SDA_STATE  GPIOA->IDR  & GPIO_Pin_15
+#define SDA_HI     GPIOA->BSRR = GPIO_Pin_11
+#define SDA_LO     GPIOA->BRR  = GPIO_Pin_11
+#define SDA_STATE  GPIOA->IDR  & GPIO_Pin_11
 
 static void I2C_Delay(void);
 
