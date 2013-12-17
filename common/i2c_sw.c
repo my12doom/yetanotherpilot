@@ -11,7 +11,7 @@ void I2C2_SW_Configuration(void)
 
     /* GPIO configuration */
     /* Configure sEE_I2C pins: SCL & SDA*/
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_15 | GPIO_Pin_12;
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11 | GPIO_Pin_12;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
