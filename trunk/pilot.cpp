@@ -459,7 +459,7 @@ int main(void)
 					
 					float new_target = radian_add(target[i], rc_d[i]);
 					float new_error = abs(radian_sub(pos[i], new_target));
-					if (new_error > pid_limit[i][0] && new_error > abs(error_pid[i][0]))
+					if (new_error > ACRO_MAX_OFFSET[i] && new_error > abs(error_pid[i][0]))
 						rc_d[i] = 0;
 					else
 						target[i] = new_target;
