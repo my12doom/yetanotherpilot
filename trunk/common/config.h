@@ -21,9 +21,9 @@
 #define RC_DEAD_ZONE 5
 #define RC_CENTER 1520
 #define BARO_OSS 50
-#define ref_vaoltage 3.366
-#define resistor_total 61.3
-#define resistor_vaoltage 9.89
+#define ref_vaoltage 3.320
+#define resistor_total 179.74
+#define resistor_vaoltage 29.77
 #define MAX_GYRO_BIAS_DRIFT 30
 
 #define ACRO_ROLL_RATE (PI*3/2)				// 270 degree/s

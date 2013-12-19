@@ -202,10 +202,7 @@ int main(void)
 		// messure voltage
 		int adc_oss = 0;
 		for(int i=0; i<50; i++)
-		{
-			adc_oss += ADC_ConvertedValue;
-			delayus(10);
-		}
+			adc_oss += ADC1_Read();
 		adc_oss *= 20 * ref_vaoltage / 4095 * resistor_total / resistor_vaoltage;		// now unit is mV
 		if (p->voltage <0)
 			p->voltage = adc_oss;

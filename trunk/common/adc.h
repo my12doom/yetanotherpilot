@@ -3,12 +3,11 @@
 
 #include "stm32f10x.h"
 
-extern __IO uint16_t ADC_ConvertedValue;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 void ADC1_Init(void);
+int ADC1_Read(void);
 #ifdef __cplusplus
 }
 #endif
