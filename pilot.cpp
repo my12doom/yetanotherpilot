@@ -22,6 +22,9 @@ int abs(int x)
 	return x>0 ? x : -x;
 }
 
+// a helper
+bool calculate_roll_pitch(vector *accel, vector *mag, vector *accel_target, vector *mag_target, float *roll_pitch);
+
 int main(void)
 {
 	// Basic Initialization
@@ -129,7 +132,9 @@ int main(void)
 	float target[3];		// target[roll, pitch, yaw]
 	float target_quad_base[3];		// quad base, usually for ground horizontal calibration
 	vector gyroI;	// attitude by gyro only
-		
+	vector targetVA;		// target accelerate vector
+	vector targetVM;		// target magnet vector
+	
 	double temperature = 0;
 	double pressure = 0;
 	int oss = BARO_OSS;
@@ -580,4 +585,63 @@ int main(void)
 		while(getus()-start_tick < 8000)
 			NRF_Handle_Queue();		
 	}
+}
+
+
+// assume all vector are normalized
+// return true if reliable roll pitch target is calculated, false if unreliable
+bool calculate_roll_pitch(vector *accel, vector *mag, vector *accel_target, vector *mag_target, float *roll_pitch)
+{
+	bool got_roll = false;
+	bool got_pitch = false;
+
+	// use accelerometer first
+	if (accel->V.z*accel->V.z + accel->V.x * accel->V.x > ACCELEROMETER_THRESHOLD)
+	{
+		float roll1 = atan2(accel->V.z, accel->V.x);
+		float roll2 = atan2(accel_target->V.z, accel_target->V.x);
+
+		roll_pitch[0] = radian_sub(roll1,roll2);
+		got_roll = true;
+	}
+
+	if (accel->V.z*accel->V.z + accel->V.y * accel->V.y > ACCELEROMETER_THRESHOLD)
+	{
+		float pitch1 = atan2(accel->V.z, accel->V.y);
+		float pitch2 = atan2(accel_target->V.z, accel_target->V.y);
+
+		roll_pitch[1] = radian_sub(pitch1,pitch2);
+		got_pitch = true;
+	}
+
+	// use mag to correct roll on diving or picth on knife edge
+	if (!got_roll && mag->V.z*mag->V.z + mag->V.x * mag->V.x > MAG_THRESHOLD)
+	{
+		float roll1 = atan2(mag->V.z, mag->V.x);
+		float roll2 = atan2(mag_target->V.z, mag_target->V.x);
+
+		// TODO: some times mag_target can become unreliable, use (mag_target+mag)/2 as mag_target
+		// for example: the plane is diving and target is level flight, mag is reliable, but mag_target can be unreliable for roll target
+		// there is at least one among mag_target and (mag_target+mag)/2 is reliable
+
+		roll_pitch[0] = radian_sub(roll1,roll2);
+		got_roll = true;
+	}
+
+	// use mag to correct roll on diving or picth on knife edge
+	if (!got_pitch && mag->V.z*mag->V.z + mag->V.y * mag->V.y > MAG_THRESHOLD)
+	{
+		float pitch1 = atan2(mag->V.z, mag->V.y);
+		float pitch2 = atan2(mag_target->V.z, mag_target->V.y);
+
+		// TODO: some times mag_target can become unreliable, use (mag_target+mag)/2 as mag_target
+		// for example: the plane is knife edge and target is level flight, mag is reliable, but mag_target can be unreliable for pitch target
+		// there is at least one among mag_target and (mag_target+mag)/2 is reliable
+
+		roll_pitch[1] = radian_sub(pitch1,pitch2);
+		got_pitch = true;
+	}
+
+
+	return got_roll && got_pitch;
 }
