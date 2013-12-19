@@ -29,6 +29,11 @@
 #define ACRO_ROLL_RATE (PI*3/2)				// 270 degree/s
 #define ACRO_PITCH_RATE (PI)			// 180 degree/s
 #define ACRO_YAW_RATE (PI/2)			// 90 degree/s
+
+#define ACCELEROMETER_THRESHOLD 0.3
+#define MAG_THRESHOLD 0.3
+
+
 #if QUADCOPTER == 1
 #define ACRO_MANUAL_FACTOR (0.0)
 static float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
@@ -89,9 +94,9 @@ static float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I 
 
 static float ACRO_MAX_OFFSET[3] =
 {
-(PI/8),		// 30 degree, max roll advance before airframe can response in acrobatic mode
-(PI/8),	// 30 degree, max pitch advance before airframe can response in acrobatic mode
-(PI/8),		// 30 degree, max yaw advance before airframe can response in acrobatic mode
+(PI/8),		// 22.5 degree, max roll advance before airframe can response in acrobatic mode
+(PI/8),	// 22.5 degree, max pitch advance before airframe can response in acrobatic mode
+(PI/8),		// 22.5 degree, max yaw advance before airframe can response in acrobatic mode
 };
 
 static int rc_reverse[3] = 								// -1 = reverse, 1 = normal, 0 = disable, won't affect mannual mode
