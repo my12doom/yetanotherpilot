@@ -50,7 +50,7 @@ int main(void)
 	// use PA-0 as cycle debugger
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_0;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 	
@@ -148,12 +148,16 @@ int main(void)
 	int last_mode = mode;
 	float rc_zero[] = {1520, 1520, 1520, 1520, 1520, 1520};
 	float error_pid[3][3] = {0};		// error_pid[roll, pitch, yaw][p,i,d]
+	long last_tick = getus();
+
 
 	while(1)
 	{
 		static const float factor = 0.997;
 		static const float factor_1 = 1-factor;
-		int start_tick = getus();
+		int64_t start_tick = getus();
+		float interval = (start_tick-last_tick)/1000000.0f;
+		last_tick = start_tick;
 		bool rc_works = true;
 		
 		GPIO_ResetBits(GPIOA, GPIO_Pin_0);
@@ -341,7 +345,7 @@ int main(void)
 			tx_result = NRF_Tx_Dat((u8*)&to_send);
 		}
 		
-		static const float GYRO_SCALE = 2000.0 * PI / 180 / 32767 * interval;		// full scale: +/-2000 deg/s  +/-31767, 8ms interval
+		float GYRO_SCALE = 2000.0 * PI / 180 / 32767 * interval;		// full scale: +/-2000 deg/s  +/-31767, 8ms interval
 		
 		
 		vector gyro = {-p->gyro[0], -p->gyro[1], -p->gyro[2]};
@@ -375,6 +379,10 @@ int main(void)
 			vector_multiply(&acc_f, factor_1);
 			vector_multiply(&estAccGyro, factor);
 			vector_add(&estAccGyro, &acc_f);
+		}
+		else
+		{
+			TRACE("rapid movement (%fg, angle=%f)\r\n", acc_g, acos(vector_angle(&estAccGyro, &acc)) * 180 / PI );
 		}
 
 		// calculate attitude, unit is radian, range +/-PI
@@ -597,7 +605,7 @@ int main(void)
 		GPIO_SetBits(GPIOA, GPIO_Pin_0);
 
 		// wait for next 8ms
-		while(getus()-start_tick < 8000)
+		while(getus()-start_tick < cycle_time)
 			NRF_Handle_Queue();		
 	}
 }
@@ -629,29 +637,54 @@ bool calculate_roll_pitch(vector *accel, vector *mag, vector *accel_target, vect
 		got_pitch = true;
 	}
 
-	// use mag to correct roll on diving or picth on knife edge
+	// use mag to correct roll on diving
 	if (!got_roll && mag->V.z*mag->V.z + mag->V.x * mag->V.x > MAG_THRESHOLD)
 	{
 		float roll1 = atan2(mag->V.z, mag->V.x);
-		float roll2 = atan2(mag_target->V.z, mag_target->V.x);
+		float roll2;
 
-		// TODO: some times mag_target can become unreliable, use (mag_target+mag)/2 as mag_target
+		// some times mag_target can become unreliable, in this case, use (mag_target+mag)/2 as mag_target.
 		// for example: the plane is diving and target is level flight, mag is reliable, but mag_target can be unreliable for roll target
 		// there is at least one among mag_target and (mag_target+mag)/2 is reliable
+		if (mag_target->V.z*mag_target->V.z + mag_target->V.x * mag_target->V.x > MAG_THRESHOLD)
+		{
+			roll2 = atan2(mag_target->V.z, mag_target->V.x);
+		}
+		else
+		{
+			vector target = *mag_target;
+			vector_add(&target, mag);
+			vector_multiply(&target, 0.5);
+
+			roll2 = atan2(target.V.z, target.V.x);
+		}
+
 
 		roll_pitch[0] = radian_sub(roll1,roll2);
 		got_roll = true;
 	}
 
-	// use mag to correct roll on diving or picth on knife edge
+	// use mag to correct picth on knife edge
 	if (!got_pitch && mag->V.z*mag->V.z + mag->V.y * mag->V.y > MAG_THRESHOLD)
 	{
 		float pitch1 = atan2(mag->V.z, mag->V.y);
-		float pitch2 = atan2(mag_target->V.z, mag_target->V.y);
+		float pitch2;
 
-		// TODO: some times mag_target can become unreliable, use (mag_target+mag)/2 as mag_target
-		// for example: the plane is knife edge and target is level flight, mag is reliable, but mag_target can be unreliable for pitch target
+		// some times mag_target can become unreliable, in this case, use (mag_target+mag)/2 as mag_target.
+		// for example: the plane is diving and target is level flight, mag is reliable, but mag_target can be unreliable for roll target
 		// there is at least one among mag_target and (mag_target+mag)/2 is reliable
+		if (mag_target->V.z*mag_target->V.z + mag_target->V.y * mag_target->V.y > MAG_THRESHOLD)
+		{
+			pitch2  = atan2(mag_target->V.z, mag_target->V.y);
+		}
+		else
+		{
+			vector target = *mag_target;
+			vector_add(&target, mag);
+			vector_multiply(&target, 0.5);
+
+			pitch2  = atan2(target.V.z, target.V.y);
+		}
 
 		roll_pitch[1] = radian_sub(pitch1,pitch2);
 		got_pitch = true;
