@@ -14,6 +14,7 @@
 #include "sensors/HMC5883.h"
 #include "sensors/MPU6050.h"
 #include "sensors/MS5611.h"
+#include "sensors/mag_offset.h"
 
 #include "nmea/nmea.h"
 
@@ -42,6 +43,8 @@ int main(void)
 	init_MPU6050();
 	init_HMC5883();	
 	init_MS5611();
+	
+	mag_offset mag_offset;
 	
 		
 	// use PA-0 as cycle debugger
@@ -200,6 +203,17 @@ int main(void)
 			TRACE("read_HMC5883 error!\r\n");
 		}
 		
+		float mag_data[4] = {p->mag[0], p->mag[1], p->mag[2], 1};
+		mag_offset.add_value(mag_data);
+		
+		static int mag_c = 0;
+		if (mag_c++ % 100 == 0)
+		{
+			float center[3], r;
+			mag_offset.get_result(center, &r);
+			TRACE("mag: center=%f,%f,%f, r=%f\r\n", center[0], center[1], center[2], r);
+		}
+		
 		// MS5611 never return invalid value even on error, so no retry
 		int ms5611[2];
 		int ms5611result = read_MS5611(ms5611);
@@ -213,6 +227,7 @@ int main(void)
 			p->voltage = adc_oss;
 		else
 			p->voltage = p->voltage * 0.95 + 0.05 * adc_oss;			// simple low pass
+		
 		
 
 

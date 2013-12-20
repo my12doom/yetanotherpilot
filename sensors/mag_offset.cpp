@@ -1,5 +1,6 @@
 #include "mag_offset.h"
 #include <string.h>
+#include <math.h>
 
 #define ABS(beta) (beta)>0?(beta):-(beta)
 #define SWAP(m_a,m_b) {temp=(m_a);(m_a)=(m_b);(m_b)=temp;}
@@ -65,5 +66,5 @@ void mag_offset::get_result(float *center, float*r)
 
 	for(int i=0; i<3; i++)
 		center[i] = -beta[i]/2;
-	r[0] = center[0]*center[0]+center[1]*center[1]+center[2]*center[2]-beta[3];
+	r[0] = sqrt(center[0]*center[0]+center[1]*center[1]+center[2]*center[2]-beta[3]);
 }
