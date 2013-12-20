@@ -14,7 +14,7 @@
 // pilot configuration
 #define QUADCOPTER 0
 #define PI 3.14159265
-#define interval (0.008)
+#define cycle_time (8000)
 
 #define RC_TIMEOUT 1000000				// 1 seconds
 #define RC_RANGE 400
