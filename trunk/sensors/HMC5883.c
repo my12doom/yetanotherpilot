@@ -4,7 +4,7 @@
 #include <math.h>
 
 static float gain[3] = {0};
-static int zero[3] = {-207, -12, -209};
+static int zero[3] = {-197, -19, -176};
 
 #define	HMC5883SlaveAddress 0x3C
 #define HMC58X3_R_CONFA 0

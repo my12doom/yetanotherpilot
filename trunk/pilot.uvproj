@@ -421,6 +421,11 @@
               <FileType>1</FileType>
               <FilePath>.\sensors\BMP085.c</FilePath>
             </File>
+            <File>
+              <FileName>mag_offset.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\sensors\mag_offset.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

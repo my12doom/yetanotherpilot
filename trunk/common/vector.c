@@ -78,6 +78,14 @@ void vector_rotate(vector *v, float *delta)
 	vector_rotate_yaw(v, delta[2]);
 }
 
+void vector_normalize(vector *v)
+{
+	float l = vector_length(v);
+	v->array[0] /= l;
+	v->array[1] /= l;
+	v->array[2] /= l;
+}
+
 float vector_length(vector *v)
 {
 	return sqrt(v->array[0]*v->array[0] + v->array[1] * v->array[1] + v->array[2] * v->array[2]);
@@ -87,3 +95,4 @@ float vector_angle(vector *v1, vector *v2)
 {
 	return (v1->V.x * v2->V.x + v1->V.y * v2->V.y + v1->V.z * v2->V.z)/vector_length(v1)/vector_length(v2);
 }
+
