@@ -64,6 +64,8 @@ int main(void)
 	vector estAccGyro = {0};			// for roll & pitch
 	vector estMagGyro = {0};			// for yaw
 	vector estGyro = {0};				// for gyro only yaw, yaw lock on this
+	vector groundA;						// ground accerometer vector
+	vector groundM;						// ground magnet vector
 	
 	vector mag_avg = {0};
 	vector gyro_zero = {0};
@@ -113,6 +115,9 @@ int main(void)
 
 		delayms(2);
 	}
+
+	groundA = accel_avg;
+	groundM = mag_avg;
 	
 	vector_divide(&gyro_zero, 1000);
 	vector_divide(&accel_avg, 1000);
@@ -185,7 +190,7 @@ int main(void)
 		}
 		else
 		{
-			//TRACE("warning: RC out of controll\r\n");
+			TRACE("warning: RC out of controll\r\n");
 			rc_works = false;
 			mode = rc_fail;	
 		}
@@ -448,9 +453,26 @@ int main(void)
 				target[2] = yaw_gyro;
 			#else
 				target[0] = -PI/18*sensor_reverse[0];						// 10 degree bank
-				target[1] = (getus() - last_rc_work > 10000000) ? PI/18*sensor_reverse[1] : 0;						// 10 degree pitch down
+				target[1] = (getus() - last_rc_work > 10000000) ? PI/36*sensor_reverse[1] : 0;						// 5 degree pitch down
 				target[2] = yaw_gyro;
 				g_ppm_output[2] = (getus() - last_rc_work > 10000000) ? 1178 : 1350;		// 1350 should be enough to maintain altitude for my plane, 1178 should harm nobody
+
+
+				vector acc = estAccGyro;
+				vector mag = estMagGyro;
+				vector_normalize(&acc);
+				vector_normalize(&mag);
+
+				targetVA = groundA;
+				targetVM = groundM;
+
+				float delta[3] = {target[0], target[1], 0};
+				vector_rotate(&targetVA, delta);
+				vector_rotate(&targetVM, delta);
+
+				calculate_roll_pitch(&acc, &mag, &targetVA, &targetVM, delta);
+
+				printf("\r delta:%f,%f", delta[0] * 180 / PI, delta[1] * 180 / PI);
 			#endif
 		}
 		else
@@ -657,9 +679,11 @@ bool calculate_roll_pitch(vector *accel, vector *mag, vector *accel_target, vect
 			vector_multiply(&target, 0.5);
 
 			roll2 = atan2(target.V.z, target.V.x);
+
 		}
 
 
+		printf("using mag for ROLL\n");
 		roll_pitch[0] = radian_sub(roll1,roll2);
 		got_roll = true;
 	}
@@ -686,6 +710,7 @@ bool calculate_roll_pitch(vector *accel, vector *mag, vector *accel_target, vect
 			pitch2  = atan2(target.V.z, target.V.y);
 		}
 
+		printf("using mag for PITCH\n");
 		roll_pitch[1] = radian_sub(pitch1,pitch2);
 		got_pitch = true;
 	}

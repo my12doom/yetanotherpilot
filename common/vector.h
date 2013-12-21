@@ -24,7 +24,7 @@ void vector_multiply(vector *a, float b);	// a = a*b
 void vector_rotate(vector *v, float *delta);
 float vector_length(vector *v);
 float vector_angle(vector *v1, vector *v2);	// return cos(angle(v1, v2))
-
+void vector_normalize(vector *v);
 
 #ifdef __cplusplus
 }
