@@ -54,7 +54,7 @@ int main(void)
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 	
-	GPIO_SetBits(GPIOA, GPIO_Pin_0);
+	GPIO_ResetBits(GPIOA, GPIO_Pin_0);
 
 
 	int mode = initializing;
@@ -165,7 +165,7 @@ int main(void)
 		last_tick = start_tick;
 		bool rc_works = true;
 		
-		GPIO_ResetBits(GPIOA, GPIO_Pin_0);
+		GPIO_SetBits(GPIOA, GPIO_Pin_0);
 		
 		// if rc works and is switched to bypass mode, pass the PPM inputs directly to outputs
 		if (g_ppm_input_update[4] > getus() - RC_TIMEOUT)
@@ -624,7 +624,7 @@ int main(void)
 
 
 
-		GPIO_SetBits(GPIOA, GPIO_Pin_0);
+		GPIO_ResetBits(GPIOA, GPIO_Pin_0);
 
 		// wait for next 8ms
 		while(getus()-start_tick < cycle_time)
