@@ -490,7 +490,7 @@ int main(void)
 		{
 		case acrobatic:
 			{
-				static const float rate[3] = {ACRO_ROLL_RATE * interval / RC_RANGE, 
+				float rate[3] = {ACRO_ROLL_RATE * interval / RC_RANGE, 
 														ACRO_PITCH_RATE * interval / RC_RANGE,
 														ACRO_YAW_RATE * interval / RC_RANGE};
 
