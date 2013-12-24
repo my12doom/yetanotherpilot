@@ -6,6 +6,7 @@
 #define ITM_DBG
 #define USART1_DBG
 #define SW_I2C
+#define VECTOR_PID
 
 #if _TRACE==1
 #define TRACE printf

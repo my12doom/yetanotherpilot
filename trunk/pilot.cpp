@@ -26,7 +26,7 @@ int abs(int x)
 // a helper
 bool calculate_roll_pitch(vector *accel, vector *mag, vector *accel_target, vector *mag_target, float *roll_pitch);
 
-int debugpin_init()
+void inline debugpin_init()
 {
 	// use PA-0 as cycle debugger
 	GPIO_InitTypeDef GPIO_InitStructure;
@@ -37,11 +37,11 @@ int debugpin_init()
 	
 	GPIO_ResetBits(GPIOA, GPIO_Pin_0);	
 }
-int debugpin_high()
+void inline debugpin_high()
 {
 	GPIO_SetBits(GPIOA, GPIO_Pin_0);	
 }
-int debugpin_low()
+void inline debugpin_low()
 {
 	GPIO_ResetBits(GPIOA, GPIO_Pin_0);	
 }
@@ -71,7 +71,6 @@ int main(void)
 	int mode = initializing;
 	u8 data[TX_PLOAD_WIDTH];
 	sensor_data *p = (sensor_data*)data;
-	sensor_data old;
 	vector estAccGyro = {0};			// for roll & pitch
 	vector estMagGyro = {0};			// for yaw
 	vector estGyro = {0};				// for gyro only yaw, yaw lock on this
@@ -85,6 +84,7 @@ int main(void)
 	double ground_temperature = 0;
 	double altitude = -999;
 	int baro_counter = 0;
+	int ms5611[2];
 	p->voltage = -1;
 
 	// static base value detection
@@ -178,7 +178,7 @@ int main(void)
 		
 		debugpin_high();
 		
-		// if rc works and is switched to bypass mode, pass the PPM inputs directly to outputs
+		// RC modes and RC fail detection
 		if (g_ppm_input_update[4] > getus() - RC_TIMEOUT)
 		{
 			if (g_ppm_input[4] < 1333)
@@ -209,20 +209,11 @@ int main(void)
 		
 
 		// always read sensors and calculate attitude
-		int I2C_time = getus();
-		int I2C_retry = 5;
-		while (read_MPU6050(&p->accel[0])<0 && getus()- I2C_time < 5000)
-		{
-			I2C_retry--;
-			TRACE("read_MPU6050 error!\r\n");
-		}
-		
-		while (read_HMC5883(&p->mag[0])<0 && getus()- I2C_time < 5000)
-		{
-			I2C_retry--;
-			TRACE("read_HMC5883 error!\r\n");
-		}
-		
+		read_MPU6050(&p->accel[0]);		
+		read_HMC5883(&p->mag[0]);		
+		int ms5611result = read_MS5611(ms5611);
+
+
 		float mag_data[4] = {p->mag[0], p->mag[1], p->mag[2], 1};
 		mag_offset.add_value(mag_data);
 		
@@ -234,10 +225,6 @@ int main(void)
 			TRACE("mag: center=%f,%f,%f, r=%f\r\n", center[0], center[1], center[2], r);
 		}
 		
-		// MS5611 never return invalid value even on error, so no retry
-		int ms5611[2];
-		int ms5611result = read_MS5611(ms5611);
-
 		// messure voltage
 		int adc_oss = 0;
 		for(int i=0; i<50; i++)
@@ -281,16 +268,6 @@ int main(void)
 				temperature = 0;				
 			}
 		}
-		
-		if (I2C_retry == 0)
-		{
-			*p = old;
-		}
-		else
-		{
-			old = *p;
-		}
-		
 		
 		// send raw sensor data and IMU data back if NRF exists
 		if (nrf == 0)
@@ -496,13 +473,15 @@ int main(void)
 
 		// calculate new target
 		float rc_d[3] = {0};
+		float rc_dv[3] = {0};
+		float errorV[2] = {0};
 		switch (mode)
 		{
 		case acrobatic:
 			{
 				float rate[3] = {ACRO_ROLL_RATE * interval / RC_RANGE, 
-														ACRO_PITCH_RATE * interval / RC_RANGE,
-														ACRO_YAW_RATE * interval / RC_RANGE};
+								ACRO_PITCH_RATE * interval / RC_RANGE,
+								ACRO_YAW_RATE * interval / RC_RANGE};
 
 				for(int i=0; i<3; i++)
 				{
@@ -521,7 +500,47 @@ int main(void)
 					else
 						target[i] = new_target;
 				}
+
+#ifdef VECTOR_PID
+
+				float current_error[2];
+				vector acc = estAccGyro;
+				vector mag = estMagGyro;
+				vector_normalize(&acc);
+				vector_normalize(&mag);
+				calculate_roll_pitch(&acc, &mag, &targetVA, &targetVM, current_error);
+
+				rc_dv[0] = rc_dv[1] = rc_dv[2] = 0;
+				for(int i=0; i<2; i++)
+				{
+					float rc = g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i];
+					if (abs(rc) < RC_DEAD_ZONE)
+						rc = 0;
+					else
+						rc *= rate[i];
+
+					rc_dv[i] = -rc * rc_reverse[i] * sensor_reverse[i];
+
+					vector new_targetVA = targetVA;
+					vector new_targetVM = targetVM;
+					vector_rotate(&new_targetVA, rc_dv);
+					vector_rotate(&new_targetVM, rc_dv);
+
+					float new_error[3];
+					calculate_roll_pitch(&acc, &mag, &new_targetVA, &new_targetVM, new_error);
+
+					if (abs(new_error[i]) > ACRO_MAX_OFFSET[i] && abs(new_error[i]) > abs(current_error[i]))
+						rc_dv[i] = 0;
+				}
+
+
+				vector_rotate(&targetVA, rc_dv);
+				vector_rotate(&targetVM, rc_dv);
+
+				calculate_roll_pitch(&acc, &mag, &targetVA, &targetVM, errorV);
+#endif
 			}
+			
 			break;
 
 		#if QUADCOPTER == 1
@@ -544,6 +563,9 @@ int main(void)
 		for(int i=0; i<3; i++)
 		{
 			float new_p = radian_sub(pos[i], target[i]) * sensor_reverse[i];
+#ifdef VECTOR_PID
+			new_p = (i<2 ? errorV[i] : 0) * sensor_reverse[i];
+#endif
 			error_pid[i][1] += new_p;																	// I
 			error_pid[i][1] = limit(error_pid[i][1], -pid_limit[i][1], pid_limit[i][1]);
 			error_pid[i][2] = new_p - error_pid[i][0] + rc_d[i]* sensor_reverse[i];													// D
