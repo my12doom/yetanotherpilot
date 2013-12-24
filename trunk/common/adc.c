@@ -7,15 +7,10 @@ static void ADC1_GPIO_Config(void)
 
 static void ADC1_Mode_Config(void)
 {
-	GPIO_InitTypeDef GPIO_InitStructure;
 	ADC_InitTypeDef ADC_InitStructure;
 	
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_GPIOA, ENABLE);
 
-	// Configure PA.04  as analog input
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
 	// ADC1 configuration
 	ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;
@@ -37,6 +32,27 @@ static void ADC1_Mode_Config(void)
 	ADC_StartCalibration(ADC1);
 	while(ADC_GetCalibrationStatus(ADC1));
 	
+}
+
+void ADC1_SelectPin(uint16_t GPIO_Pin)
+{
+	GPIO_InitTypeDef GPIO_InitStructure;
+	int ADC_Channel = ADC_Channel_0;
+	
+	while (ADC_Channel <= ADC_Channel_17)
+	{
+		if (1 << ADC_Channel == GPIO_Pin)
+			break;
+		ADC_Channel++;
+	}
+
+	// Configure PA.x  as analog input
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+	ADC_RegularChannelConfig(ADC1, ADC_Channel, 1, ADC_SampleTime_239Cycles5);
 }
 
 void ADC1_Init(void)

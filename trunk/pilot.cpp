@@ -26,6 +26,26 @@ int abs(int x)
 // a helper
 bool calculate_roll_pitch(vector *accel, vector *mag, vector *accel_target, vector *mag_target, float *roll_pitch);
 
+int debugpin_init()
+{
+	// use PA-0 as cycle debugger
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_0;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	
+	GPIO_ResetBits(GPIOA, GPIO_Pin_0);	
+}
+int debugpin_high()
+{
+	GPIO_SetBits(GPIOA, GPIO_Pin_0);	
+}
+int debugpin_low()
+{
+	GPIO_ResetBits(GPIOA, GPIO_Pin_0);	
+}
+
 int main(void)
 {
 	// Basic Initialization
@@ -46,16 +66,7 @@ int main(void)
 	
 	mag_offset mag_offset;
 	
-		
-	// use PA-0 as cycle debugger
-	GPIO_InitTypeDef GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_0;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
 	
-	GPIO_ResetBits(GPIOA, GPIO_Pin_0);
-
 
 	int mode = initializing;
 	u8 data[TX_PLOAD_WIDTH];
@@ -165,7 +176,7 @@ int main(void)
 		last_tick = start_tick;
 		bool rc_works = true;
 		
-		GPIO_SetBits(GPIOA, GPIO_Pin_0);
+		debugpin_high();
 		
 		// if rc works and is switched to bypass mode, pass the PPM inputs directly to outputs
 		if (g_ppm_input_update[4] > getus() - RC_TIMEOUT)
@@ -190,7 +201,7 @@ int main(void)
 		}
 		else
 		{
-			TRACE("warning: RC out of controll\r\n");
+			TRACE("warning: RC out of controll");
 			rc_works = false;
 			mode = rc_fail;	
 		}
@@ -387,7 +398,7 @@ int main(void)
 		}
 		else
 		{
-			TRACE("rapid movement (%fg, angle=%f)\r\n", acc_g, acos(vector_angle(&estAccGyro, &acc)) * 180 / PI );
+			TRACE("rapid movement (%fg, angle=%f)", acc_g, acos(vector_angle(&estAccGyro, &acc)) * 180 / PI );
 		}
 
 		// calculate attitude, unit is radian, range +/-PI
@@ -419,9 +430,9 @@ int main(void)
 			while(true)
 			{
 				delayms(500);
-				GPIO_SetBits(GPIOA, GPIO_Pin_0);
+				debugpin_high();
 				delayms(500);
-				GPIO_ResetBits(GPIOA, GPIO_Pin_0);
+				debugpin_low();
 			}
 		}
 		#endif
@@ -472,7 +483,6 @@ int main(void)
 
 				calculate_roll_pitch(&acc, &mag, &targetVA, &targetVM, delta);
 
-				printf("\r delta:%f,%f", delta[0] * 180 / PI, delta[1] * 180 / PI);
 			#endif
 		}
 		else
@@ -624,7 +634,7 @@ int main(void)
 
 
 
-		GPIO_ResetBits(GPIOA, GPIO_Pin_0);
+		debugpin_low();
 
 		// wait for next 8ms
 		while(getus()-start_tick < cycle_time)
@@ -682,8 +692,6 @@ bool calculate_roll_pitch(vector *accel, vector *mag, vector *accel_target, vect
 
 		}
 
-
-		printf("using mag for ROLL\n");
 		roll_pitch[0] = radian_sub(roll1,roll2);
 		got_roll = true;
 	}
@@ -709,8 +717,7 @@ bool calculate_roll_pitch(vector *accel, vector *mag, vector *accel_target, vect
 
 			pitch2  = atan2(target.V.z, target.V.y);
 		}
-
-		printf("using mag for PITCH\n");
+		
 		roll_pitch[1] = radian_sub(pitch1,pitch2);
 		got_pitch = true;
 	}

@@ -2,11 +2,16 @@
 #define __CONFIG_H__
 
 // printf debug configuration
-#define TRACE(...) 
+#define _TRACE 1
 #define ITM_DBG
 #define USART1_DBG
 #define SW_I2C
 
+#if _TRACE==1
+#define TRACE printf
+#else
+#define TRACE(...)
+#endif
 #ifndef STATION
 #undef USART1_DBG
 #endif
@@ -32,6 +37,7 @@
 
 #define ACCELEROMETER_THRESHOLD 0.3
 #define MAG_THRESHOLD 0.3
+
 
 
 #if QUADCOPTER == 1
