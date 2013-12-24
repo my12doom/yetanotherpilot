@@ -63,6 +63,7 @@ int main(void)
 	init_MPU6050();
 	init_HMC5883();	
 	init_MS5611();
+	debugpin_init();
 	
 	mag_offset mag_offset;
 	
@@ -422,6 +423,12 @@ int main(void)
 			target_quad_base[0] = target[0] = pos[0];
 			target_quad_base[1] = target[1] = pos[1];
 			target_quad_base[2] = target[2] = pos[2];
+
+			targetVA = estAccGyro;
+			targetVM = estMagGyro;
+
+			vector_normalize(&targetVA);
+			vector_normalize(&targetVM);
 			
 			for(int i=0; i<6; i++)
 				rc_zero[i] = g_ppm_input[i];
@@ -678,7 +685,7 @@ bool calculate_roll_pitch(vector *accel, vector *mag, vector *accel_target, vect
 		float roll1 = atan2(accel->V.z, accel->V.x);
 		float roll2 = atan2(accel_target->V.z, accel_target->V.x);
 
-		roll_pitch[0] = radian_sub(roll1,roll2);
+		roll_pitch[0] = radian_sub(roll2, roll1);
 		got_roll = true;
 	}
 
@@ -687,7 +694,7 @@ bool calculate_roll_pitch(vector *accel, vector *mag, vector *accel_target, vect
 		float pitch1 = atan2(accel->V.z, accel->V.y);
 		float pitch2 = atan2(accel_target->V.z, accel_target->V.y);
 
-		roll_pitch[1] = radian_sub(pitch1,pitch2);
+		roll_pitch[1] = radian_sub(pitch2, pitch1);
 		got_pitch = true;
 	}
 
@@ -714,7 +721,7 @@ bool calculate_roll_pitch(vector *accel, vector *mag, vector *accel_target, vect
 
 		}
 
-		roll_pitch[0] = radian_sub(roll1,roll2);
+		roll_pitch[0] = radian_sub(roll2, roll1);
 		got_roll = true;
 	}
 
@@ -740,7 +747,7 @@ bool calculate_roll_pitch(vector *accel, vector *mag, vector *accel_target, vect
 			pitch2  = atan2(target.V.z, target.V.y);
 		}
 		
-		roll_pitch[1] = radian_sub(pitch1,pitch2);
+		roll_pitch[1] = radian_sub(pitch2, pitch1);
 		got_pitch = true;
 	}
 
