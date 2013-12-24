@@ -2,7 +2,7 @@
 #define __CONFIG_H__
 
 // printf debug configuration
-#define _TRACE 1
+#define _TRACE 0
 #define ITM_DBG
 #define USART1_DBG
 #define SW_I2C
