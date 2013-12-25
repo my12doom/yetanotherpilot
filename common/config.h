@@ -6,7 +6,7 @@
 #define ITM_DBG
 #define USART1_DBG
 #define SW_I2C
-#define VECTOR_PID
+//#define VECTOR_PID
 
 #if _TRACE==1
 #define TRACE printf
@@ -28,6 +28,8 @@
 #define RC_CENTER 1520
 #define BARO_OSS 50
 #define ref_vaoltage 3.320
+#define hall_sensor_ref_voltage 5.00
+#define hall_sensor_sensitivity	0.0666		// unit: mV / mA
 #define resistor_total 179.74
 #define resistor_vaoltage 29.77
 #define MAX_GYRO_BIAS_DRIFT 30
