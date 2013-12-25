@@ -7,7 +7,8 @@ typedef struct
 	short accel[3];
 	short temperature1;		// raw temperature by MPU6050
 	short gyro[3];			// roll, pitch, yaw
-	int voltage;			// unit base: mV
+	short voltage;			// unit base: mV
+	short current;			// unit base: mA
 } sensor_data;
 
 typedef struct

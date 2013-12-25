@@ -301,7 +301,7 @@ int main(void)
 			
 			int t = RTC_GetCounter();
 			struct tm time = current_time();
-			sprintf((char*)yawstr, "voltage:%.2fV", sensor.voltage/1000.0f);
+			sprintf((char*)yawstr, "Battery:%.2fV, %.1fA", sensor.voltage/1000.0f, sensor.current/1000.0f);
 			ARC_LCD_ShowString(0, 268, yawstr);
 			sprintf((char*)yawstr, "packet speed:%d", packet_speed);
 			ARC_LCD_ShowString(0, 284, yawstr);

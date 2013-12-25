@@ -30,20 +30,20 @@ void inline debugpin_init()
 {
 	// use PA-0 as cycle debugger
 	GPIO_InitTypeDef GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_0;
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_8;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 	
-	GPIO_ResetBits(GPIOA, GPIO_Pin_0);	
+	GPIO_ResetBits(GPIOA, GPIO_Pin_8);	
 }
 void inline debugpin_high()
 {
-	GPIO_SetBits(GPIOA, GPIO_Pin_0);	
+	GPIO_SetBits(GPIOA, GPIO_Pin_8);	
 }
 void inline debugpin_low()
 {
-	GPIO_ResetBits(GPIOA, GPIO_Pin_0);	
+	GPIO_ResetBits(GPIOA, GPIO_Pin_8);	
 }
 
 int main(void)
@@ -86,7 +86,8 @@ int main(void)
 	double altitude = -999;
 	int baro_counter = 0;
 	int ms5611[2];
-	p->voltage = -1;
+	p->voltage = -32768;
+	p->current = -32768;
 
 	// static base value detection
 	for(int i=0; i<1000; i++)
@@ -227,15 +228,29 @@ int main(void)
 		}
 		
 		// messure voltage
-		int adc_oss = 0;
+		int adc_voltage = 0;
+		int adc_current = 0;
+		ADC1_SelectPin(GPIO_Pin_4);
 		for(int i=0; i<50; i++)
-			adc_oss += ADC1_Read();
-		adc_oss *= 20 * ref_vaoltage / 4095 * resistor_total / resistor_vaoltage;		// now unit is mV
-		if (p->voltage <0)
-			p->voltage = adc_oss;
+			adc_voltage += ADC1_Read();
+		ADC1_SelectPin(GPIO_Pin_0);
+		for(int i=0; i<50; i++)
+			adc_current += ADC1_Read();
+		adc_voltage *= 20 * ref_vaoltage / 4095 * resistor_total / resistor_vaoltage;		// now unit is mV
+
+		adc_current *= 20 * ref_vaoltage / 4095;		// now unit is mV
+		adc_current = hall_sensor_ref_voltage/2*1000 - adc_current;	// now delta mV
+		adc_current /= hall_sensor_sensitivity;
+
+		if (p->voltage <-30000)
+			p->voltage = adc_voltage;
 		else
-			p->voltage = p->voltage * 0.95 + 0.05 * adc_oss;			// simple low pass
+			p->voltage = p->voltage * 0.95 + 0.05 * adc_voltage;			// simple low pass
 		
+		if (p->current <-30000)
+			p->current = adc_current;
+		else
+			p->current = p->current * 0.95 + 0.05 * adc_current;			// simple low pass
 		
 
 
