@@ -93,21 +93,8 @@ int main(void)
 	for(int i=0; i<1000; i++)
 	{
 		TRACE("\r%d/1000", i);
-		if (read_MPU6050(p->accel)<0 && read_MPU6050(p->accel)<0)
-		{
-			TRACE("warning, MPU6050 sensor error during initializing\r\n");
-			i--;
-			continue;
-		}
-		if (read_HMC5883(p->mag)<0 && read_HMC5883(p->mag)<0)
-		{
-			TRACE("warning, HMC5883 sensor error during initializing\r\n");
-			i--;
-			continue;
-		}
-
-		int baro[2];
-		read_MS5611(baro);
+		read_MPU6050(p->accel);
+		read_HMC5883(p->mag);
 		
 		vector gyro = {-p->gyro[0], -p->gyro[1], -p->gyro[2]};
 		vector acc = {-p->accel[1], p->accel[0], p->accel[2]};
@@ -125,6 +112,11 @@ int main(void)
 		#endif
 
 		PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
+		
+		if ((getus()/1000)%50 > 25)
+			debugpin_high();
+		else
+			debugpin_low();
 
 		delayms(2);
 	}
@@ -281,7 +273,7 @@ int main(void)
 				}
 
 				pressure = 0;
-				temperature = 0;				
+				temperature = 0;
 			}
 		}
 		
@@ -452,7 +444,7 @@ int main(void)
 		
 		// rc protecting:
 		// level flight for 10 second
-		// 10 degree pitch down if still no rc responding.
+		// 5 degree pitch down if still no rc responding.
 		// currently no throttle protection
 		static int64_t last_rc_work = 0;
 		if (!rc_works)
