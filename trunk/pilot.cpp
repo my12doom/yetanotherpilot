@@ -158,7 +158,7 @@ int main(void)
 	int last_mode = mode;
 	float rc_zero[] = {1520, 1520, 1520, 1520, 1520, 1520};
 	float error_pid[3][3] = {0};		// error_pid[roll, pitch, yaw][p,i,d]
-	long last_tick = getus();
+	int64_t last_tick = getus();
 
 
 	while(1)
