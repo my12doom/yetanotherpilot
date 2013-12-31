@@ -28,16 +28,17 @@ void printf_init(void)
 	GPIO_Init(GPIOA, &GPIO_InitStructure);    
 	/* Configure USART1 Rx (PA.10) as input floating */
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 	
 
 	// NVIC config
-  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
-  NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;   /*3.4??????USART1_IRQChannel,?stm32f10x.h?*/
-  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&NVIC_InitStructure);
+  	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
+  	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;   /*3.4??????USART1_IRQChannel,?stm32f10x.h?*/
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+  	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+  	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  	NVIC_Init(&NVIC_InitStructure);
 	  
 	/* USART1 mode config */
 	USART_InitStructure.USART_BaudRate = 4800;

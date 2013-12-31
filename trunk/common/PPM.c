@@ -42,7 +42,7 @@ static void PPM_EXTI_Handler(void)
 			g_ppm_input_start[channel] = TIM_GetCounter(TIM4);
 		else
 		{
-			const float RC = 0.00795f;//1.0f/(2*3.1415926 * 20);	// 20hz low pass filter
+			const float RC = 1.0f/(2*3.1415926 * 200);	// 200hz low pass filter
 			u32 now = TIM_GetCounter(TIM4);
 			float t_delta = (getus() - g_ppm_input_update[channel]) / 1000000.0f;
 			float alpha = t_delta / (t_delta + RC);
@@ -54,7 +54,8 @@ static void PPM_EXTI_Handler(void)
 			else
 				ppm_raw_input[channel][*p] = now + 10000 - g_ppm_input_start[channel];
 			
-			// median filter then 20hz LPF filter
+			// median filter then LPF filter
+			if(0)
 			{
 				int t;				
 				#define swap(a,b) {t = a; a=b; b=t;}
@@ -70,8 +71,12 @@ static void PPM_EXTI_Handler(void)
 				
 				g_ppm_input[channel] = g_ppm_input[channel] * (1-alpha) + alpha * tbl[1];
 
-				g_ppm_input_update[channel] = getus();
 			}
+			else
+			{
+				g_ppm_input[channel] = ppm_raw_input[channel][*p];
+			}
+			g_ppm_input_update[channel] = getus();
 		}
 		
 		EXTI_ClearITPendingBit(line_tbl[channel]);
