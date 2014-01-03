@@ -3,9 +3,6 @@
 #include <stdarg.h>
 #include <misc.h>
 #include <stdio.h>
-#include "../nmea/nmea.h"
-nmeaINFO info;
-nmeaPARSER parser;
 
 void printf_init(void)
 {
@@ -13,9 +10,6 @@ void printf_init(void)
 	USART_InitTypeDef USART_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 
-	// NEMA init
-	nmea_zero_INFO(&info);
-	nmea_parser_init(&parser);
 	
 	/* config USART1 clock */
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1 | RCC_APB2Periph_GPIOA, ENABLE);
@@ -41,7 +35,7 @@ void printf_init(void)
   	NVIC_Init(&NVIC_InitStructure);
 	  
 	/* USART1 mode config */
-	USART_InitStructure.USART_BaudRate = 4800;
+	USART_InitStructure.USART_BaudRate = 9600;
 	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
 	USART_InitStructure.USART_StopBits = USART_StopBits_1;
 	USART_InitStructure.USART_Parity = USART_Parity_No ;
@@ -52,41 +46,28 @@ void printf_init(void)
 	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
 }
 
-static char str[1024];
+char str[2][512];
 static int n = 0;
-
-static int strlen(const char*p)
-{
-	int o = 0;
-	while (*p++)
-		o++;
-	return o;
-}
+int to_parse = -1;
 
 void USART1_IRQHandler(void)
 {
-	unsigned int c = 0;
-	int p = 0;
+	int c = -1;
+	int to_fill = to_parse == -1 ? 0 : 1;
 	if(USART_GetFlagStatus(USART1,USART_IT_RXNE)==SET)
 	{
 		c = USART_ReceiveData(USART1);
-		p = 1;
-		while(USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET) ;
-	}
-
-	if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
 		USART_ClearITPendingBit(USART1, USART_IT_RXNE);
+	}
 	
-	if (p)
+	if (c>0)
 	{
-		//fputc(c, stdout);
-		//USART_SendData(USART1, c);
-		str[n++] = c;
+		fputc(c, stdout);
+		str[to_fill][n++] = c;
 		if (c == '\n')
 		{
-			str[n] = NULL;
-			printf(str);
-			nmea_parse(&parser, str, (int)strlen(str), &info);
+			str[to_fill][n] = NULL;
+			to_parse = to_fill;
 			n = 0;
 		}
 	}
