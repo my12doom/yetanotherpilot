@@ -83,11 +83,28 @@ const char *mode_tbl[] =
 	"rc_fail",
 };
 
+extern int to_parse;
+extern char str[2][512];
+nmeaINFO info;
+nmeaPARSER parser;
+
+
+static int strlen(const char*p)
+{
+	int o = 0;
+	while (*p++)
+		o++;
+	return o;
+}
+
+
 int main(void)
 {
+
+	
 	// Basic Initialization
 	SysTick_Config(720);
-	printf_init();
+	printf_init();	
 	NRF_Init();
 	int nrf = NRF_Check();
 	printf("NRF_Check() = %d\r\n", nrf);
@@ -95,6 +112,10 @@ int main(void)
 	init_timer();
 	
 	RTC_Init();
+	
+	// NEMA init
+	nmea_zero_INFO(&info);
+	nmea_parser_init(&parser);
 	
 	// controll key
 	GPIO_InitTypeDef GPIO_InitStructure;
@@ -158,6 +179,13 @@ int main(void)
 	int64_t packet_speed_time = getus();
 	while(1)
 	{
+		// parse GPS
+		if(to_parse >= 0)
+		{
+			nmea_parse(&parser, str[to_parse], (int)strlen(str[to_parse]), &info);
+			to_parse = -1;
+		}
+		
 		// read keys
 		for(int i=0; i<4; i++)
 			keys[i] = GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_12<<i);
@@ -281,8 +309,12 @@ int main(void)
 			
 			// NEMA test
 			/*
-			sprintf((char*)yawstr, "%d,%d,%.2f,%.2f,%.2f", info.sig, info.fix, (float)info.PDOP, (float)info.HDOP, (float)info.VDOP);
+			sprintf((char*)yawstr, "fix:%d,%d, drop=%.1f,%.1f,%.1f", info.sig, info.fix, (float)info.PDOP, (float)info.HDOP, (float)info.VDOP);
 			ARC_LCD_ShowString(0, 0, yawstr);
+			sprintf((char*)yawstr, "%f - %f, %.2fm", (float)info.lat, (float)info.lon, (float)info.elv);
+			ARC_LCD_ShowString(0,16, yawstr);
+			sprintf((char*)yawstr, "v:%.1fm/s, %d/%d sat", (float)info.speed/3.6f, info.satinfo.inuse, info.satinfo.inview);
+			ARC_LCD_ShowString(0,32, yawstr);
 			*/
 			
 			if ((getus() - last_packet_time > 2000000))

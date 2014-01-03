@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 		double altitude = 153.8462f * temp * (1.0f - exp(0.190259f * log(scaling)));
 
 
- 		if (n++ %5 == 0)
+ 		//if (n++ %5 == 0)
  		fprintf(fo, "%.2f,%.2f,%.2f,%2f,%.2f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d\r\n",
