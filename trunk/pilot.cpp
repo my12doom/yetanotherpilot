@@ -15,8 +15,7 @@
 #include "sensors/MPU6050.h"
 #include "sensors/MS5611.h"
 #include "sensors/mag_offset.h"
-
-#include "nmea/nmea.h"
+#include "common/gps.h"
 
 int abs(int x)
 {
@@ -64,11 +63,10 @@ int main(void)
 	init_HMC5883();	
 	init_MS5611();
 	debugpin_init();
+	GPS_Init(9600);
 	
 	mag_offset mag_offset;
 	
-	
-
 	int mode = initializing;
 	u8 data[TX_PLOAD_WIDTH];
 	sensor_data *p = (sensor_data*)data;
@@ -344,6 +342,23 @@ int main(void)
 			to_send.time = (time & (~TAG_MASK)) | TAG_PPM_DATA;
 			to_send.data.ppm = ppm;
 			tx_result = NRF_Tx_Dat((u8*)&to_send);
+			
+			GPS_ParseBuffer();
+			{
+				nmeaINFO &info = *GPS_GetInfo();
+
+				gps_data gps = 
+				{
+					{info.PDOP*100, info.HDOP*100, info.VDOP*100},
+					info.lon, info.lat, info.elv, info.speed/3.6*100,
+					info.satinfo.inview, info.satinfo.inuse,
+					info.sig, info.fix,
+				};
+
+				to_send.time = (time & (~TAG_MASK)) | TAG_GPS_DATA;
+				to_send.data.gps = gps;
+				tx_result = NRF_Tx_Dat((u8*)&to_send);
+			}
 		}
 		
 		float GYRO_SCALE = 2000.0 * PI / 180 / 32767 * interval;		// full scale: +/-2000 deg/s  +/-31767, 8ms interval

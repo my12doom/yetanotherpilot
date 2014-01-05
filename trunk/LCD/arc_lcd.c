@@ -1121,10 +1121,10 @@ void ARC_LCD_ShowChar(int32_t x, int32_t y, const uint8_t *lcd_font)
 
     font = *(lcd_font) - ' ';
     
-    for(v = 0; v < 16; v++)
+    for(v = 0; v < 12; v++)
     {
-        point = asc2_1608[font][v]; /* using 1206 font */
-        for(h = 0; h < 8; h++)
+        point = asc2_1206[font][v]; /* using 1206 font */
+        for(h = 0; h < 6; h++)
         {                 
             if(point & 0x01)
                 ARC_LCD_SetPixelIndex(x + h, y + v, LCD_COLOR_WHITE);
@@ -1145,7 +1145,7 @@ void ARC_LCD_ShowCharGBK(int32_t x, int32_t y, const uint8_t *lcd_font)
 	uint8_t buffer[32];
 	uint16_t tmp_char=0;
 	
-	GetGBKCode(buffer, (unsigned char*)lcd_font);  /* 取字模数据 */
+	//GetGBKCode(buffer, (unsigned char*)lcd_font);  /* 取字模数据 */
 
 	for ( v = 0; v < 16; v++ )
 	{
@@ -1198,7 +1198,7 @@ void ARC_LCD_ShowString(int32_t x, int32_t y, const uint8_t *lcd_font)
 		else
 		{
 			ARC_LCD_ShowChar(x, y, lcd_font);
-			x += 8;
+			x += 6;
 			lcd_font++;
 		}
     }
