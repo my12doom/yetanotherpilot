@@ -471,6 +471,11 @@
               <FileType>1</FileType>
               <FilePath>.\common\i2c_sw.c</FilePath>
             </File>
+            <File>
+              <FileName>gps.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\common\gps.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

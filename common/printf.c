@@ -46,32 +46,6 @@ void printf_init(void)
 	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
 }
 
-char str[2][512];
-static int n = 0;
-int to_parse = -1;
-
-void USART1_IRQHandler(void)
-{
-	int c = -1;
-	int to_fill = to_parse == -1 ? 0 : 1;
-	if(USART_GetFlagStatus(USART1,USART_IT_RXNE)==SET)
-	{
-		c = USART_ReceiveData(USART1);
-		USART_ClearITPendingBit(USART1, USART_IT_RXNE);
-	}
-	
-	if (c>0)
-	{
-		fputc(c, stdout);
-		str[to_fill][n++] = c;
-		if (c == '\n')
-		{
-			str[to_fill][n] = NULL;
-			to_parse = to_fill;
-			n = 0;
-		}
-	}
-}
 
 #define ITM_Port8(n)    (*((volatile unsigned char *)(0xE0000000+4*n)))
 #define ITM_Port16(n)   (*((volatile unsigned short*)(0xE0000000+4*n)))

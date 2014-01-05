@@ -21,9 +21,6 @@ extern "C"
 #include "fat/sdcard.h"
 }
 
-#include "nmea/nmea.h"
-extern nmeaINFO info;
-
 FRESULT set_timestamp(char *filename);
 void RTC_Init();
 
@@ -33,6 +30,14 @@ struct tm current_time()
 {
 	time_t t = build_time + RTC_GetCounter();
 	return *localtime (&t);
+}
+
+float NDEG2DEG(float ndeg)
+{
+	int degree = ndeg / 100;
+	int minute = int(floor(ndeg)) % 100;	
+	
+	return degree + minute/60.0f + modf(ndeg, &ndeg)/60.0f;
 }
 
 SD_Error SD_InitAndConfig(void)
@@ -72,6 +77,7 @@ sensor_data sensor = {0};
 pilot_data pilot = {0};
 pilot_data2 pilot2 = {0};
 ppm_data ppm = {0};
+gps_data gps = {0};
 const char *mode_tbl[] = 
 {
 	"initializing",
@@ -83,25 +89,10 @@ const char *mode_tbl[] =
 	"rc_fail",
 };
 
-extern int to_parse;
-extern char str[2][512];
-nmeaINFO info;
-nmeaPARSER parser;
-
-
-static int strlen(const char*p)
-{
-	int o = 0;
-	while (*p++)
-		o++;
-	return o;
-}
-
+#define LINE_HEIGHT 12
 
 int main(void)
-{
-
-	
+{	
 	// Basic Initialization
 	SysTick_Config(720);
 	printf_init();	
@@ -113,12 +104,16 @@ int main(void)
 	
 	RTC_Init();
 	
-	// NEMA init
-	nmea_zero_INFO(&info);
-	nmea_parser_init(&parser);
+	// NEMA LED init
+	GPIO_InitTypeDef GPIO_InitStructure;
+	RCC_APB2PeriphClockCmd( RCC_APB2Periph_GPIOE, ENABLE);
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_2;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOE, &GPIO_InitStructure);
+	GPIO_SetBits(GPIOE, GPIO_Pin_0 | GPIO_Pin_2);
 	
 	// controll key
-	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15; 
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;  
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
@@ -159,7 +154,7 @@ int main(void)
 	// LCD
 	ARC_LCD_Init();
 	ARC_LCD_Clear(0);
-	sprintf((char*)tmp, "Æô¶¯ok,ºÄÊ±%dÎ¢Ãë, NRF=%d", (int)getus(), nrf);
+	sprintf((char*)tmp, "Startup ok, %dus, NRF=%d", (int)getus(), nrf);
 	printf("%s\r\n", tmp);
 	ARC_LCD_Clear(0);
 	ARC_LCD_ShowString(0, 0, tmp);
@@ -177,15 +172,9 @@ int main(void)
 	int packet_speed = 0;
 	int packet_speed_counter = 0;
 	int64_t packet_speed_time = getus();
+	int64_t last_nema_parse = getus() - 2000000;
 	while(1)
-	{
-		// parse GPS
-		if(to_parse >= 0)
-		{
-			nmea_parse(&parser, str[to_parse], (int)strlen(str[to_parse]), &info);
-			to_parse = -1;
-		}
-		
+	{		
 		// read keys
 		for(int i=0; i<4; i++)
 			keys[i] = GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_12<<i);
@@ -230,6 +219,12 @@ int main(void)
 				ppm = recv.data.ppm;
 			}
 
+			else if ((recv.time & TAG_MASK) == TAG_GPS_DATA)
+			{
+				last_nema_parse = getus();
+				type = 6;
+				gps = recv.data.gps;
+			}
 			else
 			{
 				// unknown data
@@ -279,43 +274,51 @@ int main(void)
 
 				
 				sprintf((char*)yawstr, "RolPitHead:%.2f %.2f %.2f", roll * 180 / 3.1415926, pitch * 180 / 3.1415926, yaw_est * 180 / 3.1415926);
-				ARC_LCD_ShowString(0, 0, yawstr);
+				ARC_LCD_ShowString(0, LINE_HEIGHT*0, yawstr);
 				sprintf((char*)yawstr, "mode:%s time:%.2f", mode_tbl[pilot.fly_mode], pilot_time / 1000000.0f);
-				ARC_LCD_ShowString(0, 16, yawstr);
+				ARC_LCD_ShowString(0, LINE_HEIGHT*1, yawstr);
 				sprintf((char*)yawstr, "error:%.2f %.2f %.2f", pilot.error[0]/100.f, pilot.error[1]/100.f, pilot.error[2]/100.f);
-				ARC_LCD_ShowString(0, 32, yawstr);
+				ARC_LCD_ShowString(0, LINE_HEIGHT*2, yawstr);
 				sprintf((char*)yawstr, "target:%.2f %.2f %.2f", pilot.target[0]/100.f, pilot.target[1]/100.f, pilot.target[2]/100.f);
-				ARC_LCD_ShowString(0, 48, yawstr);
+				ARC_LCD_ShowString(0, LINE_HEIGHT*3, yawstr);
 				sprintf((char*)yawstr, "altitude:%.2f", pilot.altitude/100.f);
-				ARC_LCD_ShowString(0, 64, yawstr);
+				ARC_LCD_ShowString(0, LINE_HEIGHT*4, yawstr);
 				sprintf((char*)yawstr, "RC:");
-				ARC_LCD_ShowString(0, 80, yawstr);
+				ARC_LCD_ShowString(0, LINE_HEIGHT*5, yawstr);
 				sprintf((char*)yawstr, "%04d %04d %04d %04d %04d %04d", ppm.in[0], ppm.in[1], ppm.in[2], ppm.in[3], ppm.in[4], ppm.in[5]);
-				ARC_LCD_ShowString(0, 96, yawstr);
+				ARC_LCD_ShowString(0, LINE_HEIGHT*6, yawstr);
 				sprintf((char*)yawstr, "%04d %04d %04d %04d %04d %04d", ppm.out[0], ppm.out[1], ppm.out[2], ppm.out[3], ppm.out[4], ppm.out[5]);
-				ARC_LCD_ShowString(0, 112, yawstr);
+				ARC_LCD_ShowString(0, LINE_HEIGHT*7, yawstr);
 				
 				
 				sprintf((char*)yawstr, "accel:%d %d %d, %.2f", sensor.accel[0], sensor.accel[1], sensor.accel[2], 
 					sqrt((float)sensor.accel[0]*sensor.accel[0] + sensor.accel[1]*sensor.accel[1] + sensor.accel[2] * sensor.accel[2]));
-				ARC_LCD_ShowString(0, 128, yawstr);
+				ARC_LCD_ShowString(0, LINE_HEIGHT*8, yawstr);
 				
 				sprintf((char*)yawstr, "%.2f,%.2f,%.2f", pilot.error[0]/100.f, pilot2.I[0]/100.f, pilot2.D[0]/100.f);
-				ARC_LCD_ShowString(0, 144, yawstr);
+				ARC_LCD_ShowString(0, LINE_HEIGHT*9, yawstr);
 
 				sprintf((char*)yawstr, "%.2f,%.2f,%.2f", pilot.error[1]/100.f, pilot2.I[1]/100.f, pilot2.D[1]/100.f);
-				ARC_LCD_ShowString(0, 160, yawstr);
+				ARC_LCD_ShowString(0, LINE_HEIGHT*10, yawstr);
 			}
 			
 			// NEMA test
-			/*
-			sprintf((char*)yawstr, "fix:%d,%d, drop=%.1f,%.1f,%.1f", info.sig, info.fix, (float)info.PDOP, (float)info.HDOP, (float)info.VDOP);
-			ARC_LCD_ShowString(0, 0, yawstr);
-			sprintf((char*)yawstr, "%f - %f, %.2fm", (float)info.lat, (float)info.lon, (float)info.elv);
-			ARC_LCD_ShowString(0,16, yawstr);
-			sprintf((char*)yawstr, "v:%.1fm/s, %d/%d sat", (float)info.speed/3.6f, info.satinfo.inuse, info.satinfo.inview);
-			ARC_LCD_ShowString(0,32, yawstr);
-			*/
+			sprintf((char*)yawstr, "fix:%d,%d, DOP=%.1f,%.1f,%.1f", gps.sig, gps.fix, (float)gps.DOP[0]/100, (float)gps.DOP[1]/100, (float)gps.DOP[2]/100);
+			ARC_LCD_ShowString(0, LINE_HEIGHT*11, yawstr);
+			sprintf((char*)yawstr, "%f%s %f%s, %.2fm", NDEG2DEG(gps.latitude), gps.latitude > 0 ? "N" : "S", NDEG2DEG(gps.longitude), gps.longitude > 0 ? "E" : "W", (float)gps.altitude);
+			ARC_LCD_ShowString(0,LINE_HEIGHT*12, yawstr);
+			sprintf((char*)yawstr, "v:%.1fm/s, %d/%d sat", (float)gps.speed/100.0f, gps.satelite_in_use, gps.satelite_in_view);
+			ARC_LCD_ShowString(0,LINE_HEIGHT*13, yawstr);
+
+			if (gps.fix > 1)
+				GPIO_ResetBits(GPIOE, GPIO_Pin_2);
+			else
+				GPIO_SetBits(GPIOE, GPIO_Pin_2);
+			
+			if (last_nema_parse > getus() - 2000000)
+				GPIO_ResetBits(GPIOE, GPIO_Pin_0);
+			else
+				GPIO_SetBits(GPIOE, GPIO_Pin_0 | GPIO_Pin_2);
 			
 			if ((getus() - last_packet_time > 2000000))
 			{
