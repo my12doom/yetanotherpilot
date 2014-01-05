@@ -157,6 +157,16 @@ int main(void)
 	float rc_zero[] = {1520, 1520, 1520, 1520, 1520, 1520};
 	float error_pid[3][3] = {0};		// error_pid[roll, pitch, yaw][p,i,d]
 	int64_t last_tick = getus();
+	int64_t last_gps_tick = getus() - 2000000;
+
+	
+	// check NRF again
+	if (nrf != 0)
+		nrf = NRF_Check();
+
+	// open NRF TX Mode if found
+	if (nrf == 0)
+		NRF_TX_Mode();
 
 
 	while(1)
@@ -343,7 +353,10 @@ int main(void)
 			to_send.data.ppm = ppm;
 			tx_result = NRF_Tx_Dat((u8*)&to_send);
 			
-			GPS_ParseBuffer();
+			if (GPS_ParseBuffer() > 0)
+				last_gps_tick = getus();
+
+			if (last_gps_tick > getus() - 2000000)
 			{
 				nmeaINFO &info = *GPS_GetInfo();
 
