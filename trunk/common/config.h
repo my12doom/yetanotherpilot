@@ -6,7 +6,7 @@
 #define ITM_DBG
 #define USART1_DBG
 #define SW_I2C
-#define GPS_BUFFER_BLOCK 1024
+#define GPS_BUFFER_BLOCK 512
 //#define VECTOR_PID
 
 #if _TRACE==1
