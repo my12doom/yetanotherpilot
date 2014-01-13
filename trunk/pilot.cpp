@@ -17,6 +17,14 @@
 #include "sensors/mag_offset.h"
 #include "common/gps.h"
 
+#if PCB_VERSION == 2
+#define CURRENT_PIN GPIO_Pin_2
+#define VOLTAGE_PIN GPIO_Pin_4
+#elif PCB_VERSION == 1
+#define CURRENT_PIN GPIO_Pin_0
+#define VOLTAGE_PIN GPIO_Pin_4
+#endif
+
 int abs(int x)
 {
 	return x>0 ? x : -x;
@@ -230,10 +238,10 @@ int main(void)
 		// messure voltage
 		int adc_voltage = 0;
 		int adc_current = 0;
-		ADC1_SelectPin(GPIO_Pin_4);
+		ADC1_SelectPin(VOLTAGE_PIN);
 		for(int i=0; i<50; i++)
 			adc_voltage += ADC1_Read();
-		ADC1_SelectPin(GPIO_Pin_0);
+		ADC1_SelectPin(CURRENT_PIN);
 		for(int i=0; i<50; i++)
 			adc_current += ADC1_Read();
 		adc_voltage *= 20 * ref_vaoltage / 4095 * resistor_total / resistor_vaoltage;		// now unit is mV
@@ -468,6 +476,10 @@ int main(void)
 			for(int i=0; i<6; i++)
 				rc_zero[i] = g_ppm_input[i];
 		}
+		
+		// RC pass through for channel 5 & 6
+		for(int i=4; i<6; i++)
+			g_ppm_output[i] = floor(g_ppm_input[i]+0.5);
 		
 		
 		// rc protecting:

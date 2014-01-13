@@ -7,6 +7,15 @@ typedef __int64 int64_t;
 #include "..\common\vector.h"
 #include "..\common\common.h"
 
+
+float NDEG2DEG(float ndeg)
+{
+	int degree = ndeg / 100;
+	int minute = int(floor(ndeg)) % 100;	
+
+	return degree + minute/60.0f + modf(ndeg, &ndeg)/60.0f;
+}
+
 int main(int argc, char **argv)
 {
 	vector test = {0,0,1};
@@ -30,10 +39,12 @@ int main(int argc, char **argv)
 	imu_data imu = {0};
 	sensor_data sensor = {0};
 	ppm_data ppm = {0};
+	gps_data gps = {0};
 
 
 	FILE * f = fopen(argv[1], "rb");
-	FILE * fo = fopen("out.csv", "wb");
+	FILE * fo = NULL;
+	FILE * gpso = NULL;
 	FILE * gyrof = fopen("gyro.dat", "wb");
 	int n = 0;
 	int packet = 0;
@@ -49,6 +60,8 @@ int main(int argc, char **argv)
 			pilot = rf.data.pilot;
 		else if ((rf.time & TAG_MASK) ==  TAG_PILOT_DATA2)
 			pilot2 = rf.data.pilot2;
+		else if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA)
+			gps = rf.data.gps;
 		else if ((rf.time & TAG_MASK) ==  TAG_SENSOR_DATA)
 		{
 			sensor = rf.data.sensor;
@@ -63,11 +76,17 @@ int main(int argc, char **argv)
 
 		if (time < lasttime)
 		{
-			fclose(fo);
+			if (fo)
+				fclose(fo);
+			if (gpso)
+				fclose(gpso);
 			file ++;
 			sprintf(tmp, "out%d.csv", file);
 			fo = fopen(tmp, "wb");
 			fprintf(fo, "time,voltage,current,P,altitude,accel[0],aceel[1],accel[2],gyro[0](-roll_rate),gyro[1](-pitch_rate),gyro[2],error[0],error[1],error[2],errorI[0],errorD[0],roll,pitch,yaw_gyro,roll_t,pitch_t,yaw_t,throttle, mode,ppmi[0],ppmi[1],ppmi[2],ppmi[3],ppmo[0],ppmo[1],ppmo[2],ppmo[3],est[0],est[1],est[2],gyro[0],gyro[1],gyro[2]\r\n");
+			sprintf(tmp, "gps%d.csv", file);
+			gpso = fopen(tmp, "wb");
+			fprintf(gpso, "time,latitude,longitude\r\n");
 		}
 
 		lasttime = time;
@@ -131,11 +150,15 @@ int main(int argc, char **argv)
 				// estAcc[0], 机翼方向，右机翼方向为正
 				// estAcc[1], 前进方向，机头方向为正
 				// estAcc[2], 垂直方向，往上为正
+
+		if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA)
+		fprintf(gpso, "%.2f,%f,%f\r\n", float(time/1000000.0f), NDEG2DEG(gps.latitude), NDEG2DEG(gps.longitude));
 	}
 
 	fclose(gyrof);
 	fclose(fo);
 	fclose(f);
+	fclose(gpso);
 
 	return 0;
 }

@@ -2,12 +2,17 @@
 #define __CONFIG_H__
 
 // printf debug configuration
-#define _TRACE 0
+#define _TRACE 1
 #define ITM_DBG
 #define USART1_DBG
 #define SW_I2C
 #define GPS_BUFFER_BLOCK 512
+#define PCB_VERSION 2
 //#define VECTOR_PID
+
+#ifndef PCB_VERSION
+#define PCB_VERSION 1
+#endif
 
 #if _TRACE==1
 #define TRACE printf
