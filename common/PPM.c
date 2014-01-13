@@ -1,5 +1,6 @@
 #include "PPM.h"
 #include "timer.h"
+#include "config.h"
 #include <stm32f10x_exti.h>
 #include <stm32f10x_tim.h>
 #include <misc.h>
@@ -16,13 +17,12 @@ int tbl[3];
 // PPM input handler
 static void PPM_EXTI_Handler(void)
 {
-	int channel = -1;
-	static int pin_tbl[6] = {GPIO_Pin_10, GPIO_Pin_11, GPIO_Pin_12, GPIO_Pin_13, GPIO_Pin_14, GPIO_Pin_15};
-	static int line_tbl[6] = {EXTI_Line10, EXTI_Line11, EXTI_Line12, EXTI_Line13, EXTI_Line14, EXTI_Line15};
-
 	while(1)
 	{
-		channel = -1;
+		int channel = -1;
+#if PCB_VERSION == 1
+	static int pin_tbl[6] = {GPIO_Pin_10, GPIO_Pin_11, GPIO_Pin_12, GPIO_Pin_13, GPIO_Pin_14, GPIO_Pin_15};
+	static int line_tbl[6] = {EXTI_Line10, EXTI_Line11, EXTI_Line12, EXTI_Line13, EXTI_Line14, EXTI_Line15};
 		if (EXTI_GetITStatus(EXTI_Line10) != RESET)
 			channel = 0;
 		if (EXTI_GetITStatus(EXTI_Line11) != RESET)
@@ -35,6 +35,22 @@ static void PPM_EXTI_Handler(void)
 			channel = 4;
 		if (EXTI_GetITStatus(EXTI_Line15) != RESET)
 			channel = 5;
+#elif PCB_VERSION == 2
+	static int pin_tbl[6] = {GPIO_Pin_15, GPIO_Pin_14, GPIO_Pin_13, GPIO_Pin_12, GPIO_Pin_11, GPIO_Pin_10};
+	static int line_tbl[6] = {EXTI_Line15, EXTI_Line14, EXTI_Line13, EXTI_Line12, EXTI_Line11, EXTI_Line10};
+		if (EXTI_GetITStatus(EXTI_Line10) != RESET)
+			channel = 5;
+		if (EXTI_GetITStatus(EXTI_Line11) != RESET)
+			channel = 4;
+		if (EXTI_GetITStatus(EXTI_Line12) != RESET)
+			channel = 3;
+		if (EXTI_GetITStatus(EXTI_Line13) != RESET)
+			channel = 2;
+		if (EXTI_GetITStatus(EXTI_Line14) != RESET)
+			channel = 1;
+		if (EXTI_GetITStatus(EXTI_Line15) != RESET)
+			channel = 0;
+#endif
 		if (channel == -1)
 			break;
 	
@@ -215,45 +231,57 @@ static void Timer_Config(int enable_input)
 
 void PPM_update_output_channel(int channel_to_update)
 {
+#if PCB_VERSION == 1
 	if (channel_to_update & PPM_OUTPUT_CHANNEL0)
-	{
-		TIM_SetCompare3(TIM3, g_ppm_output[0]);
-	}
+		TIM_SetCompare3(TIM3, g_ppm_output[0]);		// PB0
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL1)
-	{
-		TIM_SetCompare4(TIM3, g_ppm_output[1]);
-	}
+		TIM_SetCompare4(TIM3, g_ppm_output[1]);		// PB1
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL2)
-	{
-		TIM_SetCompare4(TIM4, g_ppm_output[2]);
-	}
+		TIM_SetCompare4(TIM4, g_ppm_output[2]);		// PB9
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL3)
-	{
-		TIM_SetCompare3(TIM4, g_ppm_output[3]);
-	}
+		TIM_SetCompare3(TIM4, g_ppm_output[3]);		// PB8
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL4)
-	{
-		TIM_SetCompare2(TIM4, g_ppm_output[4]);
-	}
+		TIM_SetCompare2(TIM4, g_ppm_output[4]);		// PB7
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL5)
-	{
-		TIM_SetCompare1(TIM4, g_ppm_output[5]);
-	}
+		TIM_SetCompare1(TIM4, g_ppm_output[5]);		// PB6
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL6)
-	{
-		TIM_SetCompare2(TIM3, g_ppm_output[6]);
-	}
+		TIM_SetCompare2(TIM3, g_ppm_output[6]);		// PB5
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL7)
-	{
-		TIM_SetCompare1(TIM3, g_ppm_output[7]);
-	}
+		TIM_SetCompare1(TIM3, g_ppm_output[7]);		// PB4
+
+#elif PCB_VERSION == 2
+
+	if (channel_to_update & PPM_OUTPUT_CHANNEL0)
+		TIM_SetCompare1(TIM3, g_ppm_output[0]);		// PB4
+
+	if (channel_to_update & PPM_OUTPUT_CHANNEL1)
+		TIM_SetCompare2(TIM3, g_ppm_output[1]);		// PB5
+
+	if (channel_to_update & PPM_OUTPUT_CHANNEL2)
+		TIM_SetCompare1(TIM4, g_ppm_output[2]);		// PB6
+
+	if (channel_to_update & PPM_OUTPUT_CHANNEL3)
+		TIM_SetCompare2(TIM4, g_ppm_output[3]);		// PB7
+
+	if (channel_to_update & PPM_OUTPUT_CHANNEL4)
+		TIM_SetCompare3(TIM4, g_ppm_output[4]);		// PB8
+
+	if (channel_to_update & PPM_OUTPUT_CHANNEL5)
+		TIM_SetCompare4(TIM4, g_ppm_output[5]);		// PB9
+
+	if (channel_to_update & PPM_OUTPUT_CHANNEL6)
+		TIM_SetCompare4(TIM3, g_ppm_output[6]);		// PB1
+
+	if (channel_to_update & PPM_OUTPUT_CHANNEL7)
+		TIM_SetCompare3(TIM3, g_ppm_output[7]);		// PB0
+#endif
 }
 
 

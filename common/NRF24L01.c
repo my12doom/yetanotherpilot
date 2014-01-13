@@ -3,13 +3,23 @@
 #include <stm32f10x_exti.h>
 #include <string.h>
 #include "misc.h"
+#include "..\common\config.h"
 #include "..\common\timer.h"
 
+
+#if PCB_VERSION == 1
 #define NRF_CSN_HIGH(x) GPIO_SetBits(GPIOA,GPIO_Pin_1)
 #define NRF_CSN_LOW(x) GPIO_ResetBits(GPIOA,GPIO_Pin_1)
 #define NRF_CE_LOW(x) GPIO_ResetBits(GPIOA,GPIO_Pin_2)
 #define NRF_CE_HIGH(x) GPIO_SetBits(GPIOA,GPIO_Pin_2)
 #define NRF_Read_IRQ(x) GPIO_ReadInputDataBit(GPIOA,GPIO_Pin_3)
+#elif PCB_VERSION == 2
+#define NRF_CSN_HIGH(x) GPIO_SetBits(GPIOA,GPIO_Pin_3)
+#define NRF_CSN_LOW(x) GPIO_ResetBits(GPIOA,GPIO_Pin_3)
+#define NRF_CE_LOW(x) GPIO_ResetBits(GPIOA,GPIO_Pin_15)
+#define NRF_CE_HIGH(x) GPIO_SetBits(GPIOA,GPIO_Pin_15)
+#define NRF_Read_IRQ(x) GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_2)
+#endif
 
 #define NOP             0xFF  //空操作,可以用来读状态寄存器	 
 #define TX_ADDR         0x10  //发送地址(低字节在前),ShockBurstTM模式下,RX_ADDR_P0与此地址相等
@@ -127,17 +137,26 @@ void NRF_Init(void)
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 #endif
 
-	//配置 SPI_NRF_SPI 的 CE 引脚，GPIOA^2 和 SPI_NRF_SPI 的 CSN 引脚: NSS GPIOA^1
+	//配置 SPI_NRF_SPI 的 CE 引脚，GPIOA^2(PCB1.0)/GPIOA^15(PCB2.0) 和 SPI_NRF_SPI 的 CSN 引脚: NSS GPIOA^1(PCB1.0) / GPIOA^3(PCB2.0)
+#if PCB_VERSION == 1
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_1;
+#elif PCB_VERSION == 2
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_15 | GPIO_Pin_3;
+#endif
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-	//配置 SPI_NRF_SPI 的IRQ 引脚，GPIOA^3
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
+	//配置 SPI_NRF_SPI 的IRQ 引脚，GPIOA^3(PCB1.0) / GPIOB^2(PCB2.0)
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU ;  //上拉输入
+#if PCB_VERSION == 1
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
+#elif PCB_VERSION == 2
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
+#endif
 
 	// 这是自定义的宏，用于拉高 csn 引脚，NRF 进入空闲状态
 	NRF_CSN_HIGH();
