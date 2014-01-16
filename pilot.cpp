@@ -16,6 +16,8 @@
 #include "sensors/MS5611.h"
 #include "sensors/mag_offset.h"
 #include "common/gps.h"
+#include "common/config.h"
+#include "common/eeprom.h"
 
 #if PCB_VERSION == 2
 #define CURRENT_PIN GPIO_Pin_2
@@ -38,19 +40,39 @@ void inline debugpin_init()
 	// use PA-0 as cycle debugger
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_8;
+#if PCB_VERSION == 2
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_8 | GPIO_Pin_0;
+#endif
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 	
 	GPIO_ResetBits(GPIOA, GPIO_Pin_8);	
 }
+
 void inline debugpin_high()
 {
-	GPIO_SetBits(GPIOA, GPIO_Pin_8);	
+	GPIO_SetBits(GPIOA, GPIO_Pin_8);
 }
 void inline debugpin_low()
 {
-	GPIO_ResetBits(GPIOA, GPIO_Pin_8);	
+	GPIO_ResetBits(GPIOA, GPIO_Pin_8);
+}
+
+void inline led_all_on()
+{
+#if PCB_VERSION == 2
+	GPIO_SetBits(GPIOA, GPIO_Pin_0);
+#endif
+	GPIO_ResetBits(GPIOA, GPIO_Pin_8);
+}
+
+void inline led_all_off()
+{
+#if PCB_VERSION == 2
+	GPIO_SetBits(GPIOA, GPIO_Pin_0);
+#endif
+	GPIO_SetBits(GPIOA, GPIO_Pin_8);
 }
 
 int main(void)
@@ -60,11 +82,6 @@ int main(void)
 	SysTick_Config(720);
 	PPM_init(1);
 	printf_init();
-	NRF_Init();
-	int nrf = NRF_Check();
-	TRACE("NRF_Check() = %d\r\n", nrf);
-	if (nrf == 0)
-		NRF_TX_Mode();
 	I2C_init(0x30);
 	init_timer();
 	init_MPU6050();
@@ -73,8 +90,13 @@ int main(void)
 	debugpin_init();
 	GPS_Init(9600);
 	
-	mag_offset mag_offset;
+	delayms(100);
 	
+	NRF_Init();
+	int nrf = NRF_Check();
+	TRACE("NRF_Check() = %d\r\n", nrf);
+	if (nrf == 0)
+		NRF_TX_Mode();
 	int mode = initializing;
 	u8 data[TX_PLOAD_WIDTH];
 	sensor_data *p = (sensor_data*)data;
@@ -83,10 +105,12 @@ int main(void)
 	vector estGyro = {0};				// for gyro only yaw, yaw lock on this
 	vector groundA;						// ground accerometer vector
 	vector groundM;						// ground magnet vector
+	float mag_radius = -999;
 	
 	vector mag_avg = {0};
 	vector gyro_zero = {0};
 	vector accel_avg = {0};
+	vector mag_zero = {0};
 	double ground_pressure = 0;
 	double ground_temperature = 0;
 	double altitude = -999;
@@ -94,6 +118,93 @@ int main(void)
 	int ms5611[2];
 	p->voltage = -32768;
 	p->current = -32768;
+	
+	// load magnetemeter cneter
+	FLASH_Unlock();
+	EE_Init();
+mag_load:
+	for(int i=0; i<sizeof(mag_zero); i+=2)
+		EE_ReadVariable(VirtAddVarTab[0]+i/2+EEPROM_MAG_ZERO, (uint16_t*)(((uint8_t*)&mag_zero.array)+i));
+
+	// enter magnetemeter centering mode if throttle > THROTTLE_IDLE (and slowly flash all LED lights)
+	while (g_ppm_input[2] > THROTTLE_IDLE)
+	{
+		mag_offset mag_offset;
+		int mag_c = 0;
+		int64_t start_tick = getus();
+		
+		delayms(100);
+		if (g_ppm_input[2] < THROTTLE_IDLE)
+			break;
+
+		while(g_ppm_input[2] > THROTTLE_IDLE)
+		{
+			// flash LED lights
+			if ((getus()/1000)%250 > 125)
+				led_all_on();
+			else
+				led_all_off();
+
+			// RC pass through except throttle
+			for(int i=0; i<6; i++)
+			#if QUADCOPTER == 1
+				g_ppm_output[i] = THROTTLE_IDLE;
+			#else
+				g_ppm_output[i] = floor(g_ppm_input[i]+0.5);
+				g_ppm_output[2] = THROTTLE_IDLE;
+			#endif
+			PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
+
+			// magnetemeter centering
+			read_HMC5883(&p->mag[0]);
+			float mag_data[4] = {p->mag[0], p->mag[1], p->mag[2], 1};
+			mag_offset.add_value(mag_data);
+		
+			if (mag_c++ % 10 == 0)
+			{
+				mag_offset.get_result(mag_zero.array, &mag_radius);
+				TRACE("mag: center=%f,%f,%f, r=%f\r\n", mag_zero.array[0], mag_zero.array[1], mag_zero.array[2], mag_radius);
+
+				// send magnet centering info back for debugging purpose
+				if (nrf == 0)
+				{
+					int64_t time = getus();
+					
+					rf_data to_send;
+					controll_data &controll = to_send.data.controll;
+					to_send.time = (time & (~TAG_MASK)) | TAG_CTRL_DATA;
+					controll.cmd = CTRL_CMD_FEEDBACK;
+					controll.reg = CTRL_REG_MAGNET;
+					controll.value = mag_radius*1000;
+					controll.data[0] = mag_zero.array[0] * 1000;
+					controll.data[1] = mag_zero.array[1] * 1000;
+					controll.data[2] = mag_zero.array[2] * 1000;
+					
+					int tx_result = NRF_Tx_Dat((u8*)&to_send);
+				}
+			}
+			
+			delayms(50);
+		}
+		
+		if (getus() - start_tick < 5000000 || mag_radius < 400 || mag_radius > 480)
+			goto mag_load;
+
+		// save magnetemeter centering values
+		mag_offset.get_result(mag_zero.array, &mag_radius);
+		for(int i=0; i<sizeof(mag_zero); i+=2)
+			EE_WriteVariable(VirtAddVarTab[0]+i/2+EEPROM_MAG_ZERO, *(uint16_t*)(((uint8_t*)&mag_zero.array)+i));
+		
+		// flash all LED to signal success
+		led_all_on();
+		delayms(500);
+		led_all_off();
+		delayms(500);
+		led_all_on();
+		delayms(500);
+		led_all_off();
+		delayms(500);
+	}
 
 	// static base value detection
 	for(int i=0; i<1000; i++)
@@ -101,10 +212,10 @@ int main(void)
 		TRACE("\r%d/1000", i);
 		read_MPU6050(p->accel);
 		read_HMC5883(p->mag);
-		
+
 		vector gyro = {-p->gyro[0], -p->gyro[1], -p->gyro[2]};
 		vector acc = {-p->accel[1], p->accel[0], p->accel[2]};
-		vector mag = {p->mag[1], -p->mag[0], -p->mag[2]};
+		vector mag = {(p->mag[2]-mag_zero.array[2]), -(p->mag[0]-mag_zero.array[0]), -(p->mag[1]-mag_zero.array[1])};
 		vector_add(&gyro_zero, &gyro);
 		vector_add(&accel_avg, &acc);
 		vector_add(&mag_avg, &mag);
@@ -112,7 +223,7 @@ int main(void)
 		// RC pass through
 		for(int i=0; i<6; i++)
 		#if QUADCOPTER == 1
-			g_ppm_output[i] = 1125;
+			g_ppm_output[i] = THROTTLE_IDLE;
 		#else
 			g_ppm_output[i] = floor(g_ppm_input[i]+0.5);
 		#endif
@@ -176,6 +287,7 @@ int main(void)
 	if (nrf == 0)
 		NRF_TX_Mode();
 
+	TRACE("NRF_Check() 2 = %d\r\n", nrf);
 
 	while(1)
 	{
@@ -195,13 +307,13 @@ int main(void)
 				#if QUADCOPTER == 1
 					mode = shutdown;
 				#else
-					mode = manual;
+					mode = acrobatic;
 				#endif
 			else if (g_ppm_input[4] > 1666)
 				#if QUADCOPTER == 1
 					mode = quadcopter;
 				#else
-					mode = acrobatic;
+					mode = acrobaticV;
 				#endif
 			else
 			{
@@ -222,18 +334,6 @@ int main(void)
 		read_MPU6050(&p->accel[0]);		
 		read_HMC5883(&p->mag[0]);		
 		int ms5611result = read_MS5611(ms5611);
-
-
-		float mag_data[4] = {p->mag[0], p->mag[1], p->mag[2], 1};
-		mag_offset.add_value(mag_data);
-		
-		static int mag_c = 0;
-		if (mag_c++ % 100 == 0)
-		{
-			float center[3], r;
-			mag_offset.get_result(center, &r);
-			TRACE("mag: center=%f,%f,%f, r=%f\r\n", center[0], center[1], center[2], r);
-		}
 		
 		// messure voltage
 		int adc_voltage = 0;
@@ -363,6 +463,22 @@ int main(void)
 			
 			if (GPS_ParseBuffer() > 0)
 				last_gps_tick = getus();
+			
+			// only 5 seconds magnet centering data
+			if (getus() < 5000000)
+			{
+				controll_data &controll = to_send.data.controll;
+				to_send.time = (time & (~TAG_MASK)) | TAG_CTRL_DATA;
+				controll.cmd = CTRL_CMD_FEEDBACK;
+				controll.reg = CTRL_REG_MAGNET;
+				controll.value = mag_radius * 1000;
+				controll.data[0] = mag_zero.array[0] * 1000;
+				controll.data[1] = mag_zero.array[1] * 1000;
+				controll.data[2] = mag_zero.array[2] * 1000;
+				
+				tx_result = NRF_Tx_Dat((u8*)&to_send);
+			}
+
 
 			if (last_gps_tick > getus() - 2000000)
 			{
@@ -387,7 +503,7 @@ int main(void)
 		
 		vector gyro = {-p->gyro[0], -p->gyro[1], -p->gyro[2]};
 		vector acc = {-p->accel[1], p->accel[0], p->accel[2]};
-		vector mag = {p->mag[1], -p->mag[0], -p->mag[2]};
+		vector mag = {(p->mag[2]-mag_zero.array[2]), -(p->mag[0]-mag_zero.array[0]), -(p->mag[1]-mag_zero.array[1])};
 		vector_sub(&gyro, &gyro_zero);
 		vector_multiply(&gyro, GYRO_SCALE);
 		
@@ -427,7 +543,7 @@ int main(void)
 		float pitch = atan2(estAccGyro.V.y, (estAccGyro.V.z > 0 ? 1 : -1) * sqrt(estAccGyro.V.x*estAccGyro.V.x + estAccGyro.V.z * estAccGyro.V.z));
 		pitch = radian_add(pitch, PI);
 		vector estAccGyro16 = estAccGyro;
-		vector_divide(&estAccGyro16, 16);
+		vector_divide(&estAccGyro16, 4);
 		float xxzz = (estAccGyro16.V.x*estAccGyro16.V.x + estAccGyro16.V.z * estAccGyro16.V.z);
 		float G = sqrt(xxzz+estAccGyro16.V.y*estAccGyro16.V.y);
 		float yaw_est = atan2(estMagGyro.V.z * estAccGyro16.V.x - estMagGyro.V.x * estAccGyro16.V.z,
@@ -532,6 +648,7 @@ int main(void)
 		switch (mode)
 		{
 		case acrobatic:
+		case acrobaticV:
 			{
 				float rate[3] = {ACRO_ROLL_RATE * interval / RC_RANGE, 
 								ACRO_PITCH_RATE * interval / RC_RANGE,
@@ -555,44 +672,44 @@ int main(void)
 						target[i] = new_target;
 				}
 
-#ifdef VECTOR_PID
-
-				float current_error[2];
-				vector acc = estAccGyro;
-				vector mag = estMagGyro;
-				vector_normalize(&acc);
-				vector_normalize(&mag);
-				calculate_roll_pitch(&acc, &mag, &targetVA, &targetVM, current_error);
-
-				rc_dv[0] = rc_dv[1] = rc_dv[2] = 0;
-				for(int i=0; i<2; i++)
+				if (mode == acrobaticV)
 				{
-					float rc = g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i];
-					if (abs(rc) < RC_DEAD_ZONE)
-						rc = 0;
-					else
-						rc *= rate[i];
+					float current_error[2];
+					vector acc = estAccGyro;
+					vector mag = estMagGyro;
+					vector_normalize(&acc);
+					vector_normalize(&mag);
+					calculate_roll_pitch(&acc, &mag, &targetVA, &targetVM, current_error);
 
-					rc_dv[i] = -rc * rc_reverse[i] * sensor_reverse[i];
+					rc_dv[0] = rc_dv[1] = rc_dv[2] = 0;
+					for(int i=0; i<2; i++)
+					{
+						float rc = g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i];
+						if (abs(rc) < RC_DEAD_ZONE)
+							rc = 0;
+						else
+							rc *= rate[i];
 
-					vector new_targetVA = targetVA;
-					vector new_targetVM = targetVM;
-					vector_rotate(&new_targetVA, rc_dv);
-					vector_rotate(&new_targetVM, rc_dv);
+						rc_dv[i] = -rc * rc_reverse[i] * sensor_reverse[i];
 
-					float new_error[3];
-					calculate_roll_pitch(&acc, &mag, &new_targetVA, &new_targetVM, new_error);
+						vector new_targetVA = targetVA;
+						vector new_targetVM = targetVM;
+						vector_rotate(&new_targetVA, rc_dv);
+						vector_rotate(&new_targetVM, rc_dv);
 
-					if (abs(new_error[i]) > ACRO_MAX_OFFSET[i] && abs(new_error[i]) > abs(current_error[i]))
-						rc_dv[i] = 0;
+						float new_error[3];
+						calculate_roll_pitch(&acc, &mag, &new_targetVA, &new_targetVM, new_error);
+
+						if (abs(new_error[i]) > ACRO_MAX_OFFSET[i] && abs(new_error[i]) > abs(current_error[i]))
+							rc_dv[i] = 0;
+					}
+
+
+					vector_rotate(&targetVA, rc_dv);
+					vector_rotate(&targetVM, rc_dv);
+
+					calculate_roll_pitch(&acc, &mag, &targetVA, &targetVM, errorV);
 				}
-
-
-				vector_rotate(&targetVA, rc_dv);
-				vector_rotate(&targetVM, rc_dv);
-
-				calculate_roll_pitch(&acc, &mag, &targetVA, &targetVM, errorV);
-#endif
 			}
 			
 			break;
@@ -617,9 +734,10 @@ int main(void)
 		for(int i=0; i<3; i++)
 		{
 			float new_p = radian_sub(pos[i], target[i]) * sensor_reverse[i];
-#ifdef VECTOR_PID
-			new_p = (i<2 ? errorV[i] : 0) * sensor_reverse[i];
-#endif
+			
+			if (mode == acrobaticV)
+				new_p = (i<2 ? errorV[i] : 0) * sensor_reverse[i];
+
 			error_pid[i][1] += new_p;																	// I
 			error_pid[i][1] = limit(error_pid[i][1], -pid_limit[i][1], pid_limit[i][1]);
 			error_pid[i][2] = new_p - error_pid[i][0] + rc_d[i]* sensor_reverse[i];													// D
@@ -696,7 +814,7 @@ int main(void)
 			error_pid[0][0]*PI180, error_pid[1][0]*PI180, error_pid[2][0]*PI180);
 		
 		TRACE(",out= %d, %d, %d, %d, input=%f,%f,%f,%f", g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5]);
-		//TRACE ("error pid[0] = %f,%f,%f", error_pid[0][0], error_pid[0][1], error_pid[0][2]);
+		TRACE (" mag=%.2f,%.2f,%.2f  acc=%.2f,%.2f,%.2f ", estMagGyro.V.x, estMagGyro.V.y, estMagGyro.V.z, estAccGyro.V.x, estAccGyro.V.y, estAccGyro.V.z);
 		
 		
 		static int last_ppm = 1120;

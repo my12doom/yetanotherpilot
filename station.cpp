@@ -87,6 +87,7 @@ const char *mode_tbl[] =
 	"quadcopter",
 	"shutdown",
 	"rc_fail",
+	"acrobaticV",
 };
 
 #define LINE_HEIGHT 12
@@ -169,10 +170,19 @@ int main(void)
 	int64_t last_update = 0;
 	int64_t pilot_time = 0;
 	int64_t last_packet_time = 0;
+	vector mag_zero;
+	float mag_radius = -1;
 	int packet_speed = 0;
 	int packet_speed_counter = 0;
 	int64_t packet_speed_time = getus();
 	int64_t last_nema_parse = getus() - 2000000;
+	
+	
+	NRF_Init();
+	nrf = NRF_Check();
+	printf("NRF_Check() = %d\r\n", nrf);
+	NRF_RX_Mode();
+	
 	while(1)
 	{		
 		// read keys
@@ -210,6 +220,17 @@ int main(void)
 			{
 				type = 4;
 				pilot2 = recv.data.pilot2;
+			}
+			else if ((recv.time & TAG_MASK) == TAG_CTRL_DATA)
+			{
+				type = 4;
+				controll_data &controll = recv.data.controll;
+				if (controll.cmd == CTRL_CMD_FEEDBACK && controll.reg == CTRL_REG_MAGNET )
+				{
+					mag_radius = controll.value/1000.0f;
+					for(int i=0; i<3; i++)
+						mag_zero.array[i] = controll.data[i]/1000.0f;
+				}
 			}
 
 
@@ -336,6 +357,8 @@ int main(void)
 			
 			int t = RTC_GetCounter();
 			struct tm time = current_time();
+			sprintf((char*)yawstr, "Mag:%d,%d,%d, R=%d", (int)mag_zero.array[0], (int)mag_zero.array[1], (int)mag_zero.array[2], (int)mag_radius);
+			ARC_LCD_ShowString(0, 256, yawstr);
 			sprintf((char*)yawstr, "Battery:%.2fV, %.1fA", sensor.voltage/1000.0f, sensor.current/1000.0f);
 			ARC_LCD_ShowString(0, 268, yawstr);
 			sprintf((char*)yawstr, "packet speed:%d", packet_speed);
