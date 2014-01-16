@@ -411,6 +411,11 @@
               <FileType>1</FileType>
               <FilePath>.\common\vector.c</FilePath>
             </File>
+            <File>
+              <FileName>eeprom.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\common\eeprom.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -510,6 +515,11 @@
               <FileName>stm32f10x_pwr.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\stm32\FWlib\src\stm32f10x_pwr.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f10x_flash.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\stm32\FWlib\src\stm32f10x_flash.c</FilePath>
             </File>
           </Files>
         </Group>

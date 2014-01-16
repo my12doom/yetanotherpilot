@@ -7,8 +7,7 @@
 #define USART1_DBG
 #define SW_I2C
 #define GPS_BUFFER_BLOCK 512
-#define PCB_VERSION 2
-//#define VECTOR_PID
+#define PCB_VERSION 1
 
 #ifndef PCB_VERSION
 #define PCB_VERSION 1
@@ -39,6 +38,7 @@
 #define resistor_total 179.74
 #define resistor_vaoltage 29.77
 #define MAX_GYRO_BIAS_DRIFT 30
+#define THROTTLE_IDLE 1125
 
 #define ACRO_ROLL_RATE (PI*3/2)				// 270 degree/s
 #define ACRO_PITCH_RATE (PI)			// 180 degree/s
@@ -130,5 +130,8 @@ static int sensor_reverse[3] = 						// -1 = reverse, 1 = normal, 0 = disable, w
 
 
 // station configuration
+
+// EEPROM configuration
+#define EEPROM_MAG_ZERO 0 			// start 0 size 12
 
 #endif

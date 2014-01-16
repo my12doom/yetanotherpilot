@@ -19,6 +19,7 @@ enum fly_mode
 	quadcopter,
 	shutdown,
 	rc_fail,
+	acrobaticV,
 };
 
 static void swap(void *p, int size)

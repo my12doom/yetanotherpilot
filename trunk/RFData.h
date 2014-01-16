@@ -58,6 +58,7 @@ typedef struct
 	int cmd;
 	int reg;
 	int value;
+	int data[3];
 } controll_data;
 
 typedef struct
@@ -70,7 +71,7 @@ typedef struct
 		pilot_data pilot;	// 23 byte
 		pilot_data2 pilot2;	// 24 byte
 		ppm_data ppm;		// 24 byte
-		controll_data controll; // 12 byte
+		controll_data controll; // 24 byte
 		gps_data gps;		// 
 	}data;
 } rf_data;
@@ -87,5 +88,8 @@ typedef struct
 #define CTRL_CMD_SET_VALUE 0
 #define CTRL_CMD_GET_VALUE 1
 #define CTRL_CMD_GO 2
+#define CTRL_CMD_FEEDBACK 3
+
+#define CTRL_REG_MAGNET 0x1000
 
 #endif
