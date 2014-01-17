@@ -296,7 +296,6 @@ mag_load:
 		int64_t start_tick = getus();
 		float interval = (start_tick-last_tick)/1000000.0f;
 		last_tick = start_tick;
-		bool rc_works = true;
 		
 		debugpin_high();
 		
@@ -313,18 +312,16 @@ mag_load:
 				#if QUADCOPTER == 1
 					mode = quadcopter;
 				#else
-					mode = acrobaticV;
+					mode = fly_by_wire;
 				#endif
 			else
 			{
 				mode = rc_fail;
-				rc_works = false;
 			}
 		}
 		else
 		{
 			TRACE("warning: RC out of controll");
-			rc_works = false;
 			mode = rc_fail;	
 		}
 		
@@ -598,46 +595,12 @@ mag_load:
 			g_ppm_output[i] = floor(g_ppm_input[i]+0.5);
 		
 		
-		// rc protecting:
-		// level flight for 10 second
-		// 5 degree pitch down if still no rc responding.
-		// currently no throttle protection
 		static int64_t last_rc_work = 0;
-		if (!rc_works)
+		if (mode != rc_fail)
 		{
-			#if QUADCOPTER == 1
-				target[0] = target_quad_base[0];
-				target[1] = target_quad_base[1];
-				target[2] = yaw_gyro;
-			#else
-				target[0] = -PI/18*sensor_reverse[0];						// 10 degree bank
-				target[1] = (getus() - last_rc_work > 10000000) ? PI/36*sensor_reverse[1] : 0;						// 5 degree pitch down
-				target[2] = yaw_gyro;
-				g_ppm_output[2] = (getus() - last_rc_work > 10000000) ? 1178 : 1350;		// 1350 should be enough to maintain altitude for my plane, 1178 should harm nobody
-
-
-				vector acc = estAccGyro;
-				vector mag = estMagGyro;
-				vector_normalize(&acc);
-				vector_normalize(&mag);
-
-				targetVA = groundA;
-				targetVM = groundM;
-
-				float delta[3] = {target[0], target[1], 0};
-				vector_rotate(&targetVA, delta);
-				vector_rotate(&targetVM, delta);
-
-				calculate_roll_pitch(&acc, &mag, &targetVA, &targetVM, delta);
-
-			#endif
-		}
-		else
-		{
-			last_rc_work = getus();
 			// throttle pass through
-			if (rc_works)
-				g_ppm_output[2] = floor(g_ppm_input[2]+0.5);
+			g_ppm_output[2] = floor(g_ppm_input[2]+0.5);
+			last_rc_work = getus();
 		}
 
 
@@ -645,15 +608,14 @@ mag_load:
 		float rc_d[3] = {0};
 		float rc_dv[3] = {0};
 		float errorV[2] = {0};
+		float rate[3] = {ACRO_ROLL_RATE * interval / RC_RANGE, 
+						ACRO_PITCH_RATE * interval / RC_RANGE,
+						ACRO_YAW_RATE * interval / RC_RANGE};
+
 		switch (mode)
 		{
 		case acrobatic:
-		case acrobaticV:
 			{
-				float rate[3] = {ACRO_ROLL_RATE * interval / RC_RANGE, 
-								ACRO_PITCH_RATE * interval / RC_RANGE,
-								ACRO_YAW_RATE * interval / RC_RANGE};
-
 				for(int i=0; i<3; i++)
 				{
 					float rc = g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i];
@@ -671,45 +633,86 @@ mag_load:
 					else
 						target[i] = new_target;
 				}
+			}
+			break;
 
-				if (mode == acrobaticV)
+		case rc_fail:
+			{
+			#if QUADCOPTER == 1
+				target[0] = target_quad_base[0];
+				target[1] = target_quad_base[1];
+				target[2] = yaw_gyro;
+			#else
+				g_ppm_output[2] = (getus() - last_rc_work > 10000000) ? 1178 : 1350;		// 1350 should be enough to maintain altitude for my plane, 1178 should harm nobody
+				float delta[3] = {(getus() - last_rc_work > 10000000) ? PI/36*sensor_reverse[1] : 0, -PI/18*sensor_reverse[0], 0};						//, level flight for 10seconds, then 10 degree bank, 5 degree pitch down
+
+				targetVA = groundA;
+				targetVM = groundM;
+
+				vector_rotate(&targetVA, delta);
+				vector_rotate(&targetVM, delta);
+			#endif
+			}
+			break;
+
+		case fly_by_wire:
+			{
+				float delta[3] = {0, 0, 0};						// 10 degree bank, 5 degree pitch down
+				
+				for(int i=0; i<2; i++)
 				{
-					float current_error[2];
-					vector acc = estAccGyro;
-					vector mag = estMagGyro;
-					vector_normalize(&acc);
-					vector_normalize(&mag);
-					calculate_roll_pitch(&acc, &mag, &targetVA, &targetVM, current_error);
-
-					rc_dv[0] = rc_dv[1] = rc_dv[2] = 0;
-					for(int i=0; i<2; i++)
-					{
-						float rc = g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i];
-						if (abs(rc) < RC_DEAD_ZONE)
-							rc = 0;
-						else
-							rc *= rate[i];
-
-						rc_dv[i] = -rc * rc_reverse[i] * sensor_reverse[i];
-
-						vector new_targetVA = targetVA;
-						vector new_targetVM = targetVM;
-						vector_rotate(&new_targetVA, rc_dv);
-						vector_rotate(&new_targetVM, rc_dv);
-
-						float new_error[3];
-						calculate_roll_pitch(&acc, &mag, &new_targetVA, &new_targetVM, new_error);
-
-						if (abs(new_error[i]) > ACRO_MAX_OFFSET[i] && abs(new_error[i]) > abs(current_error[i]))
-							rc_dv[i] = 0;
-					}
-
-
-					vector_rotate(&targetVA, rc_dv);
-					vector_rotate(&targetVM, rc_dv);
-
-					calculate_roll_pitch(&acc, &mag, &targetVA, &targetVM, errorV);
+					delta[i] = (g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i])  * rc_reverse[i];
+					if (abs(delta[i]) < RC_DEAD_ZONE)
+						delta[i] = 0;
+					else
+						delta[i] *= FLY_BY_WIRE_MAX_OFFSET[i] / RC_RANGE;
 				}
+
+				delta[0] = -delta[0];
+
+				targetVA = groundA;
+				targetVM = groundM;
+
+				vector_rotate(&targetVA, delta);
+				vector_rotate(&targetVM, delta);
+			}
+			break;
+
+		case acrobaticV:
+			{
+				float current_error[2];
+				vector acc = estAccGyro;
+				vector mag = estMagGyro;
+				vector_normalize(&acc);
+				vector_normalize(&mag);
+				calculate_roll_pitch(&acc, &mag, &targetVA, &targetVM, current_error);
+
+				rc_dv[0] = rc_dv[1] = rc_dv[2] = 0;
+				for(int i=0; i<2; i++)
+				{
+					float rc = g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i];
+					if (abs(rc) < RC_DEAD_ZONE)
+						rc = 0;
+					else
+						rc *= rate[i];
+
+					rc_dv[i] = -rc * rc_reverse[i] * sensor_reverse[i];
+
+					vector new_targetVA = targetVA;
+					vector new_targetVM = targetVM;
+					vector_rotate(&new_targetVA, rc_dv);
+					vector_rotate(&new_targetVM, rc_dv);
+
+					float new_error[3];
+					calculate_roll_pitch(&acc, &mag, &new_targetVA, &new_targetVM, new_error);
+
+					if (abs(new_error[i]) > ACRO_MAX_OFFSET[i] && abs(new_error[i]) > abs(current_error[i]))
+						rc_dv[i] = 0;
+				}
+
+
+				vector_rotate(&targetVA, rc_dv);
+				vector_rotate(&targetVM, rc_dv);
 			}
 			
 			break;
@@ -730,18 +733,37 @@ mag_load:
 		}
 		
 		// calculate new pid & apply pid controll & output
+		if (mode == acrobaticV || mode ==rc_fail || mode == fly_by_wire)
+		{
+			vector acc = estAccGyro;
+			vector mag = estMagGyro;
+			vector VA = targetVA;
+			vector VM = targetVM;
+			vector_normalize(&acc);
+			vector_normalize(&mag);
+			vector_normalize(&VA);
+			vector_normalize(&VM);
+			calculate_roll_pitch(&acc, &mag, &VA, &VM, errorV);
+		}
 		float pid[3] = {0}; // total pid for roll, pitch, yaw
 		for(int i=0; i<3; i++)
 		{
-			float new_p = radian_sub(pos[i], target[i]) * sensor_reverse[i];
-			
-			if (mode == acrobaticV)
+			float new_p;
+
+			if (mode == acrobaticV || mode ==rc_fail || mode == fly_by_wire)
 				new_p = (i<2 ? errorV[i] : 0) * sensor_reverse[i];
+			else
+				new_p = radian_sub(pos[i], target[i]) * sensor_reverse[i];
+			
 
 			error_pid[i][1] += new_p;																	// I
 			error_pid[i][1] = limit(error_pid[i][1], -pid_limit[i][1], pid_limit[i][1]);
-			error_pid[i][2] = new_p - error_pid[i][0] + rc_d[i]* sensor_reverse[i];													// D
+			error_pid[i][2] = (new_p - error_pid[i][0] + rc_d[i]* sensor_reverse[i])/interval;													// D
 			error_pid[i][0] = new_p;																	// P
+			
+			if (mode == fly_by_wire)		// D disabled for fly by wire for now
+				error_pid[i][2] = 0;
+
 
 			if (error_pid[i][1] * error_pid[i][0] < 0)
 				error_pid[i][1] = 0;					// reset I if overshoot
@@ -766,12 +788,12 @@ mag_load:
 		}
 
 		#if QUADCOPTER == 1
-		if (mode == quadcopter || (!rc_works) )
+		if (mode == quadcopter || (mode == rc_fail) )
 		{
 			int motor_count = sizeof(quadcopter_mixing_matrix) / sizeof(quadcopter_mixing_matrix[0]);
 			for(int i=0; i<motor_count; i++)
 			{
-				float mix = rc_works ? g_ppm_input[2] : 1200;
+				float mix = mode != rc_fail ? g_ppm_input[2] : 1200;
 				mix = (mix-1100)*0.6 + 1100;
 				for(int j=0; j<3; j++)
 					mix += quadcopter_mixing_matrix[i][j] * (pid[j]/pid_limit[j][0]) * QUADCOPTER_MAX_DELTA;

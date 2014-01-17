@@ -2,12 +2,12 @@
 #define __CONFIG_H__
 
 // printf debug configuration
-#define _TRACE 1
+#define _TRACE 0
 #define ITM_DBG
 #define USART1_DBG
 #define SW_I2C
 #define GPS_BUFFER_BLOCK 512
-#define PCB_VERSION 1
+#define PCB_VERSION 2
 
 #ifndef PCB_VERSION
 #define PCB_VERSION 1
@@ -88,8 +88,8 @@ static int quadcopter_mixing_matrix[4][3] = // the motor mixing matrix, [motor n
 #define ACRO_MANUAL_FACTOR (0.3)		// final output in acrobatic mode, 70% pid, 30% rc
 static float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
 {
-	{1.50, 0.15, 20,},
-	{1.50, 0.15, 20,},
+	{1.50, 0.15, 0.16,},
+	{1.50, 0.15, 0.16,},
 	//{0, 0.0, 20,},
 	//{0, 0.0, 20,},
 	{0, 0, 0,},
@@ -112,6 +112,13 @@ static float ACRO_MAX_OFFSET[3] =
 (PI/8),		// 22.5 degree, max roll advance before airframe can response in acrobatic mode
 (PI/8),	// 22.5 degree, max pitch advance before airframe can response in acrobatic mode
 (PI/8),		// 22.5 degree, max yaw advance before airframe can response in acrobatic mode
+};
+
+static float FLY_BY_WIRE_MAX_OFFSET[3] = 
+{
+(PI/4),		// 45 degree, max roll angle
+(PI/8),		// 22.5 degree, max pitch angle
+(PI/8),		// 22.5 degree, max yaw (what?)
 };
 
 static int rc_reverse[3] = 								// -1 = reverse, 1 = normal, 0 = disable, won't affect mannual mode
