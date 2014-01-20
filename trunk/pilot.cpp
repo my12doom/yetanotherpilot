@@ -27,6 +27,8 @@
 #define VOLTAGE_PIN GPIO_Pin_4
 #endif
 
+static void SysClockInit(void);
+
 int abs(int x)
 {
 	return x>0 ? x : -x;
@@ -940,4 +942,61 @@ bool calculate_roll_pitch(vector *accel, vector *mag, vector *accel_target, vect
 
 
 	return got_roll && got_pitch;
+}
+
+
+/*********************************************************************************************************
+
+** Function name:     static void SysClockInit(void)
+
+** Descriptions:      ??SYSCLK, HCLK, PCLK2?PCLK1
+
+** Created by:        Jobs Zheng
+
+** Created Date:      2013-03-06 09:35
+
+*********************************************************************************************************/
+
+static void SysClockInit(void)
+
+{
+ErrorStatus HSEStartUpStatus;
+RCC_DeInit();/* RCC?? */
+
+RCC_HSEConfig(RCC_HSE_ON); /*(??HSE)*/
+RCC_WaitForHSEStartUp();
+
+
+FLASH_PrefetchBufferCmd(FLASH_PrefetchBuffer_Enable);
+
+FLASH_SetLatency(FLASH_Latency_2);
+
+RCC_HCLKConfig(RCC_SYSCLK_Div1); /* ??HCLK = SYSCLK */
+
+RCC_PCLK2Config(RCC_HCLK_Div1); /* ??PCLK2 = HCLK */
+
+RCC_PCLK1Config(RCC_HCLK_Div2); /* ??PCLK1 = HCLK/2 */
+
+/* ???????????????? */
+
+/* PLLCLK = 8MHz * 9 = 72 MHz */
+
+RCC_PLLConfig(RCC_PLLSource_HSE_Div1, RCC_PLLMul_9);    /* RCC_PLLSource_HSE_Div1??????????;RCC_PLLMul_9???? */
+
+RCC_PLLCmd(ENABLE);
+
+while (RCC_GetFlagStatus(RCC_FLAG_PLLRDY) == RESET)
+
+{
+
+}
+
+RCC_SYSCLKConfig(RCC_SYSCLKSource_PLLCLK); /* ??PLL?????? */
+
+while(RCC_GetSYSCLKSource() != 0x08)
+
+{
+
+}
+
 }
