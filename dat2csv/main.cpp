@@ -86,7 +86,7 @@ int main(int argc, char **argv)
 			fprintf(fo, "time,voltage,current,P,altitude,accel[0],aceel[1],accel[2],gyro[0](-roll_rate),gyro[1](-pitch_rate),gyro[2],error[0],error[1],error[2],errorI[0],errorD[0],roll,pitch,yaw_gyro,roll_t,pitch_t,yaw_t,throttle, mode,ppmi[0],ppmi[1],ppmi[2],ppmi[3],ppmo[0],ppmo[1],ppmo[2],ppmo[3],est[0],est[1],est[2],gyro[0],gyro[1],gyro[2]\r\n");
 			sprintf(tmp, "gps%d.csv", file);
 			gpso = fopen(tmp, "wb");
-			fprintf(gpso, "time,latitude,longitude\r\n");
+			fprintf(gpso, "time,latitude,longitude,speed\r\n");
 		}
 
 		lasttime = time;
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 				// estAcc[2], 垂直方向，往上为正
 
 		if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA)
-		fprintf(gpso, "%.2f,%f,%f\r\n", float(time/1000000.0f), NDEG2DEG(gps.latitude), NDEG2DEG(gps.longitude));
+		fprintf(gpso, "%.2f,%f,%f,%.2f\r\n", float(time/1000000.0f), NDEG2DEG(gps.latitude), NDEG2DEG(gps.longitude), gps.speed/100.0f);
 	}
 
 	fclose(gyrof);
