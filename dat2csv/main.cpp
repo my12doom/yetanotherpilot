@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 			file ++;
 			sprintf(tmp, "out%d.csv", file);
 			fo = fopen(tmp, "wb");
-			fprintf(fo, "time,voltage,current,P,altitude,accel[0],aceel[1],accel[2],gyro[0](-roll_rate),gyro[1](-pitch_rate),gyro[2],error[0],error[1],error[2],errorI[0],errorD[0],roll,pitch,yaw_gyro,roll_t,pitch_t,yaw_t,throttle, mode,ppmi[0],ppmi[1],ppmi[2],ppmi[3],ppmo[0],ppmo[1],ppmo[2],ppmo[3],est[0],est[1],est[2],gyro[0],gyro[1],gyro[2]\r\n");
+			fprintf(fo, "time,voltage,current,overload,altitude,accel[0],aceel[1],accel[2],gyro[0](-roll_rate),gyro[1](-pitch_rate),gyro[2],error[0],error[1],error[2],errorI[0],errorD[0],roll,pitch,yaw_gyro,roll_t,pitch_t,yaw_t,throttle, mode,ppmi[0],ppmi[1],ppmi[2],ppmi[3],ppmo[0],ppmo[1],ppmo[2],ppmo[3],est[0],est[1],est[2],gyro[0],gyro[1],gyro[2]\r\n");
 			sprintf(tmp, "gps%d.csv", file);
 			gpso = fopen(tmp, "wb");
 			fprintf(gpso, "time,latitude,longitude,speed\r\n");
@@ -130,16 +130,17 @@ int main(int argc, char **argv)
 		double scaling = (double)pressure / ground_pressure;
 		double temp = ((double)ground_temperature) + 273.15f;
 		double altitude = 153.8462f * temp * (1.0f - exp(0.190259f * log(scaling)));
+		double overload = sqrt((double)sensor.accel[0]*sensor.accel[0]+ sensor.accel[1]*sensor.accel[1]+ sensor.accel[2]*sensor.accel[2]) / 2370;
 
 
  		//if (n++ %5 == 0)
  		fprintf(fo, "%.2f,%.2f,%.2f,%2f,%.2f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d\r\n",
-				float(time/1000000.0f), sensor.voltage/1000.0f, sensor.current/1000.0f, (ppm.in[5]-1000)/520.0, altitude,
+				float(time/1000000.0f), sensor.voltage/1000.0f, sensor.current/1000.0f, overload*10, altitude,
  				sensor.accel[0], sensor.accel[1], sensor.accel[2], sensor.gyro[0], sensor.gyro[1], sensor.gyro[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[0], pilot2.D[0],
 				roll*180/PI, pitch*180/PI, yaw_gyro*180/PI, pilot.target[0]/100.0, pilot.target[1]/100.0, pilot.target[2]/100.0, 
-				ppm.in[2], pilot.fly_mode == acrobatic ? 5000 : -5000,
+				(ppm.in[2]-1113)/50, pilot.fly_mode == acrobatic ? 5000 : -5000,
 				ppm.in[0], ppm.in[1], ppm.in[2], ppm.in[3], ppm.out[0], ppm.out[1], ppm.out[2], ppm.out[3],
 				estAccGyro.V.x, estAccGyro.V.y, estAccGyro.V.z,
 				sensor.gyro[0],sensor.gyro[1],sensor.gyro[2]);
