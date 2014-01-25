@@ -663,14 +663,12 @@ mag_load:
 				
 				for(int i=0; i<2; i++)
 				{
-					delta[i] = (g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i])  * rc_reverse[i];
+					delta[i] = -(g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i])  * rc_reverse[i] * sensor_reverse[i];
 					if (abs(delta[i]) < RC_DEAD_ZONE)
 						delta[i] = 0;
 					else
 						delta[i] *= FLY_BY_WIRE_MAX_OFFSET[i] / RC_RANGE;
 				}
-
-				delta[0] = -delta[0];
 
 				targetVA = groundA;
 				targetVM = groundM;
