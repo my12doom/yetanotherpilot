@@ -1,20 +1,20 @@
-#ifndef __NRF24L01_H__
+ï»¿#ifndef __NRF24L01_H__
 #define __NRF24L01_H__
 
 #include "stm32f10x.h"
 
 
 // definition and prototypes
-#define CHANAL 100		// Í¨ĞÅÆµµÀ
-#define TX_ADR_WIDTH    5   //5×Ö½ÚµÄµØÖ·¿í¶È
-#define RX_ADR_WIDTH    5   //5×Ö½ÚµÄµØÖ·¿í¶È
-#define TX_PLOAD_WIDTH  32  //20×Ö½ÚµÄÓÃ»§Êı¾İ¿í¶È
-#define RX_PLOAD_WIDTH  32  //20×Ö½ÚµÄÓÃ»§Êı¾İ¿í¶È
+#define CHANAL 100		// é€šä¿¡é¢‘é“
+#define TX_ADR_WIDTH    5   //5å­—èŠ‚çš„åœ°å€å®½åº¦
+#define RX_ADR_WIDTH    5   //5å­—èŠ‚çš„åœ°å€å®½åº¦
+#define TX_PLOAD_WIDTH  32  //20å­—èŠ‚çš„ç”¨æˆ·æ•°æ®å®½åº¦
+#define RX_PLOAD_WIDTH  32  //20å­—èŠ‚çš„ç”¨æˆ·æ•°æ®å®½åº¦
 #define TX_QUEUE_SIZE 8
-#define MAX_TX  	0x10  //´ïµ½×î´ó·¢ËÍ´ÎÊıÖĞ¶Ï
-#define TX_OK   	0x20  //TX·¢ËÍÍê³ÉÖĞ¶Ï
-#define RX_OK   	0x40  //½ÓÊÕµ½Êı¾İÖĞ¶Ï
-#define TX_BUSY   0x80  // ·¢ËÍ¶ÓÁĞÂú
+#define MAX_TX  	0x10  //è¾¾åˆ°æœ€å¤§å‘é€æ¬¡æ•°ä¸­æ–­
+#define TX_OK   	0x20  //TXå‘é€å®Œæˆä¸­æ–­
+#define RX_OK   	0x40  //æ¥æ”¶åˆ°æ•°æ®ä¸­æ–­
+#define TX_BUSY   0x80  // å‘é€é˜Ÿåˆ—æ»¡
 
 #ifdef __cplusplus
 extern "C" {
