@@ -34,25 +34,22 @@ static void ADC1_Mode_Config(void)
 	
 }
 
-void ADC1_SelectPin(uint16_t GPIO_Pin)
+int ADC1_SelectChannel(uint16_t ADC_Channel)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
-	int ADC_Channel = ADC_Channel_0;
-	
-	while (ADC_Channel <= ADC_Channel_17)
-	{
-		if (1 << ADC_Channel == GPIO_Pin)
-			break;
-		ADC_Channel++;
-	}
 
-	// Configure PA.x  as analog input
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin;
+	if (ADC_Channel < 0 || ADC_Channel > 9)
+		return 0;
+
+	// Configure GPIO as analog input
+	GPIO_InitStructure.GPIO_Pin = (1 << (ADC_Channel%8));
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	GPIO_Init(ADC_Channel>8?GPIOB:GPIOA, &GPIO_InitStructure);
 
 	ADC_RegularChannelConfig(ADC1, ADC_Channel, 1, ADC_SampleTime_239Cycles5);
+
+	return 1;
 }
 
 void ADC1_Init(void)

@@ -20,11 +20,11 @@
 #include "common/eeprom.h"
 
 #if PCB_VERSION == 2
-#define CURRENT_PIN GPIO_Pin_2
-#define VOLTAGE_PIN GPIO_Pin_4
+#define CURRENT_PIN 2
+#define VOLTAGE_PIN 4
 #elif PCB_VERSION == 1
-#define CURRENT_PIN GPIO_Pin_0
-#define VOLTAGE_PIN GPIO_Pin_4
+#define CURRENT_PIN 0
+#define VOLTAGE_PIN 4
 #endif
 
 static void SysClockInit(void);
@@ -42,9 +42,6 @@ void inline debugpin_init()
 	// use PA-0 as cycle debugger
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_8;
-#if PCB_VERSION == 2
-	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_8 | GPIO_Pin_0;
-#endif
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
@@ -63,23 +60,19 @@ void inline debugpin_low()
 
 void inline led_all_on()
 {
-#if PCB_VERSION == 2
-	GPIO_SetBits(GPIOA, GPIO_Pin_0);
-#endif
 	GPIO_ResetBits(GPIOA, GPIO_Pin_8);
 }
 
 void inline led_all_off()
 {
-#if PCB_VERSION == 2
-	GPIO_SetBits(GPIOA, GPIO_Pin_0);
-#endif
 	GPIO_SetBits(GPIOA, GPIO_Pin_8);
 }
 
 int main(void)
 {
-	// Basic Initialization
+	// Basic Initialization	
+	FLASH_Unlock();
+	EE_Init();
 	ADC1_Init();
 	SysTick_Config(720);
 	PPM_init(1);
@@ -118,12 +111,20 @@ int main(void)
 	double altitude = -999;
 	int baro_counter = 0;
 	int ms5611[2];
+	float adc_2_5_V = -1;
+	float VCC_3_3V = -1;
+	float VCC_5V = -1;
+	float VCC_motor = -1;
+	float voltage_divider_factor = 6;
 	p->voltage = -32768;
 	p->current = -32768;
+
+	// load voltage divider factor
+	for(int i=0; i<sizeof(voltage_divider_factor); i+=2)
+		EE_ReadVariable(VirtAddVarTab[0]+i/2+EEPROM_VOLTAGE_DIVIDER, (uint16_t*)(((uint8_t*)&voltage_divider_factor)+i));
+	
 	
 	// load magnetemeter cneter
-	FLASH_Unlock();
-	EE_Init();
 mag_load:
 	for(int i=0; i<sizeof(mag_zero); i+=2)
 		EE_ReadVariable(VirtAddVarTab[0]+i/2+EEPROM_MAG_ZERO, (uint16_t*)(((uint8_t*)&mag_zero.array)+i));
@@ -211,6 +212,7 @@ mag_load:
 	// static base value detection
 	for(int i=0; i<1000; i++)
 	{
+		long us = getus();
 		TRACE("\r%d/1000", i);
 		read_MPU6050(p->accel);
 		read_HMC5883(p->mag);
@@ -221,6 +223,17 @@ mag_load:
 		vector_add(&gyro_zero, &gyro);
 		vector_add(&accel_avg, &acc);
 		vector_add(&mag_avg, &mag);
+
+		ADC1_SelectChannel(0);
+		adc_2_5_V = adc_2_5_V > 0 ? (ADC1_Read()*0.003+adc_2_5_V*0.997) : (ADC1_Read());
+
+		delayus(500);
+
+		ADC1_SelectChannel(1);
+		VCC_5V = VCC_5V > 0 ? (ADC1_Read()*0.003+VCC_5V*0.997) : (ADC1_Read());
+
+		ADC1_SelectChannel(VOLTAGE_PIN);
+		VCC_motor = VCC_motor > 0 ? (ADC1_Read()*0.003+VCC_motor*0.997) : (ADC1_Read());
 
 		// RC pass through
 		for(int i=0; i<6; i++)
@@ -237,7 +250,24 @@ mag_load:
 		else
 			debugpin_low();
 
-		delayms(2);
+		while(getus() - us < 2000)
+			;
+	}
+
+	VCC_5V = 5.0f*VCC_5V/adc_2_5_V;
+	VCC_3_3V = 2.5f*4095/adc_2_5_V;
+	VCC_motor = voltage_divider_factor * 2.5f * VCC_motor/adc_2_5_V;
+	TRACE("5V voltage = %.3fV\n", VCC_5V);
+	TRACE("3.3V voltage = %.3fV\n", VCC_3_3V);
+	TRACE("VCC motor = %.3fV\n\n", VCC_motor);
+
+	if (VCC_5V / VCC_motor >= 0.85 && VCC_5V / VCC_motor <= 1.15)
+	{
+		voltage_divider_factor *= VCC_5V / VCC_motor;
+
+		TRACE("motor factor fix!\n");
+		for(int i=0; i<sizeof(voltage_divider_factor); i+=2)
+			EE_WriteVariable(VirtAddVarTab[0]+i/2+EEPROM_VOLTAGE_DIVIDER, ((uint16_t*)(((uint8_t*)&voltage_divider_factor)+i))[0]);
 	}
 
 	groundA = accel_avg;
@@ -308,13 +338,13 @@ mag_load:
 				#if QUADCOPTER == 1
 					mode = shutdown;
 				#else
-					mode = acrobatic;
+					mode = manual;
 				#endif
 			else if (g_ppm_input[4] > 1666)
 				#if QUADCOPTER == 1
 					mode = quadcopter;
 				#else
-					mode = fly_by_wire;
+					mode = acrobatic;
 				#endif
 			else
 			{
@@ -337,17 +367,23 @@ mag_load:
 		// messure voltage
 		int adc_voltage = 0;
 		int adc_current = 0;
-		ADC1_SelectPin(VOLTAGE_PIN);
-		for(int i=0; i<50; i++)
-			adc_voltage += ADC1_Read();
-		ADC1_SelectPin(CURRENT_PIN);
-		for(int i=0; i<50; i++)
-			adc_current += ADC1_Read();
-		adc_voltage *= 20 * ref_vaoltage / 4095 * resistor_total / resistor_vaoltage;		// now unit is mV
+		ADC1_SelectChannel(0);
+		adc_2_5_V = ADC1_Read()*0.003+adc_2_5_V*0.997;		// always low pass for 2.5V reference
+		VCC_3_3V = 2.5f*4095/adc_2_5_V;
+		ADC1_SelectChannel(1);
+		VCC_5V = 0.997 * VCC_5V + 0.003 * ADC1_Read() * 5.0f/adc_2_5_V;		// always low pass for 5V voltage
 
-		adc_current *= 20 * ref_vaoltage / 4095;		// now unit is mV
-		adc_current = hall_sensor_ref_voltage/2*1000 - adc_current;	// now delta mV
+		adc_voltage = 0;
+		ADC1_SelectChannel(VOLTAGE_PIN);
+		adc_voltage += ADC1_Read();
+		ADC1_SelectChannel(CURRENT_PIN);
+		adc_current += ADC1_Read();
+		adc_voltage *= 1000 * VCC_3_3V / 4095 * voltage_divider_factor;		// now unit is mV
+
+		adc_current *= 1000 * VCC_3_3V / 4095;		// now unit is mV
+		adc_current = VCC_5V/2*1000 - adc_current;	// now delta mV
 		adc_current /= hall_sensor_sensitivity;
+
 
 		if (p->voltage <-30000)
 			p->voltage = adc_voltage;
@@ -659,8 +695,7 @@ mag_load:
 
 		case fly_by_wire:
 			{
-				float delta[3] = {0, 0, 0};						// 10 degree bank, 5 degree pitch down
-				
+				float delta[3] = {0, 0, 0};
 				for(int i=0; i<2; i++)
 				{
 					delta[i] = -(g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i])  * rc_reverse[i] * sensor_reverse[i];

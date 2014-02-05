@@ -7,7 +7,8 @@
 extern "C" {
 #endif
 void ADC1_Init(void);
-void ADC1_SelectPin(uint16_t GPIO_Pin);		//only GPIOA are supported, so we use only one parameter
+int ADC1_SelectChannel(uint16_t adc_channel);			//  returns 1 on success, 0 on error
+													// only ADC channel 0~9 are supported, GPIO A0~A7 B0 B1
 int ADC1_Read(void);
 #ifdef __cplusplus
 }
