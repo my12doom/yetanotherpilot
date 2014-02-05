@@ -32,11 +32,8 @@
 #define RC_DEAD_ZONE 5
 #define RC_CENTER 1520
 #define BARO_OSS 50
-#define ref_vaoltage 3.320
-#define hall_sensor_ref_voltage 5.00
 #define hall_sensor_sensitivity	0.0666		// unit: mV / mA
-#define resistor_total 179.74
-#define resistor_vaoltage 29.77
+#define VOLTAGE_DIVIDER_BASE 6		// uncalibrated voltage divider ratio
 #define MAX_GYRO_BIAS_DRIFT 30
 #define THROTTLE_IDLE 1125
 
@@ -131,7 +128,7 @@ static int rc_reverse[3] = 								// -1 = reverse, 1 = normal, 0 = disable, won
 static int sensor_reverse[3] = 						// -1 = reverse, 1 = normal, 0 = disable, won't affect mannual mode
 {
 	1,			// roll
-	-1,			// pitch
+	1,			// pitch
 	-1,			// yaw
 };
 
@@ -140,5 +137,6 @@ static int sensor_reverse[3] = 						// -1 = reverse, 1 = normal, 0 = disable, w
 
 // EEPROM configuration
 #define EEPROM_MAG_ZERO 0 			// start 0 size 12
+#define EEPROM_VOLTAGE_DIVIDER 12 	// start 12 size 4
 
 #endif
