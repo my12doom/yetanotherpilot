@@ -22,6 +22,11 @@
 #undef USART1_DBG
 #endif
 
+#ifdef BLUETOOTH
+#undef USART1_DBG
+#define ITM_DBG
+#endif
+
 // pilot configuration
 #define QUADCOPTER 0
 #define PI 3.14159265
@@ -43,7 +48,6 @@
 
 #define ACCELEROMETER_THRESHOLD 0.3
 #define MAG_THRESHOLD 0.3
-
 
 
 #if QUADCOPTER == 1

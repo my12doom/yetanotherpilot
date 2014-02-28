@@ -83,7 +83,7 @@ int main(void)
 	init_HMC5883();	
 	init_MS5611();
 	debugpin_init();
-	GPS_Init(9600);
+	GPS_Init(115200);
 	
 	delayms(100);
 	
@@ -395,6 +395,11 @@ mag_load:
 		else
 			p->current = p->current * 0.95 + 0.05 * adc_current;			// simple low pass
 		
+		
+		static float vvv = 0;
+		ADC1_SelectChannel(8);
+		vvv = vvv*0.995 + ADC1_Read()*0.005;
+		printf("\r%f", vvv);
 
 
 		// calculate altitude

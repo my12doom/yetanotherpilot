@@ -39,6 +39,7 @@ int main(int argc, char **argv)
 	imu_data imu = {0};
 	sensor_data sensor = {0};
 	ppm_data ppm = {0};
+	gps_data_v1 gps_v1 = {0};
 	gps_data gps = {0};
 
 
@@ -62,6 +63,8 @@ int main(int argc, char **argv)
 			pilot2 = rf.data.pilot2;
 		else if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA)
 			gps = rf.data.gps;
+		else if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA_V1)
+			gps_v1 = rf.data.gps_v1;
 		else if ((rf.time & TAG_MASK) ==  TAG_SENSOR_DATA)
 		{
 			sensor = rf.data.sensor;
@@ -73,6 +76,8 @@ int main(int argc, char **argv)
 		{
 			printf("unknown data %x, skipping\r\n", int((rf.time & TAG_MASK)>>56));
 		}
+
+		float *lll = &gps.longitude;
 
 		if (time < lasttime)
 		{
@@ -130,20 +135,20 @@ int main(int argc, char **argv)
 		double scaling = (double)pressure / ground_pressure;
 		double temp = ((double)ground_temperature) + 273.15f;
 		double altitude = 153.8462f * temp * (1.0f - exp(0.190259f * log(scaling)));
-		double overload = sqrt((double)sensor.accel[0]*sensor.accel[0]+ sensor.accel[1]*sensor.accel[1]+ sensor.accel[2]*sensor.accel[2]) / 2370;
-
+		double overload = sqrt((double)sensor.accel[0]*sensor.accel[0]+ sensor.accel[1]*sensor.accel[1]+ sensor.accel[2]*sensor.accel[2]) / 2048;
+		double throttle = (ppm.in[5]-1000)/520.0;
 
  		//if (n++ %5 == 0)
  		fprintf(fo, "%.2f,%.2f,%.2f,%2f,%.2f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
-					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d\r\n",
-				float(time/1000000.0f), sensor.voltage/1000.0f, sensor.current/1000.0f, overload*10, altitude,
+					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d,%d\r\n",
+				float(time/1000000.0f), sensor.voltage/1000.0f, sensor.current/1000.0f, overload, altitude,
  				sensor.accel[0], sensor.accel[1], sensor.accel[2], sensor.gyro[0], sensor.gyro[1], sensor.gyro[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[0], pilot2.D[0],
 				roll*180/PI, pitch*180/PI, yaw_gyro*180/PI, pilot.target[0]/100.0, pilot.target[1]/100.0, pilot.target[2]/100.0, 
 				(ppm.in[2]-1113)/50, pilot.fly_mode == acrobatic ? 5000 : -5000,
 				ppm.in[0], ppm.in[1], ppm.in[2], ppm.in[3], ppm.out[0], ppm.out[1], ppm.out[2], ppm.out[3],
 				estAccGyro.V.x, estAccGyro.V.y, estAccGyro.V.z,
-				sensor.gyro[0],sensor.gyro[1],sensor.gyro[2]);
+				sensor.gyro[0],sensor.gyro[1],sensor.gyro[2], sensor.mag[0]);
 // 		fprintf(fo, "%.2f,%d,%d,%d,%d\r\n", float(time/1000000.0f), ppm.in[0], ppm.in[1], ppm.in[2], ppm.in[3]);
 // 				// accel[0]前进方向，机尾方向为正
 // 				// accel[1]机翼方向，右机翼方向为正

@@ -179,6 +179,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\RFData.h"
+				>
+			</File>
+			<File
 				RelativePath=".\RFData.h"
 				>
 			</File>

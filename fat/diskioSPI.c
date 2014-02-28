@@ -7,8 +7,7 @@
 /*-----------------------------------------------------------------------*/
 #include <string.h>
 #include "diskio.h"
-#include "sdcard.h"
-#include <stm32f10x_sdio.h>
+#include "../../common/MMC_SD.h"
 
 
 /*-----------------------------------------------------------------------*/
@@ -18,41 +17,15 @@
 
 #define SECTOR_SIZE 512U
 
+u32 buff2[512/4];
 /*-----------------------------------------------------------------------*/
 /* Inidialize a Drive                                                    */
-
-
-SD_CardInfo SDCardInfo;
-SD_Error Status ;
-SD_Error SD_InitAndConfig(void)
-{
-  Status = SD_Init();
-
-  if (Status == SD_OK)
-  {
-    Status = SD_GetCardInfo(&SDCardInfo);
-  }
-  if (Status == SD_OK)
-  {
-    Status = SD_SelectDeselect((u32) (SDCardInfo.RCA << 16));
-  }
-  if (Status == SD_OK)
-  {
-    Status = SD_EnableWideBusOperation(SDIO_BusWide_4b);
-  }
-  if (Status == SD_OK)
-  {
-    Status = SD_SetDeviceMode(SD_DMA_MODE);
-  }
-	return Status;
-}
 
 DSTATUS disk_initialize (
 	BYTE drv				/* Physical drive nmuber (0..) */
 )
 {
-	SD_InitAndConfig();
-	return 0;
+	return MMC_SD_Init() == 0 ? RES_OK : RES_ERROR;
 }
 
 
@@ -79,16 +52,10 @@ DRESULT disk_read (
 	BYTE count		/* Number of sectors to read (1..255) */
 )
 {
-  //memset(buff2, 0, sizeof(buff2));
-	if(count==1)
-        {
-          SD_ReadBlock(((int64_t)sector) << 9 , (uint32_t*)buff,SECTOR_SIZE);
-	}
-	else
-        {
-          SD_ReadMultiBlocks(((int64_t)sector) << 9 ,(uint32_t*)buff,SECTOR_SIZE,count);
-	}
-
+	int i;
+  for(i=0; i<count; i++)
+		if (MMC_SD_ReadSingleBlock(sector+i, buff+SECTOR_SIZE*i))
+			return RES_ERROR;
 
 	return RES_OK;
 }
@@ -106,19 +73,15 @@ DRESULT disk_write (
 	BYTE count			/* Number of sectors to write (1..255) */
 )
 {
-  //memset(buff2, 0, sizeof(buff2));
-	if(count==1)
-        {
-          SD_WriteBlock(((int64_t)sector) << 9 ,(uint32_t*)buff,SECTOR_SIZE);
-	}
-	else
-        {
-          SD_WriteMultiBlocks(((int64_t)sector) << 9 ,(uint32_t*)buff,SECTOR_SIZE,count);
-	}
-        
-  return RES_OK;
+	int i;
+  for(i=0; i<count; i++)
+		if (MMC_SD_WriteSingleBlock(sector+i, buff+SECTOR_SIZE*i))
+			return RES_ERROR;
+
+	return RES_OK;
 }
 #endif /* _READONLY */
+
 
 
 /*-----------------------------------------------------------------------*/
@@ -129,7 +92,7 @@ DRESULT disk_ioctl (
 	BYTE ctrl,		/* Control code */
 	void *buff		/* Buffer to send/receive control data */
 )
-{	
+{
 	switch(ctrl)
 	{
 	case GET_SECTOR_SIZE:
@@ -139,19 +102,7 @@ DRESULT disk_ioctl (
 		break;
 	case GET_SECTOR_COUNT:
 		if (buff)
-		{
-			uint32_t DeviceSizeMul = (SDCardInfo.SD_csd.DeviceSizeMul + 2);
-
-      if(SDCardInfo.CardType == SDIO_HIGH_CAPACITY_SD_CARD)
-      {
-        *(DWORD*)buff = (SDCardInfo.SD_csd.DeviceSize + 1) * 1024;
-      }
-      else
-      {
-        uint32_t NumberOfBlocks  = ((1 << (SDCardInfo.SD_csd.RdBlockLen)) / 512);
-        *(DWORD*)buff = ((SDCardInfo.SD_csd.DeviceSize + 1) * (1 << DeviceSizeMul) << (NumberOfBlocks/2));
-      }
-		}
+			*(DWORD*)buff = MMC_SD_ReadCapacity() >> 9;
 		break;
 	case CTRL_SYNC:
 		break;

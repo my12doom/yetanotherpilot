@@ -9,6 +9,7 @@ typedef struct
 	short gyro[3];			// roll, pitch, yaw
 	short voltage;			// unit base: mV
 	short current;			// unit base: mA
+	short airspeed;			// unit base: pascal. not a speed unit but a differencial pressure.
 } sensor_data;
 
 typedef struct
@@ -27,6 +28,19 @@ typedef struct
 	float latitude;					// latitude in NDEG - +/-[degree][min].[sec/60]
 	float altitude;					// meter
 	short speed;					// unit: cm/s
+	unsigned satelite_in_view 	: 4;
+	unsigned satelite_in_use	: 4;
+	unsigned sig				: 4;// GPS quality indicator (0 = Invalid; 1 = Fix; 2 = Differential, 3 = Sensitive)
+	unsigned fix				: 4;// Operating mode, used for navigation (1 = Fix not available; 2 = 2D; 3 = 3D)
+} gps_data_v1;
+
+typedef struct
+{
+	unsigned short DOP[3];				// DOP[3]: PDOP, HDOP, VOP, unit base: 0.01
+	short speed;					// unit: cm/s
+	float longitude;				// longitude in NDEG - +/-[degree][min].[sec/60]
+	float latitude;					// latitude in NDEG - +/-[degree][min].[sec/60]
+	float altitude;					// meter
 	unsigned satelite_in_view 	: 4;
 	unsigned satelite_in_use	: 4;
 	unsigned sig				: 4;// GPS quality indicator (0 = Invalid; 1 = Fix; 2 = Differential, 3 = Sensitive)
@@ -66,13 +80,14 @@ typedef struct
 	int64_t time;			// 8 byte, the top 1byte is tag
 	union
 	{
-		sensor_data sensor;	// 20 byte
-		imu_data imu;		// 24 byte
-		pilot_data pilot;	// 23 byte
-		pilot_data2 pilot2;	// 24 byte
-		ppm_data ppm;		// 24 byte
-		controll_data controll; // 24 byte
-		gps_data gps;		// 
+		sensor_data sensor;	// 22 bytes
+		imu_data imu;		// 24 bytes
+		pilot_data pilot;	// 17 bytes
+		pilot_data2 pilot2;	// 24 bytes
+		ppm_data ppm;		// 24 bytes
+		controll_data controll; // 24 bytes
+		gps_data_v1 gps_v1;		// 22 bytes
+		gps_data gps;		// 22 bytes
 	}data;
 } rf_data;
 
@@ -83,7 +98,8 @@ typedef struct
 #define TAG_MASK		0xff00000000000000
 #define TAG_PPM_DATA	0x3300000000000000
 #define TAG_CTRL_DATA	0x3400000000000000
-#define TAG_GPS_DATA	0x3500000000000000
+#define TAG_GPS_DATA_V1	0x3500000000000000
+#define TAG_GPS_DATA	0x3600000000000000
 
 #define CTRL_CMD_SET_VALUE 0
 #define CTRL_CMD_GET_VALUE 1

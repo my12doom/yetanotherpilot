@@ -67,8 +67,8 @@ int delayms(int count)
 
 void delaytick(int count)
 {
-	uint16_t start; 
-	uint16_t target;
+	volatile uint16_t start; 
+	volatile uint16_t target;
 	
 	if (count < overhead)
 		return;
