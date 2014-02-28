@@ -15,10 +15,11 @@
 #include "common/printf.h"
 #include "common/NRF24L01.h"
 #include "common/common.h"
+#include <string.h>
 extern "C"
 {
 #include "fat/ff.h"
-#include "fat/sdcard.h"
+#include "fat/diskio.h"
 }
 
 FRESULT set_timestamp(char *filename);
@@ -40,30 +41,7 @@ float NDEG2DEG(float ndeg)
 	return degree + minute/60.0f + modf(ndeg, &ndeg)/60.0f;
 }
 
-SD_Error SD_InitAndConfig(void)
-{
-	SD_CardInfo SDCardInfo;
-	SD_Error Status ;
-  Status = SD_Init();
-
-  if (Status == SD_OK)
-  {
-    Status = SD_GetCardInfo(&SDCardInfo);
-  }
-  if (Status == SD_OK)
-  {
-    Status = SD_SelectDeselect((u32) (SDCardInfo.RCA << 16));
-  }
-  if (Status == SD_OK)
-  {
-    Status = SD_EnableWideBusOperation(SDIO_BusWide_4b);
-  }
-  if (Status == SD_OK)
-  {
-    Status = SD_SetDeviceMode(SD_DMA_MODE);
-  }
-	return Status;
-}
+extern "C" SD_Error SD_InitAndConfig(void);
 
 int8_t keys[4];
 
@@ -90,8 +68,51 @@ const char *mode_tbl[] =
 	"acrobaticV",
 };
 
-#define LINE_HEIGHT 12
+FRESULT res = FR_OK;
+FRESULT scan_files (
+    char* path        /* Start node to be scanned (also used as work area) */
+)
+{
+    FILINFO fno;
+    DIR dir;
+    int i;
+    char *fn;   /* This function is assuming non-Unicode cfg. */
+#if _USE_LFN
+    static char lfn[_MAX_LFN + 1];   /* Buffer to store the LFN */
+    fno.lfname = lfn;
+    fno.lfsize = sizeof lfn;
+#endif
 
+
+    res = f_opendir(&dir, path);                       /* Open the directory */
+    if (res == FR_OK) {
+        i = strlen(path);
+        for (;;) {
+            res = f_readdir(&dir, &fno);                   /* Read a directory item */
+            if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
+            if (fno.fname[0] == '.') continue;             /* Ignore dot entry */
+#if _USE_LFN
+            fn = *fno.lfname ? fno.lfname : fno.fname;
+#else
+            fn = fno.fname;
+#endif
+            if (fno.fattrib & AM_DIR) {                    /* It is a directory */
+                sprintf(&path[i], "/%s", fn);
+                res = scan_files(path);
+                if (res != FR_OK) break;
+                path[i] = 0;
+            } else {                                       /* It is a file. */
+                printf("%s/%s\n", path, fn);
+            }
+        }
+        //f_closedir(&dir)
+    }
+
+    return res;
+}
+
+#define LINE_HEIGHT 12
+char path[256];
 int main(void)
 {	
 	// Basic Initialization
@@ -135,7 +156,8 @@ int main(void)
 	FIL file;
 	UINT done;
 	disk_initialize(0);
-	FRESULT res = f_mount(0, &fs);
+	res = f_mount(&fs, "", 0);
+	res = scan_files(path);
 		
 	while(sd == SD_OK)
 	{

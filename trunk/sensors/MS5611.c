@@ -35,6 +35,7 @@ int64_t DeltaTemp = 0;
 int64_t off;//  = (((int64_t)_C[1]) << 16) + ((_C[3] * dT) >> 7);
 int64_t sens;// = (((int64_t)_C[0]) << 15) + ((_C[2] * dT) >> 8);
 u16 refdata[6];
+uint16_t crc;
 
 // call initI2C before this
 int init_MS5611(void)
@@ -49,6 +50,9 @@ int init_MS5611(void)
 		I2C_ReadReg(MS5611Address, MS561101BA_PROM_BASE_ADDR+i*2, tmp, 2);
 		refdata[i] = (tmp[0] << 8) + tmp[1];
 	}
+	
+	I2C_ReadReg(MS5611Address, MS561101BA_PROM_BASE_ADDR+12, tmp, 2);
+	crc = (tmp[0] << 8) + tmp[1];
 	
 	// Temperature
 	I2C_WriteReg(MS5611Address, MS561101BA_D2 + OSR, 0x00);
@@ -70,6 +74,16 @@ int init_MS5611(void)
 	pressure = ((((rawPressure * sens) >> 21) - off) >> (15-EXTRA_PRECISION)) / ((1<<EXTRA_PRECISION));
 	
 	return 0;
+}
+
+int check_MS5611(void)
+{
+	uint8_t tmp[2];
+	uint16_t crc2;
+	I2C_ReadReg(MS5611Address, MS561101BA_PROM_BASE_ADDR+12, tmp, 2);
+	crc2 = (tmp[0] << 8) + tmp[1];
+
+	return crc == crc2;
 }
 
 

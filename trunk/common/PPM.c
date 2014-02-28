@@ -5,13 +5,12 @@
 #include <stm32f10x_tim.h>
 #include <misc.h>
 
+#define PPM_6 1
+
 u32 g_ppm_input_start[6];
 float g_ppm_input[6];
-int ppm_raw_input[6][3];						//	[channel][v1, v2, v3], median filter with window-size=3
-int ppm_raw_input_counter[6] = {0};
 int64_t g_ppm_input_update[6] = {0};
-u16 g_ppm_output[8] = {0};
-int tbl[3];
+u16 g_ppm_output[8] = {1520, 1520, 1520, 1520, 1520, 1520, 1520, 1520};
 
 
 // PPM input handler
@@ -58,40 +57,12 @@ static void PPM_EXTI_Handler(void)
 			g_ppm_input_start[channel] = TIM_GetCounter(TIM4);
 		else
 		{
-			const float RC = 1.0f/(2*3.1415926 * 200);	// 200hz low pass filter
 			u32 now = TIM_GetCounter(TIM4);
-			float t_delta = (getus() - g_ppm_input_update[channel]) / 1000000.0f;
-			float alpha = t_delta / (t_delta + RC);
-			int *p = &ppm_raw_input_counter[channel];
-			(*p)++;
-			*p &= 3;		// %=4
 			if (now > g_ppm_input_start[channel])
-				ppm_raw_input[channel][*p] = now - g_ppm_input_start[channel];
+				g_ppm_input[channel]= now - g_ppm_input_start[channel];
 			else
-				ppm_raw_input[channel][*p] = now + 10000 - g_ppm_input_start[channel];
+				g_ppm_input[channel]= now + 10000 - g_ppm_input_start[channel];
 			
-			// median filter then LPF filter
-			if(0)
-			{
-				int t;				
-				#define swap(a,b) {t = a; a=b; b=t;}
-				tbl[0] = ppm_raw_input[channel][0];
-				tbl[1] = ppm_raw_input[channel][1];
-				tbl[2] = ppm_raw_input[channel][2];
-				if (tbl[0] > tbl[1])
-					swap(tbl[0], tbl[1]);
-				if (tbl[1] > tbl[2])
-					swap(tbl[1], tbl[2]);
-				if (tbl[0] > tbl[1])
-					swap(tbl[0], tbl[1]);
-				
-				g_ppm_input[channel] = g_ppm_input[channel] * (1-alpha) + alpha * tbl[1];
-
-			}
-			else
-			{
-				g_ppm_input[channel] = ppm_raw_input[channel][*p];
-			}
 			g_ppm_input_update[channel] = getus();
 		}
 		
@@ -116,6 +87,10 @@ static void GPIO_Config(int enable_input)
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_4 | GPIO_Pin_5 | GPIO_Pin_6 | GPIO_Pin_7 | GPIO_Pin_8 | GPIO_Pin_9;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	
+	#if PPM_6 == 1
+	GPIO_InitStructure.GPIO_Pin &= ~(GPIO_Pin_0 | GPIO_Pin_1);
+	#endif
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 	
 	// open B10-B15 as input
@@ -181,6 +156,13 @@ static void Timer_Config(int enable_input)
 	TIM_OC3Init(TIM4, &TIM_OCInitStructure);
 	TIM_OCInitStructure.TIM_Pulse = g_ppm_output[7];
 	TIM_OC4Init(TIM4, &TIM_OCInitStructure);
+	
+	#if PPM_6 == 1
+	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Disable;
+	TIM_OC3Init(TIM3, &TIM_OCInitStructure);
+	TIM_OC4Init(TIM3, &TIM_OCInitStructure);
+	#endif
+
 
 
 	// configure interrupts
@@ -276,22 +258,20 @@ void PPM_update_output_channel(int channel_to_update)
 	if (channel_to_update & PPM_OUTPUT_CHANNEL5)
 		TIM_SetCompare4(TIM4, g_ppm_output[5]);		// PB9
 
+	#if PPM_6 == 0
 	if (channel_to_update & PPM_OUTPUT_CHANNEL6)
 		TIM_SetCompare4(TIM3, g_ppm_output[6]);		// PB1
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL7)
 		TIM_SetCompare3(TIM3, g_ppm_output[7]);		// PB0
+	#endif
 #endif
 }
 
 
 void PPM_init(int enable_input)
-{
-	int i;
-	for(i=0; i<4; i++)
-		ppm_raw_input[i][0] = ppm_raw_input[i][1] = ppm_raw_input[i][2] = 1520;
-	
+{	
 	GPIO_Config(enable_input);
 	Timer_Config(enable_input);
-	PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);	
+	PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
 }

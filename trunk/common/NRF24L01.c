@@ -1,4 +1,4 @@
-﻿#include "NRF24L01.h"
+#include "NRF24L01.h"
 #include <stm32f10x_spi.h>
 #include <stm32f10x_exti.h>
 #include <string.h>
@@ -7,7 +7,7 @@
 #include "..\common\timer.h"
 
 
-#if PCB_VERSION == 1
+#if PCB_VERSION == 1 || defined(STATION)
 #define NRF_CSN_HIGH(x) GPIO_SetBits(GPIOA,GPIO_Pin_1)
 #define NRF_CSN_LOW(x) GPIO_ResetBits(GPIOA,GPIO_Pin_1)
 #define NRF_CE_LOW(x) GPIO_ResetBits(GPIOA,GPIO_Pin_2)
@@ -138,7 +138,7 @@ void NRF_Init(void)
 #endif
 
 	//配置 SPI_NRF_SPI 的 CE 引脚，GPIOA^2(PCB1.0)/GPIOA^15(PCB2.0) 和 SPI_NRF_SPI 的 CSN 引脚: NSS GPIOA^1(PCB1.0) / GPIOA^3(PCB2.0)
-#if PCB_VERSION == 1
+#if PCB_VERSION == 1  || defined(STATION)
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_1;
 #elif PCB_VERSION == 2
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_15 | GPIO_Pin_3;
@@ -150,7 +150,7 @@ void NRF_Init(void)
 	//配置 SPI_NRF_SPI 的IRQ 引脚，GPIOA^3(PCB1.0) / GPIOB^2(PCB2.0)
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU ;  //上拉输入
-#if PCB_VERSION == 1
+#if PCB_VERSION == 1  || defined(STATION)
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 #elif PCB_VERSION == 2
@@ -186,6 +186,9 @@ void NRF_Init(void)
 	SPI_NRF_WriteReg(NRF_WRITE_REG + STATUS, state);	// 清除TX_DS或MAX_RT中断标志
 	SPI_NRF_WriteReg(FLUSH_TX, NOP);		//清除TX FIFO寄存器
 #endif
+
+	//SPI_NRF_WriteReg(FLUSH_TX, NOP);
+	//SPI_NRF_WriteReg(FLUSH_RX, NOP);
 }
 int t3 = 0;
 int tx_ok = 0;
