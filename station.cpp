@@ -20,6 +20,8 @@ extern "C"
 {
 #include "fat/ff.h"
 #include "fat/diskio.h"
+#include "usb_mass_storage/hw_config.h"
+#include "usb_mass_storage/usb_init.h"
 }
 
 FRESULT set_timestamp(char *filename);
@@ -49,7 +51,7 @@ int8_t keys[4];
 uint16_t buf[512];	
 uint8_t tmp[20];
 uint8_t yawstr[50];
-char filename[20];
+char filename[20] = {0};
 imu_data imu = {0};
 sensor_data sensor = {0};
 pilot_data pilot = {0};
@@ -126,6 +128,7 @@ int main(void)
 	
 	RTC_Init();
 	
+	
 	// NEMA LED init
 	GPIO_InitTypeDef GPIO_InitStructure;
 	RCC_APB2PeriphClockCmd( RCC_APB2Periph_GPIOE, ENABLE);
@@ -153,26 +156,41 @@ int main(void)
 	SD_Error sd = SD_InitAndConfig();
 	
 	FATFS fs;
-	FIL file;
+	FIL *file = NULL;
 	UINT done;
 	disk_initialize(0);
 	res = f_mount(&fs, "", 0);
 	res = scan_files(path);
 		
-	while(sd == SD_OK)
+	// sdcard speed test
+	int minimum = 9999999;
+	int maximum = 0;
+	int average = 0;
 	{
+		char buf[32] = {1};
+		FIL f2;
+		res = f_open(&f2, "test.bin", FA_CREATE_ALWAYS | FA_WRITE | FA_READ);
 		
-		sprintf(filename, "%d.dat", done ++);
-		res = f_open(&file, filename, FA_CREATE_NEW | FA_WRITE | FA_READ);
-		if (res == FR_OK)
+		for(int i=0; i<1000; i++)
 		{
-			f_close(&file);
-			set_timestamp(filename);
-			res = f_open(&file, filename, FA_OPEN_EXISTING | FA_WRITE | FA_READ);
-			break;
+			long us = getus();
+			res = f_write(&f2, buf, 32, &done);
+			us = getus() - us;
+			minimum = (minimum < us) ? minimum : us;
+			average += us;
+			maximum = (maximum > us) ? maximum : us;
 		}
+		
+		average /= 1000;
+		f_close(&f2);		
 	}
-	
+
+	// USB
+	Set_System();
+	SD_InitAndConfig();
+	Set_USBClock();
+	USB_Interrupts_Config();
+	USB_Init();
 		
 	// LCD
 	ARC_LCD_Init();
@@ -181,6 +199,9 @@ int main(void)
 	printf("%s\r\n", tmp);
 	ARC_LCD_Clear(0);
 	ARC_LCD_ShowString(0, 0, tmp);
+	sprintf((char*)tmp, "sd = %d-%d us, %d avg", minimum, maximum, average);
+	printf("%s\r\n", tmp);
+	ARC_LCD_ShowString(0, LINE_HEIGHT, tmp);
 	delayms(1000);
 		
 	
@@ -282,12 +303,30 @@ int main(void)
 			
 			if (sd == SD_OK)
 			{
-				res = f_write(&file, &recv, 32, &done);
+				if (file == NULL)
+				{
+					file = new FIL;
+					while(sd == SD_OK)
+					{
+						
+						sprintf(filename, "%d.dat", done ++);
+						res = f_open(file, filename, FA_CREATE_NEW | FA_WRITE | FA_READ);
+						if (res == FR_OK)
+						{
+							f_close(file);
+							set_timestamp(filename);
+							res = f_open(file, filename, FA_OPEN_EXISTING | FA_WRITE | FA_READ);
+							break;
+						}
+					}
+				}
+				
+				res = f_write(file, &recv, 32, &done);
 				if (res != FR_OK)
 					sd = SD_ERROR;
 				if ((packet % (512/32) == 0))
 				{
-					f_sync(&file);
+					f_sync(file);
 					set_timestamp(filename);
 				}
 			}
@@ -375,17 +414,31 @@ int main(void)
 			
 			sprintf((char*)yawstr, "key:%d%d%d%d", keys[0], keys[1], keys[2], keys[3]);
 			ARC_LCD_ShowString(104, 182, yawstr);
+			
+			
+			// airspeed in m/s
+			// airspeed = sqrt( 5 * k * R * T * ( (pd/ph+1)^(1/3.5) -1 ) )
+			// k : 1.403
+			// R : 287.05287
+			// T : us ms5611 sensor, convert to kalvin
+			// pd : use airspeed sensor, convert to kPa
+			// ph : use ms5611 sensor, convert to kPa
+			
+			float airspeed = sqrt ( 5 * 1.403 * 287.05287 * (imu.temperature/100.0+273.15) *  (pow((-pilot.airspeed/1000.0)/(imu.pressure/1000.0)+1.0, 1/3.5 ) - 1.0) );
+			airspeed = sqrt ( 5 * 1.403 * 287.05287 * (20+273.15) *  (pow((-pilot.airspeed/1000.0)/(100.0)+1.0, 1/3.5 ) - 1.0) );
 
 			
 			int t = RTC_GetCounter();
 			struct tm time = current_time();
+			sprintf((char*)yawstr, "airspeed=%d, %.2f m/s",  pilot.airspeed, airspeed);
+			ARC_LCD_ShowString(0, 244, yawstr);
 			sprintf((char*)yawstr, "Mag:%d,%d,%d, R=%d", (int)mag_zero.array[0], (int)mag_zero.array[1], (int)mag_zero.array[2], (int)mag_radius);
 			ARC_LCD_ShowString(0, 256, yawstr);
 			sprintf((char*)yawstr, "Battery:%.2fV, %.1fA", sensor.voltage/1000.0f, sensor.current/1000.0f);
 			ARC_LCD_ShowString(0, 268, yawstr);
 			sprintf((char*)yawstr, "packet speed:%d", packet_speed);
 			ARC_LCD_ShowString(0, 284, yawstr);
-			sprintf((char*)yawstr, "%d-%d %02d:%02d:%02d", time.tm_mon+1, time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec);
+			sprintf((char*)yawstr, "%d-%d %02d:%02d:%02d %s", time.tm_mon+1, time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec, filename);
 			ARC_LCD_ShowString(0, 300, yawstr);
 			
 			last_update = getus();
