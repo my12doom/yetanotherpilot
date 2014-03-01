@@ -115,6 +115,7 @@ int main(void)
 	float VCC_3_3V = -1;
 	float VCC_5V = -1;
 	float VCC_motor = -1;
+	float airspeed_voltage = -1;
 	float voltage_divider_factor = 6;
 	p->voltage = -32768;
 	p->current = -32768;
@@ -234,7 +235,10 @@ mag_load:
 
 		ADC1_SelectChannel(VOLTAGE_PIN);
 		VCC_motor = VCC_motor > 0 ? (ADC1_Read()*0.003+VCC_motor*0.997) : (ADC1_Read());
-
+			
+		ADC1_SelectChannel(8);
+		airspeed_voltage = airspeed_voltage > 0 ? (ADC1_Read()*0.003+airspeed_voltage*0.997) : (ADC1_Read());
+			
 		// RC pass through
 		for(int i=0; i<6; i++)
 		#if QUADCOPTER == 1
@@ -257,9 +261,15 @@ mag_load:
 	VCC_5V = 5.0f*VCC_5V/adc_2_5_V;
 	VCC_3_3V = 2.5f*4095/adc_2_5_V;
 	VCC_motor = voltage_divider_factor * 2.5f * VCC_motor/adc_2_5_V;
+	airspeed_voltage = 2.5 * airspeed_voltage / adc_2_5_V;
+	
+	
+	float airspeed_bias = airspeed_voltage - VCC_5V/2;
+	
 	TRACE("5V voltage = %.3fV\n", VCC_5V);
 	TRACE("3.3V voltage = %.3fV\n", VCC_3_3V);
 	TRACE("VCC motor = %.3fV\n\n", VCC_motor);
+	printf("airspeed voltage = %.3fV, bias=%.3fV\n\n", airspeed_voltage, airspeed_bias);
 
 	if (VCC_5V / VCC_motor >= 0.85 && VCC_5V / VCC_motor <= 1.15)
 	{
@@ -383,6 +393,20 @@ mag_load:
 		adc_current *= 1000 * VCC_3_3V / 4095;		// now unit is mV
 		adc_current = VCC_5V/2*1000 - adc_current;	// now delta mV
 		adc_current /= hall_sensor_sensitivity;
+		
+		// airspeed voltage low pass
+		ADC1_SelectChannel(8);
+		airspeed_voltage = ADC1_Read() * 2.5f/adc_2_5_V * 0.05 + airspeed_voltage*0.95;
+		float airspeed_sensor_data = airspeed_voltage - VCC_5V/2 - airspeed_bias;
+		printf("\rairspeed:%f", airspeed_sensor_data);
+		
+		// airspeed in m/s
+		// airspeed = sqrt( 5 * k * R * T * ( (pd/ph+1)^(1/3.5) -1 ) )
+		// k : 1.403
+		// R : 287.05287
+		// T : us ms5611 sensor, convert to kalvin
+		// pd : use airspeed sensor, convert to kPa
+		// ph : use ms5611 sensor, convert to kPa
 
 
 		if (p->voltage <-30000)
@@ -395,12 +419,6 @@ mag_load:
 		else
 			p->current = p->current * 0.95 + 0.05 * adc_current;			// simple low pass
 		
-		
-		static float vvv = 0;
-		ADC1_SelectChannel(8);
-		vvv = vvv*0.995 + ADC1_Read()*0.005;
-		printf("\r%f", vvv);
-
 
 		// calculate altitude
 		if (ms5611result == 0)
@@ -441,6 +459,7 @@ mag_load:
 			rf_data to_send;
 			to_send.time = (time & (~TAG_MASK)) | TAG_SENSOR_DATA;
 			to_send.data.sensor = *p;
+
 			
 			int tx_result;
 			tx_result = NRF_Tx_Dat((u8*)&to_send);
@@ -474,7 +493,8 @@ mag_load:
 				altitude * 100,
 				{error_pid[0][0]*180*100/PI, error_pid[1][0]*180*100/PI, error_pid[2][0]*180*100/PI},
 				{target[0]*180*100/PI, target[1]*180*100/PI, target[2]*180*100/PI},
-				mode,
+				mode,				
+				airspeed_sensor_data * 1000,
 			};
 
 			to_send.time = (time & (~TAG_MASK)) | TAG_PILOT_DATA;
@@ -527,7 +547,8 @@ mag_load:
 				gps_data gps = 
 				{
 					{info.PDOP*100, info.HDOP*100, info.VDOP*100},
-					info.lon, info.lat, info.elv, info.speed/3.6*100,
+					info.speed/3.6*100,
+					info.lon, info.lat, info.elv,
 					info.satinfo.inview, info.satinfo.inuse,
 					info.sig, info.fix,
 				};

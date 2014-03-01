@@ -9,7 +9,6 @@ typedef struct
 	short gyro[3];			// roll, pitch, yaw
 	short voltage;			// unit base: mV
 	short current;			// unit base: mA
-	short airspeed;			// unit base: pascal. not a speed unit but a differencial pressure.
 } sensor_data;
 
 typedef struct
@@ -53,6 +52,7 @@ typedef struct
 	short error[3];							// 6 byte, unit base: 0.01 degree, range: -18000 ~ 18000
 	short target[3];						// 6 byte, unit base: 0.01 degree, range: -18000 ~ 18000
 	unsigned char fly_mode;					// 1 byte
+	short airspeed;			// unit base: pascal. not a speed unit but a differencial pressure.
 } pilot_data;
 
 typedef struct
@@ -80,7 +80,7 @@ typedef struct
 	int64_t time;			// 8 byte, the top 1byte is tag
 	union
 	{
-		sensor_data sensor;	// 22 bytes
+		sensor_data sensor;	// 24 bytes
 		imu_data imu;		// 24 bytes
 		pilot_data pilot;	// 17 bytes
 		pilot_data2 pilot2;	// 24 bytes

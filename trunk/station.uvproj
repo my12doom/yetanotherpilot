@@ -334,7 +334,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>2</Optim>
+            <Optim>4</Optim>
             <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>0</OneElfS>
@@ -625,6 +625,121 @@
               <FileName>tok.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\nmea\tok.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>usb_mass_storage</GroupName>
+          <Files>
+            <File>
+              <FileName>mass_mal.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\mass_mal.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_bot.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\usb_bot.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_desc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\usb_desc.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_endp.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\usb_endp.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_istr.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\usb_istr.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_prop.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\usb_prop.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_pwr.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\usb_pwr.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_scsi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\usb_scsi.c</FilePath>
+            </File>
+            <File>
+              <FileName>otgd_fs_cal.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\otgd_fs_cal.c</FilePath>
+            </File>
+            <File>
+              <FileName>otgd_fs_dev.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\otgd_fs_dev.c</FilePath>
+            </File>
+            <File>
+              <FileName>otgd_fs_int.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\otgd_fs_int.c</FilePath>
+            </File>
+            <File>
+              <FileName>otgd_fs_pcd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\otgd_fs_pcd.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_core.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\usb_core.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_init.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\usb_init.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_int.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\usb_int.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_mem.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\usb_mem.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_regs.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\usb_regs.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_sil.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\usb_sil.c</FilePath>
+            </File>
+            <File>
+              <FileName>hw_config.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\hw_config.c</FilePath>
+            </File>
+            <File>
+              <FileName>scsi_data.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\scsi_data.c</FilePath>
+            </File>
+            <File>
+              <FileName>memory.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\memory.c</FilePath>
+            </File>
+            <File>
+              <FileName>interupt.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\interupt.c</FilePath>
             </File>
           </Files>
         </Group>
