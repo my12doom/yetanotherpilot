@@ -228,10 +228,14 @@ DocumentPath=Project Outputs for PCB_Project1\Board Information - PCB1.html
 DItemRevisionGUID=
 
 [GeneratedDocument2]
-DocumentPath=Project Outputs for PCB_Project1\PCB1.BOM
+DocumentPath=Project Outputs for PCB_Project1\Design Rule Check - PCB1.html
 DItemRevisionGUID=
 
 [GeneratedDocument3]
+DocumentPath=Project Outputs for PCB_Project1\PCB1.BOM
+DItemRevisionGUID=
+
+[GeneratedDocument4]
 DocumentPath=Project Outputs for PCB_Project1\PCB1.CSV
 DItemRevisionGUID=
 
