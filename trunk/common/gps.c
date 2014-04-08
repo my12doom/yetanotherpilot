@@ -1,6 +1,8 @@
 #include "gps.h"
 #include "config.h"
+#include <string.h>
 #include <misc.h>
+#include <stdio.h>
 
 nmeaINFO info;
 nmeaPARSER parser;
@@ -72,6 +74,85 @@ void GPS_Init(uint32_t baud_rate)
 	nmea_zero_INFO(&info);
 	nmea_parser_init(&parser);
 }
+static int parse_command_line(const char * line)
+{
+	float roll,  pitch, yaw;
+	float p,i,d;
+	int log_level;
+	if (strstr(line, "pid3") == line && sscanf(line, "pid3 %f %f %f", &p, &i, &d) == 3)
+	{
+		printf("new pid2 roll & pitch :%f,%f,%f\r\n", p, i, d);
+		pid_factor2[0][0] = p;
+		pid_factor2[0][1] = i;
+		pid_factor2[0][2] = d;
+		pid_factor2[1][0] = p;
+		pid_factor2[1][1] = i;
+		pid_factor2[1][2] = d;
+	}
+	else if (strstr(line, "pid4") == line && sscanf(line, "pid4 %f %f %f", &p, &i, &d) == 3)
+	{
+		printf("new pid2 yaw :%f,%f,%f\r\n", p, i, d);
+		pid_factor2[2][0] = p;
+		pid_factor2[2][1] = i;
+		pid_factor2[2][2] = d;
+	}
+	else if (strstr(line, "pid2") == line && sscanf(line, "pid2 %f %f %f", &p, &i, &d) == 3)
+	{
+		printf("new pid yaw:%f,%f,%f\r\n", p, i, d);
+		pid_factor[2][0] = p;
+		pid_factor[2][1] = i;
+		pid_factor[2][2] = d;
+	}
+	else if (strstr(line, "pid") == line && sscanf(line, "pid %f %f %f", &p, &i, &d) == 3)
+	{
+		printf("new pid roll&pitch:%f,%f,%f\r\n", p, i, d);
+		pid_factor[0][0] = p;
+		pid_factor[0][1] = i;
+		pid_factor[0][2] = d;
+		pid_factor[1][0] = p;
+		pid_factor[1][1] = i;
+		pid_factor[1][2] = d;
+	}
+	else if (strstr(line, "trim") == line && sscanf(line, "trim %f %f %f", &roll, &pitch, &yaw) == 3)
+	{
+		printf("new trim:%f,%f,%f\r\n", roll, pitch, yaw);
+		#if QUADCOPTER == 1
+		quadcopter_trim[0] = roll;
+		quadcopter_trim[1] = pitch;
+		quadcopter_trim[2] = yaw;
+		#endif
+	}
+	else if (strstr(line, "log") == line && sscanf(line, "log %d", &log_level) == 1)
+	{
+		printf("new log level: 0x%x\r\n", log_level);
+		LOG_LEVEL = log_level;
+	}
+	else
+	{
+		ERROR("unknown/invalid command: %s\r\n", line);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int parse_command(char *cmd)
+{
+	do
+	{
+		char *next = (char*)strchr(cmd, '\n');
+		if (next)
+			next[0] = NULL;
+
+		parse_command_line(cmd);
+		cmd = next+1;
+
+		if (!next)
+			break;
+	}while (1);
+
+	return 0;
+}
 
 char to_parse[GPS_BUFFER_BLOCK];
 int GPS_ParseBuffer()
@@ -91,7 +172,10 @@ int GPS_ParseBuffer()
 	
 	start = _end_sentence;
 
-	return nmea_parse(&parser, to_parse, j, &info);
+	if (to_parse[0] == '$')
+		return nmea_parse(&parser, to_parse, j, &info);
+	else
+		return parse_command(to_parse);
 }
 
 nmeaINFO* GPS_GetInfo()

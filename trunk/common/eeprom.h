@@ -41,7 +41,7 @@ extern "C" {
 #endif
 
 /* EEPROM start address in Flash */
-#define EEPROM_START_ADDRESS    ((uint32_t)0x0800F000) /* EEPROM emulation start address: after 60KByte of used Flash memory */
+#define EEPROM_START_ADDRESS    ((uint32_t)0x0801F000) /* EEPROM emulation start address: after 124KByte of used Flash memory */
 
 /* Pages 0 and 1 base and end addresses */
 #define PAGE0_BASE_ADDRESS      ((uint32_t)(EEPROM_START_ADDRESS + 0x000))

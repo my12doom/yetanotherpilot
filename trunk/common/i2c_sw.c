@@ -2,19 +2,36 @@
 #include "i2c_sw.h"
 #include "i2c_sw_priv.h"
 
+
+#define SCL_HI     (SCL_PORT->BSRR = SCL_PIN)
+#define SCL_LO     (SCL_PORT->BRR  = SCL_PIN)
+#define SDA_HI     (SDA_PORT->BSRR = SDA_PIN)
+#define SDA_LO     (SDA_PORT->BRR  = SDA_PIN)
+#define SDA_STATE  (SDA_PORT->IDR  & SDA_PIN)
+
+
+int SCL_PIN = DEFAULT_SCL_PIN;
+int SDA_PIN = DEFAULT_SDA_PIN;
+GPIO_TypeDef *SDA_PORT = DEFAULT_SDA_PORT;
+GPIO_TypeDef *SCL_PORT = DEFAULT_SCL_PORT;
+
+
 void I2C2_SW_Configuration(void)
 {
     GPIO_InitTypeDef  GPIO_InitStructure;
 
     /* sEE_I2C_SCL_GPIO_CLK and sEE_I2C_SDA_GPIO_CLK Periph clock enable */
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
 
     /* GPIO configuration */
     /* Configure sEE_I2C pins: SCL & SDA*/
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11 | GPIO_Pin_12;
+    GPIO_InitStructure.GPIO_Pin = SCL_PIN;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
-    GPIO_Init(GPIOA, &GPIO_InitStructure);
+    GPIO_Init(SCL_PORT, &GPIO_InitStructure);
+    GPIO_InitStructure.GPIO_Pin = SDA_PIN;
+    GPIO_Init(SDA_PORT, &GPIO_InitStructure);
 	
     I2C_Stop();
 }
@@ -39,6 +56,39 @@ void I2C_SW_WriteByte(u8 deviceAddr, u8 writeReg, u8 writeValue)
     I2C_WaitAck();
 
     I2C_Stop();
+}
+
+int I2C_SW_WriteReg(u8 SlaveAddress, u8 startRegister, const u8*data, int count)
+{
+    int i;
+    if (!I2C_Start()) {
+        return -1;
+    }
+
+    I2C_SendByte(SlaveAddress&0xFE);
+
+    if (!I2C_WaitAck()) {
+        I2C_Stop();
+        return -1;
+    }
+
+    I2C_SendByte(startRegister&0xFF);
+    I2C_WaitAck();
+
+    for(i=0; i<count; i++)
+    {
+        I2C_SendByte(data[i]&0xFF);
+        
+        if (!I2C_WaitAck())
+        {
+            I2C_Stop();
+            return -1;
+        }
+    }
+
+    I2C_Stop();
+
+    return 0;
 }
 
 u8 I2C_SW_ReadByte(u8 deviceAddr, u8 readReg)
