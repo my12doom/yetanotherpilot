@@ -426,6 +426,11 @@
               <FileType>8</FileType>
               <FilePath>.\sensors\mag_offset.cpp</FilePath>
             </File>
+            <File>
+              <FileName>ads1115.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\common\ads1115.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -480,6 +485,11 @@
               <FileName>eeprom.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\common\eeprom.c</FilePath>
+            </File>
+            <File>
+              <FileName>config.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\common\config.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -620,6 +630,36 @@
               <FileName>tok.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\nmea\tok.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>osd</GroupName>
+          <Files>
+            <File>
+              <FileName>MAX7456.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\osd\MAX7456.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>fatfs</GroupName>
+          <Files>
+            <File>
+              <FileName>diskio.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\fat\diskio.c</FilePath>
+            </File>
+            <File>
+              <FileName>ff.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\fat\ff.c</FilePath>
+            </File>
+            <File>
+              <FileName>sdcard.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\fat\sdcard.c</FilePath>
             </File>
           </Files>
         </Group>

@@ -49,16 +49,16 @@ typedef struct
 typedef struct
 {
 	int altitude;							// 4 byte, unit base: 0.01 meter relative to launch ground.
+	float airspeed;			// unit base: pascal. not a speed unit but a differencial pressure.
 	short error[3];							// 6 byte, unit base: 0.01 degree, range: -18000 ~ 18000
 	short target[3];						// 6 byte, unit base: 0.01 degree, range: -18000 ~ 18000
 	unsigned char fly_mode;					// 1 byte
-	short airspeed;			// unit base: pascal. not a speed unit but a differencial pressure.
 } pilot_data;
 
 typedef struct
 {
-	int I[3];								// 12 byte, I of PID, unit base: 0.01 degree * x(undefined time unit, current implementation is ~8ms)
-	int D[3];								// 12 byte, D of PID, unit base: 0.01 degree / x(undefined time unit, same as I)
+	int I[3];								// 12 byte, I of PID, unit base: 0.01 degree * second
+	int D[3];								// 12 byte, D of PID, unit base: 0.01 degree / second
 } pilot_data2;
 
 typedef struct

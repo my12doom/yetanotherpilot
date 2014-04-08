@@ -49,10 +49,12 @@ void NMI_Handler(void)
 {
 }
 
+#ifdef STATION
 void USART1_IRQHandler(void)
 {
 	USART_ClearITPendingBit(USART1, USART_IT_RXNE);
 }
+#endif
 
 /**
   * @brief  This function handles Hard Fault exception.

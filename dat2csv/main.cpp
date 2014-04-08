@@ -88,10 +88,10 @@ int main(int argc, char **argv)
 			file ++;
 			sprintf(tmp, "out%d.csv", file);
 			fo = fopen(tmp, "wb");
-			fprintf(fo, "time,voltage,current,overload,altitude,accel[0],aceel[1],accel[2],gyro[0](-roll_rate),gyro[1](-pitch_rate),gyro[2],error[0],error[1],error[2],errorI[0],errorD[0],roll,pitch,yaw_gyro,roll_t,pitch_t,yaw_t,throttle, mode,ppmi[0],ppmi[1],ppmi[2],ppmi[3],ppmo[0],ppmo[1],ppmo[2],ppmo[3],est[0],est[1],est[2],gyro[0],gyro[1],gyro[2]\r\n");
+			fprintf(fo, "time,voltage,current,airspeed,altitude,accel[0],aceel[1],accel[2],gyro[0](-roll_rate),gyro[1](-pitch_rate),gyro[2],error[0],error[1],error[2],errorI[0],errorD[0],roll,pitch,yaw_gyro,roll_t,pitch_t,yaw_t,throttle, mode,ppmi[0],ppmi[1],ppmi[2],ppmi[3],ppmo[0],ppmo[1],ppmo[2],ppmo[3],est[0],est[1],est[2],gyro[0],gyro[1],gyro[2]\r\n");
 			sprintf(tmp, "gps%d.csv", file);
 			gpso = fopen(tmp, "wb");
-			fprintf(gpso, "time,latitude,longitude,speed\r\n");
+			fprintf(gpso, "time,latitude,longitude,speed,aspeed\r\n");
 		}
 
 		lasttime = time;
@@ -138,11 +138,14 @@ int main(int argc, char **argv)
 		double overload = sqrt((double)sensor.accel[0]*sensor.accel[0]+ sensor.accel[1]*sensor.accel[1]+ sensor.accel[2]*sensor.accel[2]) / 2048;
 		double throttle = (ppm.in[5]-1000)/520.0;
 
- 		//if (n++ %5 == 0)
+		float airspeed = pilot.airspeed<0?0:  sqrt ( 5 * 1.403 * 287.05287 * (20+273.15) *  (pow((pilot.airspeed/1000.0)/(100.0)+1.0, 1/3.5 ) - 1.0) );
+		float mpu6050_temperature = sensor.temperature1/340.0f+36.53f;
+
+ 		if (n++ %3 == 0)
  		fprintf(fo, "%.2f,%.2f,%.2f,%2f,%.2f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d,%d\r\n",
-				float(time/1000000.0f), sensor.voltage/1000.0f, sensor.current/1000.0f, overload, altitude,
+				float(time/1000000.0f), sensor.voltage/1000.0f, sensor.current/1000.0f, pilot.airspeed/1.0f, altitude,
  				sensor.accel[0], sensor.accel[1], sensor.accel[2], sensor.gyro[0], sensor.gyro[1], sensor.gyro[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[0], pilot2.D[0],
 				roll*180/PI, pitch*180/PI, yaw_gyro*180/PI, pilot.target[0]/100.0, pilot.target[1]/100.0, pilot.target[2]/100.0, 
 				(ppm.in[2]-1113)/50, pilot.fly_mode == acrobatic ? 5000 : -5000,
@@ -157,8 +160,8 @@ int main(int argc, char **argv)
 				// estAcc[1], 前进方向，机头方向为正
 				// estAcc[2], 垂直方向，往上为正
 
-		if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA)
-		fprintf(gpso, "%.2f,%f,%f,%.2f\r\n", float(time/1000000.0f), NDEG2DEG(gps.latitude), NDEG2DEG(gps.longitude), gps.speed/100.0f);
+		if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA)
+		fprintf(gpso, "%.2f,%f,%f,%.2f,%.2f,%d\r\n", float(time/1000000.0f), NDEG2DEG(gps.latitude), NDEG2DEG(gps.longitude), gps.speed/100.0f, airspeed, pilot.airspeed);
 	}
 
 	fclose(gyrof);

@@ -10,7 +10,11 @@
 u32 g_ppm_input_start[6];
 float g_ppm_input[6];
 int64_t g_ppm_input_update[6] = {0};
+#if QUADCOPTER == 0
 u16 g_ppm_output[8] = {1520, 1520, 1520, 1520, 1520, 1520, 1520, 1520};
+#else
+u16 g_ppm_output[8] = {THROTTLE_IDLE, THROTTLE_IDLE, THROTTLE_IDLE, THROTTLE_IDLE, THROTTLE_IDLE, THROTTLE_IDLE, THROTTLE_IDLE, THROTTLE_IDLE};
+#endif
 
 
 // PPM input handler
@@ -19,7 +23,7 @@ static void PPM_EXTI_Handler(void)
 	while(1)
 	{
 		int channel = -1;
-#if PCB_VERSION == 1
+#if PCB_VERSION == 1 ||  PCB_VERSION == 3
 	static int pin_tbl[6] = {GPIO_Pin_10, GPIO_Pin_11, GPIO_Pin_12, GPIO_Pin_13, GPIO_Pin_14, GPIO_Pin_15};
 	static int line_tbl[6] = {EXTI_Line10, EXTI_Line11, EXTI_Line12, EXTI_Line13, EXTI_Line14, EXTI_Line15};
 		if (EXTI_GetITStatus(EXTI_Line10) != RESET)
@@ -238,7 +242,7 @@ void PPM_update_output_channel(int channel_to_update)
 	if (channel_to_update & PPM_OUTPUT_CHANNEL7)
 		TIM_SetCompare1(TIM3, g_ppm_output[7]);		// PB4
 
-#elif PCB_VERSION == 2
+#elif PCB_VERSION == 2 ||  PCB_VERSION == 3
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL0)
 		TIM_SetCompare1(TIM3, g_ppm_output[0]);		// PB4

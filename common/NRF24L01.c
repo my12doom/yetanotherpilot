@@ -13,12 +13,21 @@
 #define NRF_CE_LOW(x) GPIO_ResetBits(GPIOA,GPIO_Pin_2)
 #define NRF_CE_HIGH(x) GPIO_SetBits(GPIOA,GPIO_Pin_2)
 #define NRF_Read_IRQ(x) GPIO_ReadInputDataBit(GPIOA,GPIO_Pin_3)
+
 #elif PCB_VERSION == 2
 #define NRF_CSN_HIGH(x) GPIO_SetBits(GPIOA,GPIO_Pin_3)
 #define NRF_CSN_LOW(x) GPIO_ResetBits(GPIOA,GPIO_Pin_3)
 #define NRF_CE_LOW(x) GPIO_ResetBits(GPIOA,GPIO_Pin_15)
 #define NRF_CE_HIGH(x) GPIO_SetBits(GPIOA,GPIO_Pin_15)
 #define NRF_Read_IRQ(x) GPIO_ReadInputDataBit(GPIOB,GPIO_Pin_2)
+
+#elif PCB_VERSION == 3
+#define NRF_CSN_HIGH(x) GPIO_SetBits(GPIOA,GPIO_Pin_15)
+#define NRF_CSN_LOW(x) GPIO_ResetBits(GPIOA,GPIO_Pin_15)
+#define NRF_CE_LOW(x) GPIO_ResetBits(GPIOC,GPIO_Pin_15)
+#define NRF_CE_HIGH(x) GPIO_SetBits(GPIOC,GPIO_Pin_15)
+#define NRF_Read_IRQ(x) GPIO_ReadInputDataBit(GPIOA,GPIO_Pin_4)
+
 #endif
 
 #define NOP             0xFF  //空操作,可以用来读状态寄存器	 
@@ -65,7 +74,7 @@ u8 SPI_NRF_ReadReg(u8 reg);
 u8 TX_ADDRESS[TX_ADR_WIDTH] = {0xb0,0x3d,0x12,0x34,0x01}; //发送地址
 u8 RX_ADDRESS[RX_ADR_WIDTH] = {0xb0,0x3d,0x12,0x34,0x01}; //发送地址
 
-u8 tx_queue[TX_QUEUE_SIZE * TX_PLOAD_WIDTH];
+u8 tx_queue[TX_QUEUE_SIZE * TX_QUEUE_ITEM_SIZE];
 int tx_queue_count = 0;
 int busy = 0;
 int rxmode = 0;
@@ -83,7 +92,7 @@ static void unlockEXTI3()
 	NVIC_EnableIRQ(EXTI3_IRQn);
 }
 
-static void handleQueue()
+static void handleQueue(int result)
 {
 	lockEXTI3();
 	
@@ -95,6 +104,17 @@ static void handleQueue()
 
 	if (tx_queue_count > 0)
 	{
+		nrf_callback cb = *(nrf_callback*)(tx_queue+TX_PLOAD_WIDTH+1);
+		int user_data = *(int*)(tx_queue+TX_PLOAD_WIDTH+5);
+		if (cb && result>0)
+			cb(result, user_data);
+
+
+		if ( result >0 && (result & TX_OK || !tx_queue[TX_PLOAD_WIDTH])) // check success or no confirm flag
+		{
+			tx_queue_count --;
+			memmove(tx_queue, tx_queue+TX_QUEUE_ITEM_SIZE, TX_QUEUE_ITEM_SIZE * tx_queue_count);
+		}
 		busy = 1;
 		
 		//ce为低，进入待机模式1*/
@@ -106,8 +126,6 @@ static void handleQueue()
 		//CE为高，txbuf非空，发送数据包 */
 		NRF_CE_HIGH();
 
-		tx_queue_count --;
-		memmove(tx_queue, tx_queue+TX_PLOAD_WIDTH, TX_PLOAD_WIDTH * tx_queue_count);
 	}
 
 	unlockEXTI3();
@@ -137,17 +155,22 @@ void NRF_Init(void)
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 #endif
 
-	//配置 SPI_NRF_SPI 的 CE 引脚，GPIOA^2(PCB1.0)/GPIOA^15(PCB2.0) 和 SPI_NRF_SPI 的 CSN 引脚: NSS GPIOA^1(PCB1.0) / GPIOA^3(PCB2.0)
+	// 和  CSN 引脚: NSS GPIOA^1(PCB1.0) / GPIOA^3(PCB2.0)  / GPIOA^115(PCB3.0)
+	//配置 CE 引脚，GPIOA^2(PCB1.0)/GPIOA^15(PCB2.0)/GPIOC^15(PCB3.0) 
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 #if PCB_VERSION == 1  || defined(STATION)
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_1;
 #elif PCB_VERSION == 2
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_15 | GPIO_Pin_3;
+#elif PCB_VERSION == 3
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_15;
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
+	GPIO_Init(GPIOC, &GPIO_InitStructure);
 #endif
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-	//配置 SPI_NRF_SPI 的IRQ 引脚，GPIOA^3(PCB1.0) / GPIOB^2(PCB2.0)
+	//配置 SPI_NRF_SPI 的IRQ 引脚，GPIOA^3(PCB1.0) / GPIOB^2(PCB2.0) / GPIOA^4(PCB3.0)
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU ;  //上拉输入
 #if PCB_VERSION == 1  || defined(STATION)
@@ -156,6 +179,9 @@ void NRF_Init(void)
 #elif PCB_VERSION == 2
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
+#elif PCB_VERSION == 3
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
 #endif
 
 	// 这是自定义的宏，用于拉高 csn 引脚，NRF 进入空闲状态
@@ -178,8 +204,8 @@ void NRF_Init(void)
 	
 #ifdef STATION
 	GPIO_PinRemapConfig(GPIO_Remap_SPI1, ENABLE);
-	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);
 #endif
+	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);
 
 #ifndef STATION
 	state = SPI_NRF_ReadReg(STATUS);
@@ -187,8 +213,8 @@ void NRF_Init(void)
 	SPI_NRF_WriteReg(FLUSH_TX, NOP);		//清除TX FIFO寄存器
 #endif
 
-	//SPI_NRF_WriteReg(FLUSH_TX, NOP);
-	//SPI_NRF_WriteReg(FLUSH_RX, NOP);
+	SPI_NRF_WriteReg(FLUSH_TX, NOP);
+	SPI_NRF_WriteReg(FLUSH_RX, NOP);
 }
 int t3 = 0;
 int tx_ok = 0;
@@ -226,7 +252,7 @@ void EXTI3_IRQHandler(void)
 	busy = 0;
 	unlockEXTI3();
 
-	handleQueue();
+	handleQueue(state);
 }
 
 
@@ -363,6 +389,7 @@ void NRF_RX_Mode(void)
 
 {
 	rxmode = 1;
+	busy = 0;
 	power_off();
 	NRF_CE_LOW();
 
@@ -391,6 +418,7 @@ void NRF_TX_Mode(void)
 	NVIC_InitTypeDef NVIC_InitStructure;
 	
 	rxmode = 0;
+	busy = 0;
 	power_off();
 	NRF_CE_LOW();
 
@@ -439,7 +467,7 @@ void NRF_TX_Mode(void)
 * 输出  ：发送结果，成功返回TXDS,失败返回MAXRT或ERROR
 * 调用  ：外部调用
 */
-u8 NRF_Tx_Dat(u8 *txbuf)
+u8 NRF_Tx_DatEx(u8 *txbuf, int confirm, nrf_callback cb, int user_data)
 {
 	if (NRF_Read_IRQ() == 0)
 		EXTI3_IRQHandler();
@@ -448,13 +476,17 @@ u8 NRF_Tx_Dat(u8 *txbuf)
 
 	if (tx_queue_count < TX_QUEUE_SIZE &&!(tx_queue_count >= TX_QUEUE_SIZE/2 && getus()%2==0))		// 50% packet drop if queue is more than half full
 	{			
-		memcpy(tx_queue+TX_PLOAD_WIDTH*tx_queue_count, txbuf, TX_PLOAD_WIDTH);
+		memcpy(tx_queue+TX_QUEUE_ITEM_SIZE*tx_queue_count, txbuf, TX_PLOAD_WIDTH);
+		(tx_queue+TX_QUEUE_ITEM_SIZE*tx_queue_count)[TX_PLOAD_WIDTH] = confirm;		//confirm flag
+		*((nrf_callback*)(tx_queue+TX_QUEUE_ITEM_SIZE*tx_queue_count + TX_PLOAD_WIDTH+1)) = cb;	// callback func
+		*((int*)(tx_queue+TX_QUEUE_ITEM_SIZE*tx_queue_count + TX_PLOAD_WIDTH+5)) = user_data;	// user data
+
 
 		tx_queue_count ++;
 
 		unlockEXTI3();
 
-		handleQueue();
+		handleQueue(-1);
 
 		return TX_OK;
 	}
@@ -465,10 +497,17 @@ u8 NRF_Tx_Dat(u8 *txbuf)
 	}
 }
 
+u8 NRF_Tx_Dat(u8 *txbuf)
+{
+	return NRF_Tx_DatEx(txbuf, 0, NULL, 0);
+}
+
 void NRF_Handle_Queue(void)
 {
 	if (NRF_Read_IRQ() == 0)
-		EXTI3_IRQHandler();	
+		EXTI3_IRQHandler();
+	//if (!busy)
+		handleQueue(-1);			// no dequeueing, just sending
 }
 
 
@@ -483,11 +522,15 @@ u8 NRF_Rx_Dat(u8 *rxbuf)
 {
 	u8 state;
 	int i = 0;
+
+	if (!rxmode)
+		return 0;
+
 	NRF_CE_HIGH();         //进入接收状态
 	//等待接收中断*/
 	while(NRF_Read_IRQ() != 0 && i++ < 5000);
 	if (i == 5000)
-		return ERROR;
+		return 0;
 
 	NRF_CE_LOW();			//进入待机状态
 	//读取status寄存器的值  */
@@ -504,5 +547,5 @@ u8 NRF_Rx_Dat(u8 *rxbuf)
 		return RX_OK;
 	}
 	else
-		return ERROR;											//没收到任何数据
+		return 0;											//没收到任何数据
 }

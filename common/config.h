@@ -7,7 +7,7 @@
 #define USART1_DBG
 #define SW_I2C
 #define GPS_BUFFER_BLOCK 512
-#define PCB_VERSION 2
+#define PCB_VERSION 3
 
 #ifndef PCB_VERSION
 #define PCB_VERSION 1
@@ -21,6 +21,7 @@
 #ifndef STATION
 #undef USART1_DBG
 #endif
+#define ERROR printf
 
 #ifdef BLUETOOTH
 #undef USART1_DBG
@@ -28,7 +29,7 @@
 #endif
 
 // pilot configuration
-#define QUADCOPTER 0
+#define QUADCOPTER 1
 #define PI 3.14159265
 #define cycle_time (8000)
 
@@ -41,6 +42,7 @@
 #define VOLTAGE_DIVIDER_BASE 6		// uncalibrated voltage divider ratio
 #define MAX_GYRO_BIAS_DRIFT 30
 #define THROTTLE_IDLE 1125
+#define THROTTLE_MAX 1888
 
 #define ACRO_ROLL_RATE (PI*3/2)				// 270 degree/s
 #define ACRO_PITCH_RATE (PI)			// 180 degree/s
@@ -49,33 +51,34 @@
 #define ACCELEROMETER_THRESHOLD 0.3
 #define MAG_THRESHOLD 0.3
 
+#define CRUISING_SPEED 125				// 125 pascal
+
 
 #if QUADCOPTER == 1
 #define ACRO_MANUAL_FACTOR (0.0)
-static float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
+extern float pid_factor[3][3];			// pid_factor[roll,pitch,yaw][p,i,d]
+extern float pid_factor2[3][3];			// another pid factor
+extern float stablize_Kp;
+extern int LOG_LEVEL;
+#define LOG_NRF 1
+#define LOG_SDCARD 2
+#define LOG_USART1 4
+#define LOG_USART2 8
+
+extern float pid_limit[3][3]; 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]
+extern float quadcopter_trim[3]
+/*= 
 {
-	{0.2, 0.05, 6,},
-	{0.2, 0.05, 6,},
-	{0.2, 0, 0,},
-};
-static float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]
-{
-	{PI/6, PI/3, 1},
-	{PI/6, PI/3, 1},
-	{PI/6, PI/3, 1},
-};
-static float quadcopter_trim[3] = 
-{
-	-4.5 * PI / 180,				// roll
+	-4.5 * PI / 180,			// roll
 	-2.5 * PI / 180,			// pitch
 	0,							// yaw
-};
+}*/;
 
 static float quadcopter_range[3] = 
 {
-	PI/36,			// roll targe on RC full deflection
-	PI/36,			// pitch
-	PI/36,			// yaw
+	PI/18,			// roll target on RC full deflection
+	PI/18,			// pitch
+	PI/18,			// yaw
 };
 
 static int quadcopter_mixing_matrix[4][3] = // the motor mixing matrix, [motor number] [roll, pitch, yaw]
@@ -87,14 +90,8 @@ static int quadcopter_mixing_matrix[4][3] = // the motor mixing matrix, [motor n
 };
 #else
 #define ACRO_MANUAL_FACTOR (0.3)		// final output in acrobatic mode, 70% pid, 30% rc
-static float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
-{
-	{1.50, 0.15, 0.16,},
-	{1.50, 0.15, 0.16,},
-	//{0, 0.0, 20,},
-	//{0, 0.0, 20,},
-	{0, 0, 0,},
-};
+extern float pid_factor[3][3]; 			// pid_factor[roll,pitch,yaw][p,i,d]
+
 static float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]
 {
 	{PI/4, PI/2, 1},

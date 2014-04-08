@@ -70,6 +70,31 @@ const char *mode_tbl[] =
 	"acrobaticV",
 };
 
+SD_CardInfo SDCardInfo;
+SD_Error Status ;
+SD_Error SD_InitAndConfig(void)
+{
+  Status = SD_Init();
+
+  if (Status == SD_OK)
+  {
+    Status = SD_GetCardInfo(&SDCardInfo);
+  }
+  if (Status == SD_OK)
+  {
+    Status = SD_SelectDeselect((u32) (SDCardInfo.RCA << 16));
+  }
+  if (Status == SD_OK)
+  {
+    Status = SD_EnableWideBusOperation(SDIO_BusWide_4b);
+  }
+  if (Status == SD_OK)
+  {
+    Status = SD_SetDeviceMode(SD_DMA_MODE);
+  }
+	return Status;
+}
+
 FRESULT res = FR_OK;
 FRESULT scan_files (
     char* path        /* Start node to be scanned (also used as work area) */
@@ -113,8 +138,26 @@ FRESULT scan_files (
     return res;
 }
 
+int heartbeat = 1;
+int heartbeat_count = 0;
+int nrfresult = 1;
+int nrfcb(int result, int user_data)
+{
+	if (!(result & TX_OK))
+		return 0;
+
+	heartbeat_count = (getus() - user_data)/1000;
+
+	//heartbeat_count ++;
+	heartbeat = 1;
+	return 0;
+}
+
+
 #define LINE_HEIGHT 12
 char path[256];
+extern int tx_queue_count;
+extern int tx_ok;
 int main(void)
 {	
 	// Basic Initialization
@@ -224,10 +267,10 @@ int main(void)
 	NRF_Init();
 	nrf = NRF_Check();
 	printf("NRF_Check() = %d\r\n", nrf);
-	NRF_RX_Mode();
 	
 	while(1)
 	{		
+		NRF_RX_Mode();
 		// read keys
 		for(int i=0; i<4; i++)
 			keys[i] = GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_12<<i);
@@ -333,8 +376,26 @@ int main(void)
 		}
 		
 		
+		
+		
 		if (getus()-last_update > 100000)
 		{
+			// heartbeat packet
+			if (heartbeat == 1)
+			{
+				heartbeat = 0;
+				u8 packet[32];
+				NRF_Tx_DatEx(packet, 1, nrfcb, getus());
+			}
+			
+			// 10 ms TX time
+			/*NRF_TX_Mode();
+			uint64_t us = getus();
+			while(getus()-us < 10000)
+				NRF_Handle_Queue();
+			NRF_RX_Mode();
+			*/
+			
 			ARC_LCD_Clear(0);
 			
 			if (((packet_types&0xff) == 7))
@@ -392,6 +453,7 @@ int main(void)
 			sprintf((char*)yawstr, "v:%.1fm/s, %d/%d sat", (float)gps.speed/100.0f, gps.satelite_in_use, gps.satelite_in_view);
 			ARC_LCD_ShowString(0,LINE_HEIGHT*13, yawstr);
 
+			/*
 			if (gps.fix > 1)
 				GPIO_ResetBits(GPIOE, GPIO_Pin_2);
 			else
@@ -401,6 +463,7 @@ int main(void)
 				GPIO_ResetBits(GPIOE, GPIO_Pin_0);
 			else
 				GPIO_SetBits(GPIOE, GPIO_Pin_0 | GPIO_Pin_2);
+			*/
 			
 			if ((getus() - last_packet_time > 2000000))
 			{
@@ -425,12 +488,12 @@ int main(void)
 			// ph : use ms5611 sensor, convert to kPa
 			
 			float airspeed = sqrt ( 5 * 1.403 * 287.05287 * (imu.temperature/100.0+273.15) *  (pow((-pilot.airspeed/1000.0)/(imu.pressure/1000.0)+1.0, 1/3.5 ) - 1.0) );
-			airspeed = sqrt ( 5 * 1.403 * 287.05287 * (20+273.15) *  (pow((-pilot.airspeed/1000.0)/(100.0)+1.0, 1/3.5 ) - 1.0) );
+			airspeed = sqrt ( 5 * 1.403 * 287.05287 * (20+273.15) *  (pow((pilot.airspeed/1000.0)/(100.0)+1.0, 1/3.5 ) - 1.0) );
 
 			
 			int t = RTC_GetCounter();
 			struct tm time = current_time();
-			sprintf((char*)yawstr, "airspeed=%d, %.2f m/s",  pilot.airspeed, airspeed);
+			sprintf((char*)yawstr, "airspeed=%d, %.2f m/s, HB=%d,%d,0x%02x,%d",  pilot.airspeed, airspeed, heartbeat_count, tx_queue_count, nrfresult, tx_ok);
 			ARC_LCD_ShowString(0, 244, yawstr);
 			sprintf((char*)yawstr, "Mag:%d,%d,%d, R=%d", (int)mag_zero.array[0], (int)mag_zero.array[1], (int)mag_zero.array[2], (int)mag_radius);
 			ARC_LCD_ShowString(0, 256, yawstr);
