@@ -39,7 +39,11 @@ int init_MPU6050(void)
 	TRACE("start MPU6050\r\n");
 	delayms(10);
 	I2C_WriteReg(MPU6050SlaveAddress, PWR_MGMT_1, 0x00);
+	#if QUADCOPTER == 1
+	I2C_WriteReg(MPU6050SlaveAddress, SMPLRT_DIV, 0x02);
+	#else
 	I2C_WriteReg(MPU6050SlaveAddress, SMPLRT_DIV, 0x07);
+	#endif
 	I2C_WriteReg(MPU6050SlaveAddress, MPU6050_CONFIG, 0x06);
 	I2C_WriteReg(MPU6050SlaveAddress, GYRO_CONFIG, 0x18);			// full scale : +/-8192; +/- 2000 degree/s
 	I2C_WriteReg(MPU6050SlaveAddress, ACCEL_CONFIG, 0x18);

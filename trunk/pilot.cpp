@@ -90,9 +90,10 @@ static float temperature = 0;
 static float pressure = 0;
 float ground_pressure = 0;
 float ground_temperature = 0;
-float climb_rate;
+float climb_rate = 0;
 float climb_rate_filter[7] = {0};			// 7 point Derivative Filter(copied from ArduPilot), see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/#noiserobust_2
 float climb_rate_filter_time[7] = {0};
+float accelz = 0;
 
 int sdcard_init()
 {
@@ -566,7 +567,7 @@ mag_load:
 		if (getus()-counter2 > 1000000)
 		{
 			counter2 = getus();
-			printf("cycle_counter=%d\r\n\r\n", cycle_counter);
+			TRACE("cycle_counter=%d\r\n\r\n", cycle_counter);
 			cycle_counter = 0;
 		}
 
@@ -692,10 +693,15 @@ mag_load:
 			memmove(climb_rate_filter_time, climb_rate_filter_time+1, sizeof(float)*6);
 			climb_rate_filter[6] = altitude;
 			climb_rate_filter_time[6] = this_baro_time / 1000000.0f;
-			climb_rate =   2 * 5 * (climb_rate_filter[3] - climb_rate_filter[5]) / (climb_rate_filter_time[3] - climb_rate_filter_time[5]) +
+			float raw_climb_rate =   2 * 5 * (climb_rate_filter[3] - climb_rate_filter[5]) / (climb_rate_filter_time[3] - climb_rate_filter_time[5]) +
 						   4 * 4 * (climb_rate_filter[2] - climb_rate_filter[6]) / (climb_rate_filter_time[3] - climb_rate_filter_time[5]) + 
 						   6 * 1 * (climb_rate_filter[2] - climb_rate_filter[6]) / (climb_rate_filter_time[3] - climb_rate_filter_time[5]);
-			climb_rate /= 32.0f;
+			raw_climb_rate /= 32.0f;
+
+			// low pass filter
+			const float RC = 1.0f/(2*3.1415926 * 0.5f);
+			float alpha = delta_time / (delta_time + RC);
+			climb_rate = raw_climb_rate * alpha + (1-alpha) * climb_rate;
 			
 			TRACE("\r\npressure,temperature=%f, %f, ground pressure & temperature=%f, %f, height=%f, climb_rate=%f, time=%f\r\n", pressure, temperature, ground_pressure, ground_temperature, altitude, climb_rate, (double)getus()/1000000);
 
@@ -769,9 +775,20 @@ mag_load:
 		to_send.time = (time & (~TAG_MASK)) | TAG_PPM_DATA;
 		to_send.data.ppm = ppm;
 		tx_result = log((u8*)&to_send, 32);
-		
-		if (GPS_ParseBuffer() > 0)
-			last_gps_tick = getus();
+
+		#if QUADCOPTER == 1
+		quadcopter_data quad = 
+		{
+			angle_pos[0] * 18000/PI, angle_pos[1] * 18000/PI, angle_pos[2] * 18000/PI,
+			angle_target[0] * 18000/PI, angle_target[1] * 18000/PI, angle_target[2] * 18000/PI,
+			pos[0] * 18000/PI, pos[1] * 18000/PI, pos[2] * 18000/PI,
+			target[0] * 18000/PI,  target[1] * 18000/PI, target[2] * 18000/PI, 
+		};
+
+		to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA;
+		to_send.data.quadcopter = quad;
+		tx_result = log((u8*)&to_send, 32);
+		#endif
 		
 		// only 5 seconds magnet centering data
 		if (getus() < 5000000)
@@ -787,6 +804,10 @@ mag_load:
 			
 			tx_result = log((u8*)&to_send, 32);
 		}
+
+		if (GPS_ParseBuffer() > 0)
+			last_gps_tick = getus();
+		
 
 
 		if (last_gps_tick > getus() - 2000000)
@@ -858,6 +879,10 @@ mag_load:
 			TRACE("rapid movement (%fg, angle=%f)", acc_g, acos(vector_angle(&estAccGyro, &acc)) * 180 / PI );
 		}
 
+
+		accelz = 9.8 * (acc_g - 1);
+		climb_rate = climb_rate * 0.05 + 0.95 * (climb_rate + accelz * interval);
+
 		// calculate attitude, unit is radian, range +/-PI
 		float roll = radian_add(atan2(estAccGyro.V.x, estAccGyro.V.z), PI);
 		float pitch = atan2(estAccGyro.V.y, (estAccGyro.V.z > 0 ? 1 : -1) * sqrt(estAccGyro.V.x*estAccGyro.V.x + estAccGyro.V.z * estAccGyro.V.z));
@@ -887,6 +912,7 @@ mag_load:
 				pos[i] = angle_posD[i] = (new_angle_pos[i] - angle_pos[i])/interval;
 				angle_pos[i] = new_angle_pos[i];
 			}
+			TRACE("\rspeed:%.2f, %.2f degree/s \r\n", pos[0] * PI180, target[0] * PI180, pos[2] * PI180);
 
 
 			//pos[2] = yaw_gyro;
@@ -1066,8 +1092,8 @@ mag_load:
 				// roll & pitch, RC trim is accepted.
 				for(int i=0; i<2; i++)
 				{
-					float limit_l = angle_target[i] - pid_limit[0][2] * interval / 2;
-					float limit_r = angle_target[i] + pid_limit[0][2] * interval / 2;
+					float limit_l = angle_target[i] - 2 * PI * interval;
+					float limit_r = angle_target[i] + 2 * PI * interval;
 					angle_target[i] = limit((g_ppm_input[i] - RC_CENTER) * rc_reverse[i] / RC_RANGE, -1, 1) * quadcopter_range[i] + quadcopter_trim[i];
 					angle_target[i] = limit(angle_target[i], limit_l, limit_r);
 				}
@@ -1107,7 +1133,7 @@ mag_load:
 					// max target rate: 180 degree/second
 					target[i] = limit(target[i], -PI, PI);
 				}
-				TRACE("angle pos,target=%f,%f\r\n", angle_pos[2] * PI180, angle_target[2] * PI180);
+				TRACE("angle pos,target=%f,%f\r\n", angle_pos[0] * PI180, angle_target[0] * PI180);
 			}
 			break;
 		#endif
@@ -1127,7 +1153,7 @@ mag_load:
 			calculate_roll_pitch(&acc, &mag, &VA, &VM, errorV);
 		}
 		float pid[3] = {0}; // total pid for roll, pitch, yaw
-		float airspeed_factor = has_airspeed ? (airspeed_sensor_data>0?CRUISING_SPEED/1000.0f/airspeed_sensor_data:2.0f) : 1.0f;
+		float airspeed_factor = has_airspeed ? sqrt(airspeed_sensor_data>0?CRUISING_SPEED/1000.0f/airspeed_sensor_data:2.0f) : 1.0f;
 		airspeed_factor = limit(airspeed_factor, 0.5f, 2.0f);
 		#if QUADCOPTER == 1
 			airspeed_factor = 1.0f;

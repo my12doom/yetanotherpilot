@@ -77,6 +77,15 @@ typedef struct
 
 typedef struct
 {
+	short angle_pos[3];
+	short angle_target[3];
+	short speed[3];
+	short speed_target[3];
+} quadcopter_data;
+
+
+typedef struct
+{
 	int64_t time;			// 8 byte, the top 1byte is tag
 	union
 	{
@@ -88,6 +97,7 @@ typedef struct
 		controll_data controll; // 24 bytes
 		gps_data_v1 gps_v1;		// 22 bytes
 		gps_data gps;		// 22 bytes
+		quadcopter_data quadcopter;	// 24 byte
 	}data;
 } rf_data;
 
@@ -100,6 +110,7 @@ typedef struct
 #define TAG_CTRL_DATA	0x3400000000000000
 #define TAG_GPS_DATA_V1	0x3500000000000000
 #define TAG_GPS_DATA	0x3600000000000000
+#define TAG_QUADCOPTER_DATA	0x3700000000000000
 
 #define CTRL_CMD_SET_VALUE 0
 #define CTRL_CMD_GET_VALUE 1

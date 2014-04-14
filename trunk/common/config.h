@@ -76,9 +76,9 @@ extern float quadcopter_trim[3]
 
 static float quadcopter_range[3] = 
 {
-	PI/18,			// roll target on RC full deflection
-	PI/18,			// pitch
-	PI/18,			// yaw
+	PI/8,			// roll target on RC full deflection
+	PI/8,			// pitch
+	PI/8,			// yaw
 };
 
 static int quadcopter_mixing_matrix[4][3] = // the motor mixing matrix, [motor number] [roll, pitch, yaw]
