@@ -65,8 +65,11 @@ static void PPM_EXTI_Handler(void)
 			if (now > g_ppm_input_start[channel])
 				g_ppm_input[channel]= now - g_ppm_input_start[channel];
 			else
+#if QUADCOPTER == 1
+				g_ppm_input[channel]= now + 3000 - g_ppm_input_start[channel];
+#else
 				g_ppm_input[channel]= now + 10000 - g_ppm_input_start[channel];
-			
+#endif			
 			g_ppm_input_update[channel] = getus();
 		}
 		
@@ -117,7 +120,11 @@ static void Timer_Config(int enable_input)
 	TIM_OCInitTypeDef  TIM_OCInitStructure;
 
 	// Time base configuration
+	#if QUADCOPTER == 1
+	TIM_TimeBaseStructure.TIM_Period = 2999;
+	#else
 	TIM_TimeBaseStructure.TIM_Period = 9999;
+	#endif
 	TIM_TimeBaseStructure.TIM_Prescaler = 71;
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;

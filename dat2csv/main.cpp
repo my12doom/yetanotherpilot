@@ -41,6 +41,7 @@ int main(int argc, char **argv)
 	ppm_data ppm = {0};
 	gps_data_v1 gps_v1 = {0};
 	gps_data gps = {0};
+	quadcopter_data quad = {0};
 
 
 	FILE * f = fopen(argv[1], "rb");
@@ -48,6 +49,7 @@ int main(int argc, char **argv)
 	FILE * gpso = NULL;
 	FILE * gyrof = fopen("gyro.dat", "wb");
 	int n = 0;
+	int m = 0;
 	int packet = 0;
 	int file = 0;
 	char tmp[200];
@@ -70,6 +72,8 @@ int main(int argc, char **argv)
 			sensor = rf.data.sensor;
 			fwrite(sensor.gyro, 1, 6, gyrof);
 		}
+		else if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA)
+			quad = rf.data.quadcopter;
 		else if ((rf.time & TAG_MASK) ==  TAG_PPM_DATA)
 			ppm = rf.data.ppm;
 		else
@@ -91,7 +95,7 @@ int main(int argc, char **argv)
 			fprintf(fo, "time,voltage,current,airspeed,altitude,accel[0],aceel[1],accel[2],gyro[0](-roll_rate),gyro[1](-pitch_rate),gyro[2],error[0],error[1],error[2],errorI[0],errorD[0],roll,pitch,yaw_gyro,roll_t,pitch_t,yaw_t,throttle, mode,ppmi[0],ppmi[1],ppmi[2],ppmi[3],ppmo[0],ppmo[1],ppmo[2],ppmo[3],est[0],est[1],est[2],gyro[0],gyro[1],gyro[2]\r\n");
 			sprintf(tmp, "gps%d.csv", file);
 			gpso = fopen(tmp, "wb");
-			fprintf(gpso, "time,latitude,longitude,speed,aspeed\r\n");
+			fprintf(gpso, "time,latitude,longitude,speed,aspeed,aspeedv,angle[0],angle_target[0],speed[0],speed_target[0]\r\n");
 		}
 
 		lasttime = time;
@@ -141,7 +145,7 @@ int main(int argc, char **argv)
 		float airspeed = pilot.airspeed<0?0:  sqrt ( 5 * 1.403 * 287.05287 * (20+273.15) *  (pow((pilot.airspeed/1000.0)/(100.0)+1.0, 1/3.5 ) - 1.0) );
 		float mpu6050_temperature = sensor.temperature1/340.0f+36.53f;
 
- 		if (n++ %3 == 0)
+ 		if (n++ %30 == 0)
  		fprintf(fo, "%.2f,%.2f,%.2f,%2f,%.2f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d,%d\r\n",
@@ -160,8 +164,15 @@ int main(int argc, char **argv)
 				// estAcc[1], 前进方向，机头方向为正
 				// estAcc[2], 垂直方向，往上为正
 
-		if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA)
-		fprintf(gpso, "%.2f,%f,%f,%.2f,%.2f,%d\r\n", float(time/1000000.0f), NDEG2DEG(gps.latitude), NDEG2DEG(gps.longitude), gps.speed/100.0f, airspeed, pilot.airspeed);
+		if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA || (rf.time & TAG_MASK) ==  TAG_GPS_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA)
+		{
+			if (m++ %5 == 0 && pilot.fly_mode == quadcopter && ppm.in[2] > 1300)
+			{
+				fprintf(gpso, "%.2f,%f,%f,%.2f,%.2f,%d", float(time/1000000.0f), NDEG2DEG(gps.latitude), NDEG2DEG(gps.longitude), gps.speed/100.0f, airspeed, pilot.airspeed);
+				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[1],quad.angle_target[1],quad.speed[1],quad.speed_target[1]);
+				fprintf(gpso, "\r\n");
+			}
+		}
 	}
 
 	fclose(gyrof);
