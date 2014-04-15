@@ -859,19 +859,27 @@ mag_load:
 		
 		TRACE("gyroI:%f,%f,%f\r", gyroI.array[0] *180/PI, gyroI.array[1]*180/PI, gyroI.array[2]*180/PI);
 		
-		// apply CF filter for Mag
+		// apply CF filter for Mag : 0.5hz low pass for mag
+		const float RC = 1.0f/(2*3.1415926 * 0.5f);
+		float alpha = interval / (interval + RC);
+		
 		vector mag_f = mag;
-		vector_multiply(&mag_f, factor_1);
-		vector_multiply(&estMagGyro, factor);
+		vector_multiply(&mag_f, alpha);
+		vector_multiply(&estMagGyro, 1-alpha);
 		vector_add(&estMagGyro, &mag_f);
 		
 		// apply CF filter for Acc if g force is acceptable
 		float acc_g = vector_length(&acc)/ accel_1g;
-		if (acc_g > 0.85 && acc_g < 1.15)
+		if (acc_g > 0.90 && acc_g < 1.10)
 		{
+			// 0.05 low pass filter for acc reading
+			const float RC = 1.0f/(2*3.1415926 * 0.05f);
+			float alpha = interval / (interval + RC);
+
+
 			vector acc_f = acc;
-			vector_multiply(&acc_f, factor_1);
-			vector_multiply(&estAccGyro, factor);
+			vector_multiply(&acc_f, alpha);
+			vector_multiply(&estAccGyro, 1-alpha);
 			vector_add(&estAccGyro, &acc_f);
 		}
 		else
