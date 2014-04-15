@@ -1222,7 +1222,7 @@ mag_load:
 				float mix = mode != rc_fail ? g_ppm_input[2] : 1200;
 				mix = (mix-1100)*0.6 + 1100;
 				for(int j=0; j<3; j++)
-					mix += quadcopter_mixing_matrix[i][j] * (pid[j]/pid_limit[j][0]) * QUADCOPTER_MAX_DELTA;
+					mix += quadcopter_mixing_matrix[i][j] * pid[j] * QUADCOPTER_MAX_DELTA;
 				g_ppm_output[i] = mix;
 				
 				TRACE("\rpid[x] = %f, %f, %f", pid[0], pid[1], pid[2]);
