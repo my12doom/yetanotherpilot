@@ -43,6 +43,7 @@
 #define MAX_GYRO_BIAS_DRIFT 30
 #define THROTTLE_IDLE 1125
 #define THROTTLE_MAX 1888
+#define THROTTLE_CRUISE 1550
 
 #define ACRO_ROLL_RATE (PI*3/2)				// 270 degree/s
 #define ACRO_PITCH_RATE (PI)			// 180 degree/s
