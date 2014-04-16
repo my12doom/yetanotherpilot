@@ -42,6 +42,7 @@ int main(int argc, char **argv)
 	gps_data_v1 gps_v1 = {0};
 	gps_data gps = {0};
 	quadcopter_data quad = {0};
+	quadcopter_data2 quad2 = {0};
 
 
 	FILE * f = fopen(argv[1], "rb");
@@ -73,7 +74,13 @@ int main(int argc, char **argv)
 			fwrite(sensor.gyro, 1, 6, gyrof);
 		}
 		else if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA)
+		{
 			quad = rf.data.quadcopter;
+		}
+		else if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA2)
+		{
+			quad2 = rf.data.quadcopter2;
+		}
 		else if ((rf.time & TAG_MASK) ==  TAG_PPM_DATA)
 			ppm = rf.data.ppm;
 		else
@@ -169,7 +176,7 @@ int main(int argc, char **argv)
 			if (m++ %5 == 0 && pilot.fly_mode == quadcopter && ppm.in[2] > 1300)
 			{
 				fprintf(gpso, "%.2f,%f,%f,%.2f,%.2f,%d", float(time/1000000.0f), NDEG2DEG(gps.latitude), NDEG2DEG(gps.longitude), gps.speed/100.0f, airspeed, pilot.airspeed);
-				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[1],quad.angle_target[1],quad.speed[1],quad.speed_target[1]);
+				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d", quad.angle_pos[1],quad.angle_target[1],quad.speed[1],quad.speed_target[1], quad2.airborne ? 1000 : 0, quad2.climb_rate, pilot.altitude);
 				fprintf(gpso, "\r\n");
 			}
 		}

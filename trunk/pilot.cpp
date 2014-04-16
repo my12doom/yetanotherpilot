@@ -94,6 +94,31 @@ float climb_rate = 0;
 float climb_rate_filter[7] = {0};			// 7 point Derivative Filter(copied from ArduPilot), see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/#noiserobust_2
 float climb_rate_filter_time[7] = {0};
 float accelz = 0;
+bool airborne = false;
+float takeoff_ground_altitude = 0;
+int mode = initializing;
+u8 data[TX_PLOAD_WIDTH];
+static sensor_data *p = (sensor_data*)data;
+vector estAccGyro = {0};			// for roll & pitch
+vector estMagGyro = {0};			// for yaw
+vector estGyro = {0};				// for gyro only yaw, yaw lock on this
+vector groundA;						// ground accerometer vector
+vector groundM;						// ground magnet vector
+float mag_radius = -999;
+vector mag_avg = {0};
+vector gyro_zero = {0};
+vector accel_avg = {0};
+vector mag_zero = {0};
+double altitude = 0;
+int ms5611[2];
+float adc_2_5_V = -1;
+float VCC_3_3V = -1;
+float VCC_5V = -1;
+float VCC_motor = -1;
+float airspeed_voltage = -1;
+float voltage_divider_factor = 6;
+long last_baro_time = 0;
+int baro_counter = 0;
 
 int sdcard_init()
 {
@@ -292,32 +317,10 @@ int main(void)
 	TRACE("NRF_Check() = %d\r\n", nrf_ok);
 	if (nrf_ok)
 		NRF_TX_Mode();
-	int mode = initializing;
-	u8 data[TX_PLOAD_WIDTH];
-	sensor_data *p = (sensor_data*)data;
-	vector estAccGyro = {0};			// for roll & pitch
-	vector estMagGyro = {0};			// for yaw
-	vector estGyro = {0};				// for gyro only yaw, yaw lock on this
-	vector groundA;						// ground accerometer vector
-	vector groundM;						// ground magnet vector
-	float mag_radius = -999;
 	
-	vector mag_avg = {0};
-	vector gyro_zero = {0};
-	vector accel_avg = {0};
-	vector mag_zero = {0};
-	double altitude = 0;
-	int ms5611[2];
-	float adc_2_5_V = -1;
-	float VCC_3_3V = -1;
-	float VCC_5V = -1;
-	float VCC_motor = -1;
-	float airspeed_voltage = -1;
-	float voltage_divider_factor = 6;
+
 	p->voltage = -32768;
 	p->current = -32768;
-	long last_baro_time = 0;
-	int baro_counter = 0;
 
 	// load voltage divider factor
 	for(int i=0; i<sizeof(voltage_divider_factor); i+=2)
@@ -788,6 +791,16 @@ mag_load:
 		to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA;
 		to_send.data.quadcopter = quad;
 		tx_result = log((u8*)&to_send, 32);
+
+		quadcopter_data2 quad2 = 
+		{
+			climb_rate * 100,
+			airborne,
+		};
+
+		to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA2;
+		to_send.data.quadcopter2 = quad2;
+		tx_result = log((u8*)&to_send, 32);
 		#endif
 		
 		// only 5 seconds magnet centering data
@@ -952,7 +965,13 @@ mag_load:
 
 			#if QUADCOPTER == 1
 				for(int i=0; i<3; i++)
+				{
 					angle_target[i] = angle_pos[i];
+					error_pid[i][1] = 0;	//reset integration
+				}
+
+				airborne = false;
+				takeoff_ground_altitude = altitude;
 
 			#endif
 
@@ -1142,6 +1161,14 @@ mag_load:
 					target[i] = limit(target[i], -PI, PI);
 				}
 				TRACE("angle pos,target=%f,%f\r\n", angle_pos[0] * PI180, angle_target[0] * PI180);
+
+				// check takeoff
+				if ( (altitude > takeoff_ground_altitude + 2.0) ||
+					 (altitude > takeoff_ground_altitude && g_ppm_input[2] > THROTTLE_CRUISE) ||
+					 (g_ppm_input[2] > THROTTLE_CRUISE + 200))
+				{
+					airborne = true;
+				}
 			}
 			break;
 		#endif
@@ -1181,7 +1208,11 @@ mag_load:
 				new_p = -new_p;
 			
 
+			#if QUADCOPTER == 1
+			if (airborne)		// only integrate after takeoff
+			#endif
 			error_pid[i][1] += new_p * interval;														// I
+
 			error_pid[i][1] = limit(error_pid[i][1], -pid_limit[i][1], pid_limit[i][1]);
 			error_pid[i][2] = (new_p - error_pid[i][0] + rc_d[i]* sensor_reverse[i])/interval;													// D
 			error_pid[i][0] = new_p;																	// P

@@ -83,6 +83,11 @@ typedef struct
 	short speed_target[3];
 } quadcopter_data;
 
+typedef struct
+{
+	short climb_rate;		// unit: cm/s
+	bool airborne;
+} quadcopter_data2;
 
 typedef struct
 {
@@ -98,6 +103,7 @@ typedef struct
 		gps_data_v1 gps_v1;		// 22 bytes
 		gps_data gps;		// 22 bytes
 		quadcopter_data quadcopter;	// 24 byte
+		quadcopter_data2 quadcopter2;
 	}data;
 } rf_data;
 
@@ -111,6 +117,7 @@ typedef struct
 #define TAG_GPS_DATA_V1	0x3500000000000000
 #define TAG_GPS_DATA	0x3600000000000000
 #define TAG_QUADCOPTER_DATA	0x3700000000000000
+#define TAG_QUADCOPTER_DATA2	0x3800000000000000
 
 #define CTRL_CMD_SET_VALUE 0
 #define CTRL_CMD_GET_VALUE 1
