@@ -1134,11 +1134,11 @@ mag_load:
 					rc *= rate[2];
 
 				rc_d[2] = -rc * rc_reverse[2] * sensor_reverse[2];
-				
+
 				float trimmed_pos = radian_add(angle_pos[2], quadcopter_trim[2]);
 				float new_target = radian_add(angle_target[2], rc_d[2]);
 				float new_error = abs(radian_sub(trimmed_pos, new_target));
-				if (new_error > ACRO_MAX_OFFSET[2] && new_error > abs(error_pid[2][0]))
+				if (new_error > ACRO_MAX_OFFSET[2] && new_error > abs(angle_error[2]))
 					rc_d[2] = 0;
 				else
 					angle_target[2] = new_target;
@@ -1150,8 +1150,13 @@ mag_load:
 				{
 					float new_angle_error = radian_sub(angle_pos[i], angle_target[i]);	// use radian_sub mainly for yaw
 
+
+					// 5hz low pass filter for D, you won't be that crazy, right?
+					static const float lpf_RC = 1.0f/(2*PI * 5.0f);
+					float alpha = interval / (interval + lpf_RC);
+
 					angle_errorI[i] = angle_error[i] + new_angle_error * interval;
-					angle_errorD[i] = (new_angle_error - angle_error[i]) / interval;
+					angle_errorD[i] = (1-alpha) * angle_errorD[i] + alpha * (new_angle_error - angle_error[i]) / interval;
 					angle_error[i] = new_angle_error;
 
 					// apply angle pid
@@ -1208,15 +1213,21 @@ mag_load:
 				new_p = -new_p;
 			
 
+			// I
 			#if QUADCOPTER == 1
 			if (airborne)		// only integrate after takeoff
 			#endif
-			error_pid[i][1] += new_p * interval;														// I
-
+			error_pid[i][1] += new_p * interval;
 			error_pid[i][1] = limit(error_pid[i][1], -pid_limit[i][1], pid_limit[i][1]);
-			error_pid[i][2] = (new_p - error_pid[i][0] + rc_d[i]* sensor_reverse[i])/interval;													// D
-			error_pid[i][0] = new_p;																	// P
-			
+
+			// D, with 30hz low pass filter
+			static const float lpf_RC = 1.0f/(2*PI * 30.0f);
+			float alpha = interval / (interval + lpf_RC);
+			error_pid[i][2] = error_pid[i][2] * (1-alpha) + alpha * (new_p - error_pid[i][0] + rc_d[i]* sensor_reverse[i])/interval;
+
+			// P
+			error_pid[i][0] = new_p;
+
 			if (mode == fly_by_wire)		// D disabled for fly by wire for now
 				error_pid[i][2] = 0;
 
@@ -1226,7 +1237,14 @@ mag_load:
 			
 			float p_rc = limit((g_ppm_input[5] - 1000.0) / 520.0, 0, 2);
 			for(int j=0; j<3; j++)
+			{
+				#if QUADCOPTER == 1
+				pid[i] += error_pid[i][j] * pid_factor[i][j];
+				#else
 				pid[i] += limit(limit(error_pid[i][j],-pid_limit[i][j],+pid_limit[i][j]) / pid_limit[i][j], -1, 1) * pid_factor[i][j] * p_rc * airspeed_factor;
+
+				#endif
+			}
 			pid[i] *= (1-ACRO_MANUAL_FACTOR);
 			int rc = rc_reverse[i]*(g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i]);
 			
@@ -1253,8 +1271,9 @@ mag_load:
 				float mix = mode != rc_fail ? g_ppm_input[2] : 1200;
 				mix = (mix-1100)*0.6 + 1100;
 				for(int j=0; j<3; j++)
-					mix += quadcopter_mixing_matrix[i][j] * pid[j] * QUADCOPTER_MAX_DELTA;
-				g_ppm_output[i] = mix;
+					mix += quadcopter_mixing_matrix[i][j] * limit(pid[j],-3,3) * QUADCOPTER_MAX_DELTA;
+
+				g_ppm_output[i] = limit(mix, THROTTLE_IDLE, THROTTLE_MAX);
 				
 				TRACE("\rpid[x] = %f, %f, %f", pid[0], pid[1], pid[2]);
 			}
