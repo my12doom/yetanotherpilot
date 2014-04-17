@@ -7,21 +7,21 @@ int LOG_LEVEL = LOG_SDCARD;
 
 float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]
 {
-	{PI/2, PI/3.6, 1},
-	{PI/2, PI/3.6, 1},
+	{PI, PI/3.6, 1},
+	{PI, PI/3.6, 1},
 	{PI/2, PI/3.6, 1},
 };
 float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
 {
-	{0.55, 0.3, 0.16,},
-	{0.55, 0.3, 0.16,},
-	{0.76, 0, 0.25,},
+	{1.1/PI, 0.3/(PI/3.6), 0.04,},
+	{1.1/PI, 0.3/(PI/3.6), 0.04,},
+	{1.14/(PI/2), 0/(PI/3.6), 0.375,},
 };
 float pid_factor2[3][3] = 			// pid_factor2[roll,pitch,yaw][p,i,d]
 {
+	{6, 0, 0.05,},
+	{6, 0, 0.05,},
 	{5, 0, 0.05,},
-	{5, 0, 0.05,},
-	{5, 0, 0.5,},
 };
 float quadcopter_trim[3]
 = 
