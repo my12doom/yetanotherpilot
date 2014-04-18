@@ -13,9 +13,9 @@ float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I limit, 
 };
 float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
 {
-	{1.1/PI, 0.3/(PI/3.6), 0.04,},
-	{1.1/PI, 0.3/(PI/3.6), 0.04,},
-	{1.14/(PI/2), 0/(PI/3.6), 0.375,},
+	{0.35, 0.35, 0.035,},
+	{0.35, 0.35, 0.035,},
+	{0.72, 0, 0.375,},
 };
 float pid_factor2[3][3] = 			// pid_factor2[roll,pitch,yaw][p,i,d]
 {

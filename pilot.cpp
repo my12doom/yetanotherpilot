@@ -1268,12 +1268,15 @@ mag_load:
 			int motor_count = sizeof(quadcopter_mixing_matrix) / sizeof(quadcopter_mixing_matrix[0]);
 			for(int i=0; i<motor_count; i++)
 			{
-				float mix = mode != rc_fail ? g_ppm_input[2] : 1200;
-				mix = (mix-1100)*0.6 + 1100;
+				float mix = mode != rc_fail ? g_ppm_input[2] : THROTTLE_IDLE;
+				mix = (mix-THROTTLE_IDLE)*0.6 + THROTTLE_IDLE;
 				for(int j=0; j<3; j++)
 					mix += quadcopter_mixing_matrix[i][j] * limit(pid[j],-3,3) * QUADCOPTER_MAX_DELTA;
 
-				g_ppm_output[i] = limit(mix, THROTTLE_IDLE, THROTTLE_MAX);
+				if (mode == rc_fail)
+					g_ppm_output[i] = THROTTLE_IDLE;
+				else
+					g_ppm_output[i] = limit(mix, THROTTLE_IDLE+100, THROTTLE_MAX-100);
 				
 				TRACE("\rpid[x] = %f, %f, %f", pid[0], pid[1], pid[2]);
 			}
@@ -1307,9 +1310,9 @@ mag_load:
 		{
 			for(int i=0; i<6; i++)
 			#if QUADCOPTER == 1
-				g_ppm_output[i] = 1125;
+				g_ppm_output[i] = THROTTLE_IDLE;
 			#else
-				g_ppm_output[i] = i==2 ? 1125 : RC_CENTER;
+				g_ppm_output[i] = i==2 ? THROTTLE_IDLE : RC_CENTER;
 			#endif
 		}
 
