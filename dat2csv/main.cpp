@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 			fprintf(fo, "time,voltage,current,airspeed,altitude,accel[0],aceel[1],accel[2],gyro[0](-roll_rate),gyro[1](-pitch_rate),gyro[2],error[0],error[1],error[2],errorI[0],errorD[0],roll,pitch,yaw_gyro,roll_t,pitch_t,yaw_t,throttle, mode,ppmi[0],ppmi[1],ppmi[2],ppmi[3],ppmo[0],ppmo[1],ppmo[2],ppmo[3],est[0],est[1],est[2],gyro[0],gyro[1],gyro[2]\r\n");
 			sprintf(tmp, "gps%d.csv", file);
 			gpso = fopen(tmp, "wb");
-			fprintf(gpso, "time,latitude,longitude,speed,aspeed,aspeedv,angle[0],angle_target[0],speed[0],speed_target[0]\r\n");
+			fprintf(gpso, "time,angle[1],angle_target[1],speed[1],speed_target[1],angle[0],angle_target[0],speed[0],speed_target[0],mode,climb,altitude\r\n");
 		}
 
 		lasttime = time;
@@ -171,12 +171,13 @@ int main(int argc, char **argv)
 				// estAcc[1], 前进方向，机头方向为正
 				// estAcc[2], 垂直方向，往上为正
 
-		if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA || (rf.time & TAG_MASK) ==  TAG_GPS_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA)
+		if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA || (rf.time & TAG_MASK) ==  TAG_GPS_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA2)
 		{
 			if (m++ %5 == 0 && pilot.fly_mode == quadcopter && ppm.in[2] > 1300)
 			{
-				fprintf(gpso, "%.2f,%f,%f,%.2f,%.2f,%d", float(time/1000000.0f), NDEG2DEG(gps.latitude), NDEG2DEG(gps.longitude), gps.speed/100.0f, airspeed, pilot.airspeed);
-				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d", quad.angle_pos[1],quad.angle_target[1],quad.speed[1],quad.speed_target[1], quad2.airborne ? 1000 : 0, quad2.climb_rate, pilot.altitude);
+				fprintf(gpso, "%.4f", float(time/1000000.0f));
+				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[1],quad.angle_target[1],quad.speed[1],quad.speed_target[1]);
+				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d", quad.angle_pos[0],quad.angle_target[0],quad.speed[0],quad.speed_target[0], pilot2.D[1], quad2.climb_rate_lower, pilot.altitude);
 				fprintf(gpso, "\r\n");
 			}
 		}
