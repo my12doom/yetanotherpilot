@@ -91,6 +91,8 @@ static float pressure = 0;
 float ground_pressure = 0;
 float ground_temperature = 0;
 float climb_rate = 0;
+float climb_rate_lowpass = 0;
+float climb_rate_lowpass2 = 0;
 float climb_rate_filter[7] = {0};			// 7 point Derivative Filter(copied from ArduPilot), see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/#noiserobust_2
 float climb_rate_filter_time[7] = {0};
 float accelz = 0;
@@ -796,6 +798,8 @@ mag_load:
 		{
 			climb_rate * 100,
 			airborne,
+			climb_rate_lowpass2 * 100,
+			climb_rate_lowpass * 100,
 		};
 
 		to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA2;
@@ -903,6 +907,19 @@ mag_load:
 
 		accelz = 9.8 * (acc_g - 1);
 		climb_rate = climb_rate * 0.05 + 0.95 * (climb_rate + accelz * interval);
+
+		// test climb rate low pass filter
+		{
+			// 0.5hz low pass filter
+			static const float RC = 1.0f/(2*3.1415926 * 0.5f);
+			float alpha = interval / (interval + RC);
+			climb_rate_lowpass = alpha * climb_rate + (1-alpha) * climb_rate_lowpass;
+
+			// 2hz
+			static const float RC2 = 1.0f/(2*3.1415926 * 2.0f);
+			float alpha2 = interval / (interval + RC2);
+			climb_rate_lowpass2 = alpha2 * climb_rate + (1-alpha2) * climb_rate_lowpass2;
+		}
 
 		// calculate attitude, unit is radian, range +/-PI
 		float roll = radian_add(atan2(estAccGyro.V.x, estAccGyro.V.z), PI);

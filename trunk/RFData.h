@@ -85,8 +85,10 @@ typedef struct
 
 typedef struct
 {
-	short climb_rate;		// unit: cm/s
+	short climb_rate;		// high-frequency low pass filtered climb rate, unit: cm/s
 	bool airborne;
+	short climb_rate_low;	// low-frequency low pass filtered climb rate, unit: cm/s
+	short climb_rate_lower;	// low-frequency low pass filtered climb rate, unit: cm/s
 } quadcopter_data2;
 
 typedef struct
