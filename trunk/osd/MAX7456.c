@@ -1,3 +1,4 @@
+#include <string.h>
 #include "MAX7456.h"
 
 
@@ -92,7 +93,7 @@ void MAX7456_Delay_uS(void)
 void MAX7456_Delay_mS(u32 mS) 
 { 
 	u32 i=0; 
-	for(i=0;i<mS;i++) 
+	for(i=0;i<mS*10;i++) 
 	{ 
 		MAX7456_Delay_uS(); 
 	} 
@@ -122,7 +123,8 @@ u8 MAX7456_Read_Reg(u8 add)
 } 
 
 void MAX7456_SYS_Init(void) 
-{ 
+{
+	int i,j;
 	// 
 	MAX7456_PORT_Init();
 	// 
@@ -151,7 +153,7 @@ void MAX7456_SYS_Init(void)
 	MAX7456_Delay_mS(1000); 
 	
 	MAX7456_Write_Reg(VM0,0X08 | ((MAX7456_Read_Reg(STAT) & 1) << 6)); // AUTO
-	//MAX7456_Write_Reg(VM0,0X48); PAL
+	MAX7456_Write_Reg(VM0,0X08 | 0x4); //PAL
 	MAX7456_Delay_mS(1000); 
 	
 	MAX7456_Write_Reg(VM1,0X00); 
@@ -164,6 +166,46 @@ void MAX7456_SYS_Init(void)
 	
 	MAX7456_Write_Reg(OSDM,0x2D); 
 	printf("MAX7456 = %02x,%02x\r\n", MAX7456_Read_Reg(VM0+RADD1), MAX7456_Read_Reg(VM1+RADD1));
+	
+	
+	
+	// font reading test
+	{
+		char tbl[4] = {'X', ' ', '.', ' '};
+		Max7456_Download_Char(20, character);
+		printf("\n");
+		for(i=0; i<54; i++)
+		{
+			//printf("%02x", character[i]);
+			for(j=0; j<4; j++)
+			{
+				u8 c = (character[i] >> (6-j*2))&3;
+				printf("%c", tbl[c]);
+			}
+			
+			if (i>0 && i%3 == 2)
+				printf("\n");
+			
+		}
+	}
+	
+	// font writing test
+	{
+		memset(character, 0, 54);
+		Max7456_Update_Char(0, character);
+		for(i=0; i<18; i++)
+		{
+			character[i*3+0] = 0xAA;
+			character[i*3+1] = 0xAA;
+			character[i*3+2] = 0xAA;
+			
+			Max7456_Update_Char(i+1, character);
+
+			character[i*3+0] = 0;
+			character[i*3+1] = 0;
+			character[i*3+2] = 0;
+		}
+	}
 
 } 
 
@@ -276,9 +318,14 @@ void MAX7456_Write_String(u16 address, u8 *Str)
 	} 
 }
 
-void Max7456_Learn_Char(u8 number, u8 *data)  
+void Max7456_Learn_Char(u8 number, const u8 *data)  
 { 
-	u8 i=0; 
+	u8 i, vm0;
+	
+	vm0 = MAX7456_Read_Reg(VM0 | RADD1);
+	MAX7456_Write_Reg(VM0, vm0 & (~ENABLE_OSD));
+	MAX7456_Wait_NVM_Ready();
+	
     // select character to write (CMAH) 
     MAX7456_Write_Reg(CMAH, number); 
 
@@ -295,6 +342,7 @@ void Max7456_Learn_Char(u8 number, u8 *data)
 
     // according to maxim writing to nvram takes about 12ms, lets wait longer 
 	MAX7456_Wait_NVM_Ready();
+	MAX7456_Write_Reg(VM0, vm0 | ENABLE_OSD);
 } 
 
 void Max7456_Download_Char(u8 number, u8 *data)
@@ -303,22 +351,41 @@ void Max7456_Download_Char(u8 number, u8 *data)
 
 	vm0 = MAX7456_Read_Reg(VM0 | RADD1);
 	MAX7456_Write_Reg(VM0, vm0 & (~ENABLE_OSD));
-    // select character to write (CMAH) 
 	MAX7456_Wait_NVM_Ready();
 
-    MAX7456_Write_Reg(CMAH, number);
+	// select character to write (CMAH) 
+	MAX7456_Write_Reg(CMAH, number);
 	MAX7456_Write_Reg(CMM, 0x50);
 	MAX7456_Wait_NVM_Ready();
 
-    for (i = 0; i < 64; i++) { 
+    for (i = 0; i < 54; i++) { 
         // select 4pixel byte of char (CMAL) 
         MAX7456_Write_Reg(CMAL, i); 
 
-        // write 4pixel byte of char (CMDI) 
+        // read pixel of char (CMDI) 
         data[i] = MAX7456_Read_Reg(CMDO); 
     } 
 	MAX7456_Write_Reg(VM0, vm0 | ENABLE_OSD);
-} 
+}
+
+void Max7456_Update_Char(u8 number, const u8 *data)
+{
+	u8 read[54];
+	int i;
+	
+	// 3 retries, to avoid eeprom wring by read failure.
+	for(i=0; i<3; i++)
+	{
+		Max7456_Download_Char(number, read);
+		
+		if (memcmp(read, data, 54) == 0)
+			return;
+	}
+	
+	printf("WRITING CHARACTER %d\n", number);
+	
+	Max7456_Learn_Char(number, data);
+}
 
 u8	 Max7456_Get_System()
 {
