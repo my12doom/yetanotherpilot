@@ -262,6 +262,7 @@ void inline led_all_off()
 	GPIO_SetBits(GPIOA, GPIO_Pin_8);
 	GPIO_SetBits(GPIOC, GPIO_Pin_4 | GPIO_Pin_5);
 }
+int y;
 
 int main(void)
 {
@@ -282,26 +283,10 @@ int main(void)
 	sdcard_init();
 	
 	NRF_Init();
-	//MAX7456_SYS_Init();
-	//Max7456_Set_System(1);
-	//Max7456_Display_AllChar();
-	
-	//while(1)
-	{
-		GPS_ParseBuffer();
-	}
+	MAX7456_SYS_Init();
+	Max7456_Set_System(1);
 	
 	
-	while(0)
-	{
-		static int iii = 0;
-		//while((MAX7456_Read_Reg(STAT) & 0x10) != 0x00); // wait for vsync
-		//MAX7456_ClearScreen();
-		//Max7456_Display_AllChar();
-		
-		MAX7456_Write_Char_XY(5,5,(iii++)&0xff);
-		delayms(100);
-	}
 
 	
 	#if PCB_VERSION == 3
@@ -1018,6 +1003,30 @@ mag_load:
 			if (g_ppm_input[2] > (THROTTLE_IDLE + THROTTLE_MAX)/2)
 				launched = true;
 			#endif
+		}
+		
+		// artificial horizon
+		//while((MAX7456_Read_Reg(STAT) & 0x10) != 0x00); // wait for vsync
+		float roll_constrain = limit(roll, -30*PI/180, +30*PI/180);
+		float pitch_constrain = limit(pitch, -30*PI/180, +30*PI/180);
+		
+		float tan_roll = tan(roll_constrain);
+		float tan_pitch = tan(pitch_constrain);
+		
+		
+		static int last_osd_pos[31] = {0};
+		for(int x = 15-5; x<= 15+5; x++)
+		{
+			y = floor((x - 15)*12*tan_roll +  18 * 8 * tan_pitch + 0.5) + 18*8;
+			
+			if (y<0 || y > 18*16)
+				continue;
+			
+	
+			
+			MAX7456_Write_Char_XY(x,last_osd_pos[x-15], 0);
+			last_osd_pos[x-15] = y/18;			
+			MAX7456_Write_Char_XY(x,y/18, y%18+1);
 		}
 
 
