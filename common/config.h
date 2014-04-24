@@ -13,15 +13,9 @@
 #define PCB_VERSION 1
 #endif
 
-#if _TRACE==1
-#define TRACE printf
-#else
-#define TRACE(...)
-#endif
 #ifndef STATION
 #undef USART1_DBG
 #endif
-#define ERROR printf
 
 #ifdef BLUETOOTH
 #undef USART1_DBG
@@ -42,7 +36,7 @@
 #define VOLTAGE_DIVIDER_BASE 6		// uncalibrated voltage divider ratio
 #define MAX_GYRO_BIAS_DRIFT 30
 #define THROTTLE_STOP 1125
-#define THROTTLE_IDLE (THROTTLE_STOP+75)
+#define THROTTLE_IDLE (THROTTLE_STOP+50)
 #define THROTTLE_MAX 1888
 #define THROTTLE_CRUISE 1550
 

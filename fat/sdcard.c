@@ -20,8 +20,10 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "sdcard.h"
-#include "stm32f10x_dma.h"
-#include "stm32f10x_sdio.h"
+#include <stm32f10x_dma.h>
+#include <stm32f10x_sdio.h>
+#include <stm32f10x_gpio.h>
+#include <stm32f10x_rcc.h>
 #define rt_kprintf(...) 
 
 /** @addtogroup STM32F10x_StdPeriph_Examples
@@ -2861,7 +2863,7 @@ static SD_Error FindSCR(uint16_t rca, uint32_t *pscr)
 
   /*经过测试，发现原来没有反应是因为缺少处理时间，这里需要必要的延时的*/
   for(delay_time = 0; delay_time < 20; delay_time++)
-  	__nop();
+	asm("nop");
   
   //SDIO_ClearFlag(SDIO_FLAG_STBITERR);
   /* Send ACMD51 SD_APP_SEND_SCR with argument as 0 */

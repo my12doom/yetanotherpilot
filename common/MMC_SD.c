@@ -25,6 +25,9 @@
 
 #include "MMC_SD.h"
 #include "stm32f10x_spi.h"
+#include <stm32f10x_gpio.h>
+#include <stm32f10x_rcc.h>
+#include <stdio.h>
 
 #define SPI_CS_Assert   GPIO_ResetBits(MMC_SD_CS_PORT, MMC_SD_CS) 
 #define SPI_CS_Deassert GPIO_SetBits(MMC_SD_CS_PORT, MMC_SD_CS) 
@@ -33,7 +36,7 @@
 /* spi low speed, below 400KHz */
 void SPI_Low(void)
 {
-        GPIO_InitTypeDef  GPIO_InitStructure;
+	GPIO_InitTypeDef  GPIO_InitStructure;
 	SPI_InitTypeDef   SPI_InitStructure;
 
   	/* SPI1 Config */

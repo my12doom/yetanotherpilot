@@ -3,6 +3,7 @@
 #include <misc.h>
 #include <math.h>
 #include <string.h>
+#include <stm32f10x_usart.h>
 
 #include "RFData.h"
 #include "common/adc.h"
@@ -44,11 +45,6 @@ extern "C"
 float PI180 = 180/PI;
 
 static void SysClockInit(void);
-
-int abs(int x)
-{
-	return x>0 ? x : -x;
-}
 
 
 class pilot
@@ -201,7 +197,7 @@ int log(void *data, int size)
 	
 		if (sd_ok && file)
 		{
-			uint32_t done;
+			unsigned int done;
 			if (f_write(file, data, size, &done) != FR_OK)
 			{
 				ERROR("\r\nSDCARD ERROR\r\n", sd_ok ? "OK" : "FAIL");
@@ -263,6 +259,11 @@ void inline led_all_off()
 	GPIO_SetBits(GPIOC, GPIO_Pin_4 | GPIO_Pin_5);
 }
 int y;
+#define ITM_Port8(n)    (*((volatile unsigned char *)(0xE0000000+4*n)))
+#define ITM_Port16(n)   (*((volatile unsigned short*)(0xE0000000+4*n)))
+#define ITM_Port32(n)   (*((volatile unsigned long *)(0xE0000000+4*n)))
+#define DEMCR           (*((volatile unsigned long *)(0xE000EDFC)))
+#define TRCENA          0x01000000
 
 int main(void)
 {
@@ -1369,7 +1370,7 @@ mag_load:
 		rf_data packet;
 		if (NRF_Rx_Dat((u8*)&packet) == RX_OK)
 		{
-			printf("packet!!!!\r\n\r\n");
+			TRACE("packet!!!!\r\n\r\n");
 		}
 
 		// wait for next 8ms and send all data out

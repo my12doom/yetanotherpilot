@@ -3,6 +3,8 @@
 #include "config.h"
 #include <stm32f10x_exti.h>
 #include <stm32f10x_tim.h>
+#include <stm32f10x_gpio.h>
+#include <stm32f10x_rcc.h>
 #include <misc.h>
 
 #define PPM_6 1

@@ -5,6 +5,9 @@
 #include "i2c_sw.h"
 #include "printf.h"
 
+#include <stm32f10x_gpio.h>
+#include <stm32f10x_rcc.h>
+
 int I2C_Reset()
 {
 	// change GPIO into Out Push-pull mode

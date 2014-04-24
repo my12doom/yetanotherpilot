@@ -3,13 +3,17 @@
 #include <string.h>
 #include <misc.h>
 #include <stdio.h>
+#include <stm32f10x_rcc.h>
+#include <stm32f10x_gpio.h>
+#include <stm32f10x_usart.h>
+#include "common.h"
 
-nmeaINFO info;
-nmeaPARSER parser;
-char buffer[GPS_BUFFER_BLOCK];		// circular buffer
-int start = 0;						// valid data start in circular
-int end = 0;						// valid data length in circular buffer
-int end_sentence = 0;				// valid sentence length in circular buffer
+static nmeaINFO info;
+static nmeaPARSER parser;
+static char buffer[GPS_BUFFER_BLOCK];		// circular buffer
+static int start = 0;						// valid data start in circular
+static int end = 0;						// valid data length in circular buffer
+static int end_sentence = 0;				// valid sentence length in circular buffer
 
 void USART1_IRQHandler(void)
 {
@@ -142,7 +146,7 @@ static int parse_command(char *cmd)
 	{
 		char *next = (char*)strchr(cmd, '\n');
 		if (next)
-			next[0] = NULL;
+			next[0] = 0;
 
 		parse_command_line(cmd);
 		cmd = next+1;
