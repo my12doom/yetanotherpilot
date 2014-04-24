@@ -319,18 +319,18 @@ mag_load:
 	for(int i=0; i<sizeof(mag_zero); i+=2)
 		EE_ReadVariable(VirtAddVarTab[0]+i/2+EEPROM_MAG_ZERO, (uint16_t*)(((uint8_t*)&mag_zero.array)+i));
 
-	// enter magnetemeter centering mode if throttle > THROTTLE_IDLE (and slowly flash all LED lights)
-	while (g_ppm_input[2] > THROTTLE_IDLE)
+	// enter magnetemeter centering mode if throttle > THROTTLE_STOP (and slowly flash all LED lights)
+	while (g_ppm_input[2] > THROTTLE_STOP)
 	{
 		mag_offset mag_offset;
 		int mag_c = 0;
 		int64_t start_tick = getus();
 		
 		delayms(100);
-		if (g_ppm_input[2] < THROTTLE_IDLE)
+		if (g_ppm_input[2] < THROTTLE_STOP)
 			break;
 
-		while(g_ppm_input[2] > THROTTLE_IDLE)
+		while(g_ppm_input[2] > THROTTLE_STOP)
 		{
 			// flash LED lights
 			if ((getus()/1000)%250 > 125)
@@ -341,10 +341,10 @@ mag_load:
 			// RC pass through except throttle
 			for(int i=0; i<6; i++)
 			#if QUADCOPTER == 1
-				g_ppm_output[i] = THROTTLE_IDLE;
+				g_ppm_output[i] = THROTTLE_STOP;
 			#else
 				g_ppm_output[i] = floor(g_ppm_input[i]+0.5);
-				g_ppm_output[2] = THROTTLE_IDLE;
+				g_ppm_output[2] = THROTTLE_STOP;
 			#endif
 			PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
 
@@ -446,7 +446,7 @@ mag_load:
 		// RC pass through
 		for(int i=0; i<6; i++)
 		#if QUADCOPTER == 1
-			g_ppm_output[i] = THROTTLE_IDLE;
+			g_ppm_output[i] = THROTTLE_STOP;
 		#else
 			g_ppm_output[i] = floor(g_ppm_input[i]+0.5);
 		#endif
@@ -1000,7 +1000,7 @@ mag_load:
 			last_rc_work = getus();
 
 			#if QUADCOPTER == 0
-			if (g_ppm_input[2] > (THROTTLE_IDLE + THROTTLE_MAX)/2)
+			if (g_ppm_input[2] > (THROTTLE_STOP + THROTTLE_MAX)/2)
 				launched = true;
 			#endif
 		}
@@ -1022,10 +1022,8 @@ mag_load:
 			if (y<0 || y > 18*16)
 				continue;
 			
-	
-			
 			MAX7456_Write_Char_XY(x,last_osd_pos[x-15], 0);
-			last_osd_pos[x-15] = y/18;			
+			last_osd_pos[x-15] = y/18;
 			MAX7456_Write_Char_XY(x,y/18, y%18+1);
 		}
 
@@ -1147,7 +1145,7 @@ mag_load:
 				{
 					float limit_l = angle_target[i] - 2 * PI * interval;
 					float limit_r = angle_target[i] + 2 * PI * interval;
-					angle_target[i] = limit((g_ppm_input[i] - RC_CENTER) * rc_reverse[i] / RC_RANGE, -1, 1) * quadcopter_range[i] + quadcopter_trim[i];
+					angle_target[i] = limit(-(g_ppm_input[i] - RC_CENTER) * rc_reverse[i] / RC_RANGE, -1, 1) * quadcopter_range[i] + quadcopter_trim[i];
 					angle_target[i] = limit(angle_target[i], limit_l, limit_r);
 				}
 
@@ -1159,7 +1157,7 @@ mag_load:
 				else
 					rc *= rate[2];
 
-				rc_d[2] = -rc * rc_reverse[2] * sensor_reverse[2];
+				rc_d[2] = rc * rc_reverse[2] * sensor_reverse[2];
 
 				float trimmed_pos = radian_add(angle_pos[2], quadcopter_trim[2]);
 				float new_target = radian_add(angle_target[2], rc_d[2]);
@@ -1294,15 +1292,15 @@ mag_load:
 			int motor_count = sizeof(quadcopter_mixing_matrix) / sizeof(quadcopter_mixing_matrix[0]);
 			for(int i=0; i<motor_count; i++)
 			{
-				float mix = mode != rc_fail ? g_ppm_input[2] : THROTTLE_IDLE;
-				mix = (mix-THROTTLE_IDLE)*0.6 + THROTTLE_IDLE;
+				float mix = mode != rc_fail ? g_ppm_input[2] : THROTTLE_STOP;
+				mix = (mix-THROTTLE_STOP)*0.6 + THROTTLE_STOP;
 				for(int j=0; j<3; j++)
 					mix += quadcopter_mixing_matrix[i][j] * limit(pid[j],-3,3) * QUADCOPTER_MAX_DELTA;
 
 				if (mode == rc_fail)
-					g_ppm_output[i] = THROTTLE_IDLE;
+					g_ppm_output[i] = THROTTLE_STOP;
 				else
-					g_ppm_output[i] = limit(mix, THROTTLE_IDLE+100, THROTTLE_MAX-100);
+					g_ppm_output[i] = limit(mix, THROTTLE_IDLE, THROTTLE_MAX);
 				
 				TRACE("\rpid[x] = %f, %f, %f", pid[0], pid[1], pid[2]);
 			}
@@ -1336,9 +1334,9 @@ mag_load:
 		{
 			for(int i=0; i<6; i++)
 			#if QUADCOPTER == 1
-				g_ppm_output[i] = THROTTLE_IDLE;
+				g_ppm_output[i] = THROTTLE_STOP;
 			#else
-				g_ppm_output[i] = i==2 ? THROTTLE_IDLE : RC_CENTER;
+				g_ppm_output[i] = i==2 ? THROTTLE_STOP : RC_CENTER;
 			#endif
 		}
 
