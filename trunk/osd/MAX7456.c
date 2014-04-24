@@ -1,6 +1,7 @@
 #include <string.h>
+#include <stdio.h>
 #include "MAX7456.h"
-
+#include "../common/common.h"
 
 #define MAX7456_CS_Low()		GPIO_ResetBits(GPIOB, MAX7546_CS) 
 #define MAX7456_CS_Hight()		GPIO_SetBits(GPIOB, MAX7546_CS) 
@@ -134,7 +135,7 @@ void MAX7456_SYS_Init(void)
 	MAX7456_Write_Reg(VM0,0x02);
 	
 	delayms(200);
-	printf("MAX7456 = %d\r\n", MAX7456_Read_Reg(HOS+RADD1));
+	TRACE("MAX7456 = %d\r\n", MAX7456_Read_Reg(HOS+RADD1));
 
 	MAX7456_Write_Reg(VM0,0x00);
 
@@ -165,7 +166,7 @@ void MAX7456_SYS_Init(void)
 	//MAX7456_Write_Reg(OSDBL_W_ADD,(MAX7456_Read_Reg(OSDBL_R_ADD)|0X10)); 
 	
 	MAX7456_Write_Reg(OSDM,0x2D); 
-	printf("MAX7456 = %02x,%02x\r\n", MAX7456_Read_Reg(VM0+RADD1), MAX7456_Read_Reg(VM1+RADD1));
+	TRACE("MAX7456 = %02x,%02x\r\n", MAX7456_Read_Reg(VM0+RADD1), MAX7456_Read_Reg(VM1+RADD1));
 	
 	
 	
@@ -174,18 +175,18 @@ void MAX7456_SYS_Init(void)
 		char character[54];
 		char tbl[4] = {'X', ' ', '.', ' '};
 		Max7456_Download_Char(20, character);
-		printf("\n");
+		TRACE("\n");
 		for(i=0; i<54; i++)
 		{
 			//printf("%02x", character[i]);
 			for(j=0; j<4; j++)
 			{
 				u8 c = (character[i] >> (6-j*2))&3;
-				printf("%c", tbl[c]);
+				TRACE("%c", tbl[c]);
 			}
 			
 			if (i>0 && i%3 == 2)
-				printf("\n");
+				TRACE("\n");
 			
 		}
 	}
@@ -384,7 +385,7 @@ void Max7456_Update_Char(u8 number, const u8 *data)
 			return;
 	}
 	
-	printf("WRITING CHARACTER %d\n", number);
+	TRACE("WRITING CHARACTER %d\n", number);
 	
 	Max7456_Learn_Char(number, data);
 }

@@ -3,6 +3,14 @@
 #include <stdarg.h>
 #include <misc.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <stm32f10x_gpio.h>
+#include <stm32f10x_rcc.h>
+#include <stm32f10x_usart.h>
+
+#if __GNUC__ > 0
+char gcc_printf_buffer[256];
+#endif
 
 void printf_init(void)
 {
@@ -47,11 +55,6 @@ void printf_init(void)
 }
 
 
-#define ITM_Port8(n)    (*((volatile unsigned char *)(0xE0000000+4*n)))
-#define ITM_Port16(n)   (*((volatile unsigned short*)(0xE0000000+4*n)))
-#define ITM_Port32(n)   (*((volatile unsigned long *)(0xE0000000+4*n)))
-#define DEMCR           (*((volatile unsigned long *)(0xE000EDFC)))
-#define TRCENA          0x01000000
 
 struct __FILE { int handle; /* Add whatever you need here */ };
 FILE __stdout;

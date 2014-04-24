@@ -1,4 +1,7 @@
 #include "adc.h"
+#include <stm32f10x_adc.h>
+#include <stm32f10x_rcc.h>
+#include <stm32f10x_gpio.h>
 
 static void ADC1_GPIO_Config(void)
 {	

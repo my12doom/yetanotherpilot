@@ -1,5 +1,7 @@
 //#include "stm32f10x_lib.h" 
-#include "stm32f10x_spi.h" 
+#include <stm32f10x_spi.h>
+#include <stm32f10x_gpio.h>
+#include <stm32f10x_rcc.h>
 #define MAX7456_SPI          SPI1
 
 #define MAX7456_SPICLK       RCC_APB2Periph_SPI1

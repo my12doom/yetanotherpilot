@@ -1,5 +1,6 @@
 #include "timer.h"
 #include <stm32f10x_tim.h>
+#include <stm32f10x_rcc.h>
 #include <misc.h>
 
 #define overflow 60000

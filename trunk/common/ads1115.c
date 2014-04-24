@@ -1,4 +1,7 @@
 #include "ads1115.h"
+#include <stm32f10x_rcc.h>
+#include <stm32f10x_gpio.h>
+#include <string.h>
 
 #define ADS1115_ADDR1 0x92
 #define ADS1115_ADDR2

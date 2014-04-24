@@ -30,7 +30,12 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
+#include "stm32f10x.h"
 #include "stm32f10x_flash.h"
+
+#ifdef STM32F103RF
+#define STM32F10X_HD
+#endif
 
 /* Exported constants --------------------------------------------------------*/
 /* Define the STM32F10Xxx Flash page size depending on the used STM32 device */
@@ -41,7 +46,7 @@ extern "C" {
 #endif
 
 /* EEPROM start address in Flash */
-#define EEPROM_START_ADDRESS    ((uint32_t)0x0801F000) /* EEPROM emulation start address: after 124KByte of used Flash memory */
+#define EEPROM_START_ADDRESS    ((uint32_t)0x08080000) /* EEPROM emulation start address: after 124KByte of used Flash memory */
 
 /* Pages 0 and 1 base and end addresses */
 #define PAGE0_BASE_ADDRESS      ((uint32_t)(EEPROM_START_ADDRESS + 0x000))

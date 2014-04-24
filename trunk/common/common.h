@@ -2,6 +2,8 @@
 #define __COMMON_H__
 
 #include <math.h>
+#include <stm32f10x_usart.h>
+#include "printf.h"
 
 #ifndef WIN32
 #include "timer.h"
@@ -21,6 +23,11 @@ enum fly_mode
 	rc_fail,
 	acrobaticV,
 };
+
+static int abs(int x)
+{
+	return x>0 ? x : -x;
+}
 
 static void swap(void *p, int size)
 {
@@ -67,8 +74,8 @@ static float radian_sub(float a, float b)
 	float v2 = a+2*PI-b;
 	float v3 = a-2*PI-b;
 	
-	v1 = abs(v1)>abs(v2) ? v2 : v1;
-	return abs(v1)>abs(v3) ? v3 : v1;
+	v1 = fabs(v1)>fabs(v2) ? v2 : v1;
+	return fabs(v1)>fabs(v3) ? v3 : v1;
 }
 
 #endif
