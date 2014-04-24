@@ -2863,7 +2863,11 @@ static SD_Error FindSCR(uint16_t rca, uint32_t *pscr)
 
   /*经过测试，发现原来没有反应是因为缺少处理时间，这里需要必要的延时的*/
   for(delay_time = 0; delay_time < 20; delay_time++)
+	#if __GNC__ > 0
 	asm("nop");
+	#else
+	__ASM volatile ("nop");
+	#endif
   
   //SDIO_ClearFlag(SDIO_FLAG_STBITERR);
   /* Send ACMD51 SD_APP_SEND_SCR with argument as 0 */
