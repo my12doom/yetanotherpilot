@@ -171,6 +171,7 @@ void MAX7456_SYS_Init(void)
 	
 	// font reading test
 	{
+		char character[54];
 		char tbl[4] = {'X', ' ', '.', ' '};
 		Max7456_Download_Char(20, character);
 		printf("\n");
@@ -191,7 +192,8 @@ void MAX7456_SYS_Init(void)
 	
 	// font writing test
 	{
-		memset(character, 0, 54);
+		char character[54];
+		memset(character, 0x55, 54);
 		Max7456_Update_Char(0, character);
 		for(i=0; i<18; i++)
 		{
@@ -201,9 +203,9 @@ void MAX7456_SYS_Init(void)
 			
 			Max7456_Update_Char(i+1, character);
 
-			character[i*3+0] = 0;
-			character[i*3+1] = 0;
-			character[i*3+2] = 0;
+			character[i*3+0] = 0x55;
+			character[i*3+1] = 0x55;
+			character[i*3+2] = 0x55;
 		}
 	}
 
