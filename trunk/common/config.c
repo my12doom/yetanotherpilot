@@ -15,7 +15,7 @@ float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
 {
 	{0.35, 0.35, 0.035,},
 	{0.35, 0.35, 0.035,},
-	{0.72, 0, 0.375,},
+	{1.4, 0.1, 0,},
 };
 float pid_factor2[3][3] = 			// pid_factor2[roll,pitch,yaw][p,i,d]
 {

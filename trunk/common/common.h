@@ -2,7 +2,6 @@
 #define __COMMON_H__
 
 #include <math.h>
-#include <stm32f10x_usart.h>
 #include "printf.h"
 
 #ifndef WIN32
