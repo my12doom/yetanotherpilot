@@ -8,9 +8,9 @@
 #define overhead2 25
 #define unstablezone 2
 
-int64_t overflow_count = 0;
-int us_cycle_count;
-int overflow_time_us;
+static volatile int64_t overflow_count = 0;
+static volatile int us_cycle_count;
+static volatile int overflow_time_us;
 
 void TIM2_IRQHandler(void)
 {
@@ -50,7 +50,7 @@ int init_timer(void)
 }
 int64_t gettick(void)
 {
-	int i = TIM2->CNT;
+	volatile int i = TIM2->CNT;
 	if(i <us_cycle_count*unstablezone || i > overflow-us_cycle_count*unstablezone)
 		delayus(unstablezone);
 	
@@ -96,7 +96,7 @@ int delayus(int count)
 	}
 	else
 	{
-		int64_t target = gettick() + count*us_cycle_count;
+		volatile int64_t target = gettick() + count*us_cycle_count;
 		while(gettick()<target)	
 			;
 	}

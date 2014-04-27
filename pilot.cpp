@@ -73,14 +73,14 @@ FATFS fs;
 uint64_t last_log_flush_time = 0;
 bool launched = false;
 float mpu6050_temperature;
-float angle_pos[3];
-float angle_posD[3];
-float angle_target[3];	// for quadcopter only currently, for fixed-wing, pos is also angle_pos
-float angle_error[3];
-float angle_errorD[3];
-float angle_errorI[3];
-float pos[3];
-float target[3];		// target [roll, pitch, yaw] (pid controller target, can be angle or angle rate)
+float angle_pos[3] = {0};
+float angle_posD[3] = {0};
+float angle_target[3] = {0};	// for quadcopter only currently, for fixed-wing, pos is also angle_pos
+float angle_error[3] = {0};
+float angle_errorD[3] = {0};
+float angle_errorI[3] = {0};
+float pos[3] = {0};
+float target[3] = {0};		// target [roll, pitch, yaw] (pid controller target, can be angle or angle rate)
 int cycle_counter = 0;
 static float temperature = 0;
 static float pressure = 0;
@@ -212,7 +212,7 @@ int log(void *data, int size)
 	}
 	
 	if (getus() - us > 7000)
-		ERROR("log cost %d us\r\n\r\n", int(getus()-us));
+		TRACE("log cost %d us\r\n\r\n", int(getus()-us));
 
 	return 0;
 }
@@ -514,7 +514,7 @@ mag_load:
 #else
 	mode = manual;
 #endif
-	vector gyroI;	// attitude by gyro only
+	vector gyroI = {0};	// attitude by gyro only
 	vector targetVA;		// target accelerate vector
 	vector targetVM;		// target magnet vector
 	
@@ -1349,9 +1349,9 @@ mag_load:
 		TRACE("\rroll,pitch,yaw/yaw2 = %f,%f,%f,%f, target roll,pitch,yaw = %f,%f,%f, error = %f,%f,%f", roll*PI180, pitch*PI180, yaw_est*PI180, yaw_gyro*PI180, target[0]*PI180, target[1]*PI180, target[2]*PI180,
 			error_pid[0][0]*PI180, error_pid[1][0]*PI180, error_pid[2][0]*PI180);
 		
-		TRACE(",out= %d, %d, %d, %d, input=%f,%f,%f,%f", g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5]);
+		TRACE("time=%.2f,inte=%.4f,out= %d, %d, %d, %d, input=%f,%f,%f,%f", getus()/1000000.0f, interval, g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5]);
 		TRACE (" mag=%.2f,%.2f,%.2f  acc=%.2f,%.2f,%.2f ", estMagGyro.V.x, estMagGyro.V.y, estMagGyro.V.z, estAccGyro.V.x, estAccGyro.V.y, estAccGyro.V.z);
-		
+		TRACE("input= %.2f, %.2f, %.2f, %.2f,%.2f,%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3], g_ppm_input[4], g_ppm_input[5]);
 		
 		static int last_ppm = 1120;
 		if ((int)floor(g_ppm_input[2]) != last_ppm)

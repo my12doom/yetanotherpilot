@@ -5,18 +5,17 @@
 #include "i2c_sw_priv.h"
 
 
+volatile int SCL_PIN = DEFAULT_SCL_PIN;
+GPIO_TypeDef * volatile SCL_PORT = DEFAULT_SCL_PORT;
+volatile int SDA_PIN = DEFAULT_SDA_PIN;
+GPIO_TypeDef * volatile SDA_PORT = DEFAULT_SDA_PORT;
+
+
 #define SCL_HI     (SCL_PORT->BSRR = SCL_PIN)
 #define SCL_LO     (SCL_PORT->BRR  = SCL_PIN)
 #define SDA_HI     (SDA_PORT->BSRR = SDA_PIN)
 #define SDA_LO     (SDA_PORT->BRR  = SDA_PIN)
 #define SDA_STATE  (SDA_PORT->IDR  & SDA_PIN)
-
-
-int SCL_PIN = DEFAULT_SCL_PIN;
-int SDA_PIN = DEFAULT_SDA_PIN;
-GPIO_TypeDef *SDA_PORT = DEFAULT_SDA_PORT;
-GPIO_TypeDef *SCL_PORT = DEFAULT_SCL_PORT;
-
 
 void I2C2_SW_Configuration(void)
 {
