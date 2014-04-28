@@ -7,6 +7,10 @@ typedef __int64 int64_t;
 #include "..\common\vector.h"
 #include "..\common\common.h"
 
+int max(int a, int b)
+{
+	return a>b?a:b;
+}
 
 float NDEG2DEG(float ndeg)
 {
@@ -55,6 +59,7 @@ int main(int argc, char **argv)
 	int file = 0;
 	char tmp[200];
 	int64_t lasttime = 9999999999;
+	int max_time_delta = 0;
 	while (fread(&rf, 1, 32, f) == 32)
 	{
 		int64_t time = rf.time & ~TAG_MASK;
@@ -103,6 +108,10 @@ int main(int argc, char **argv)
 			sprintf(tmp, "gps%d.csv", file);
 			gpso = fopen(tmp, "wb");
 			fprintf(gpso, "time,angle[1],angle_target[1],speed[1],speed_target[1],angle[0],angle_target[0],speed[0],speed_target[0],mode,climb,altitude\r\n");
+		}
+		else
+		{
+			max_time_delta = max((int)time - lasttime, max_time_delta);
 		}
 
 		lasttime = time;
@@ -177,7 +186,7 @@ int main(int argc, char **argv)
 			{
 				fprintf(gpso, "%.4f", float(time/1000000.0f));
 				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[1],quad.angle_target[1],quad.speed[1],quad.speed_target[1]);
-				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d", quad.angle_pos[0],quad.angle_target[0],quad.speed[0],quad.speed_target[0], pilot2.D[1], quad2.climb_rate_lower, pilot.altitude);
+				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d", quad.angle_pos[2],quad.angle_target[2],quad.speed[2],quad.speed_target[2], pilot2.D[1], quad2.climb_rate_lower, pilot.altitude);
 				fprintf(gpso, "\r\n");
 			}
 		}
@@ -187,6 +196,8 @@ int main(int argc, char **argv)
 	fclose(fo);
 	fclose(f);
 	fclose(gpso);
+
+	printf("max time delta: %d\n", max_time_delta);
 
 	return 0;
 }
