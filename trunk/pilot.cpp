@@ -1156,14 +1156,14 @@ mag_load:
 				if (abs(rc) < RC_DEAD_ZONE)
 					rc = 0;
 				else
-					rc *= rate[2];
+					rc *= QUADCOPTER_ACRO_YAW_RATE * interval / RC_RANGE;
 
 				rc_d[2] = rc * rc_reverse[2] * sensor_reverse[2];
 
 				float trimmed_pos = radian_add(angle_pos[2], quadcopter_trim[2]);
 				float new_target = radian_add(angle_target[2], rc_d[2]);
 				float new_error = abs(radian_sub(trimmed_pos, new_target));
-				if (new_error > ACRO_MAX_OFFSET[2] && new_error > abs(angle_error[2]))
+				if (new_error > QUADCOPTER_MAX_YAW_OFFSET && new_error > abs(angle_error[2]))
 					rc_d[2] = 0;
 				else
 					angle_target[2] = new_target;

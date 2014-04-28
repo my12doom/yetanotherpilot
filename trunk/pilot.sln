@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pilot", "pilot.vcproj", "{B2F03CAB-A15C-4019-B923-F9EFAFC1E5D0}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dat2csv", "dat2csv\dat2csv.vcproj", "{13263711-86EB-4233-9BD7-2E81950FA829}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -13,6 +15,10 @@ Global
 		{B2F03CAB-A15C-4019-B923-F9EFAFC1E5D0}.Debug|Win32.Build.0 = Debug|Win32
 		{B2F03CAB-A15C-4019-B923-F9EFAFC1E5D0}.Release|Win32.ActiveCfg = Release|Win32
 		{B2F03CAB-A15C-4019-B923-F9EFAFC1E5D0}.Release|Win32.Build.0 = Release|Win32
+		{13263711-86EB-4233-9BD7-2E81950FA829}.Debug|Win32.ActiveCfg = Debug|Win32
+		{13263711-86EB-4233-9BD7-2E81950FA829}.Debug|Win32.Build.0 = Debug|Win32
+		{13263711-86EB-4233-9BD7-2E81950FA829}.Release|Win32.ActiveCfg = Release|Win32
+		{13263711-86EB-4233-9BD7-2E81950FA829}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

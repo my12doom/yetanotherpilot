@@ -115,6 +115,9 @@ static float FLY_BY_WIRE_MAX_OFFSET[3] =
 (PI/8),		// 22.5 degree, max yaw (what?)
 };
 
+static float QUADCOPTER_MAX_YAW_OFFSET = PI/4;
+#define QUADCOPTER_ACRO_YAW_RATE (PI)			// 180 degree/s
+
 static int rc_reverse[3] = 								// -1 = reverse, 1 = normal, 0 = disable, won't affect mannual mode
 {
 	1,			// roll
