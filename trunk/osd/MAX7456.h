@@ -74,6 +74,9 @@ void MAX7456_Write_String(u16 address, u8 *Str);
 void MAX7456_ClearScreen(void);
 void MAX7456_WriteScreen(void);
 
+
+void MAX7456_PrintDigitString(const char *string, int x, int y);
+
 #ifdef __cplusplus
 }
 #endif
