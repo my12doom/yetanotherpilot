@@ -5,6 +5,9 @@
 #include "common.h"
 #include "config.h"
 
+#ifndef WIN32
+#include <stm32f10x_usart.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {

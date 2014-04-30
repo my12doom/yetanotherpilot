@@ -117,6 +117,7 @@ float airspeed_voltage = -1;
 float voltage_divider_factor = 6;
 long last_baro_time = 0;
 int baro_counter = 0;
+char climb_rate_string[10];
 
 int sdcard_init()
 {
@@ -286,7 +287,7 @@ int main(void)
 	NRF_Init();
 	MAX7456_SYS_Init();
 	Max7456_Set_System(1);
-	
+
 	
 
 	
@@ -1018,7 +1019,7 @@ mag_load:
 		static int last_osd_pos[31] = {0};
 		for(int x = 15-5; x<= 15+5; x++)
 		{
-			y = floor((x - 15)*12*tan_roll +  18 * 8 * tan_pitch + 0.5) + 18*8;
+			y = floor(-(x - 15)*12*tan_roll +  18 * 16 * tan_pitch + 0.5) + 18*8;
 			
 			if (y<0 || y > 18*16)
 				continue;
@@ -1027,6 +1028,13 @@ mag_load:
 			last_osd_pos[x-15] = y/18;
 			MAX7456_Write_Char_XY(x,y/18, y%18+1);
 		}
+
+		// climb rate & altitude
+		sprintf(climb_rate_string, "%c%.1f", altitude >0 ? ' ' : '-', fabs(altitude));
+		MAX7456_PrintDigitString(climb_rate_string, 0, 8);
+		sprintf(climb_rate_string, "%c%.1f", climb_rate_lowpass >0 ? ' ' : '-', fabs(climb_rate_lowpass));
+		MAX7456_PrintDigitString(climb_rate_string, 0, 9);
+		
 
 
 		// calculate new target
