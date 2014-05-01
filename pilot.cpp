@@ -225,25 +225,14 @@ void inline debugpin_init()
 {
 	// use PA-0 as cycle debugger
 	GPIO_InitTypeDef GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_8;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_8 |  GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 	
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_4 | GPIO_Pin_5;
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 	
-	GPIO_ResetBits(GPIOA, GPIO_Pin_8);
-	GPIO_ResetBits(GPIOC, GPIO_Pin_4 | GPIO_Pin_5);
-}
-
-void inline debugpin_high()
-{
-	GPIO_SetBits(GPIOA, GPIO_Pin_8);
-	GPIO_SetBits(GPIOC, GPIO_Pin_4 | GPIO_Pin_5);
-}
-void inline debugpin_low()
-{
 	GPIO_ResetBits(GPIOA, GPIO_Pin_8);
 	GPIO_ResetBits(GPIOC, GPIO_Pin_4 | GPIO_Pin_5);
 }
@@ -258,6 +247,15 @@ void inline led_all_off()
 {
 	GPIO_SetBits(GPIOA, GPIO_Pin_8);
 	GPIO_SetBits(GPIOC, GPIO_Pin_4 | GPIO_Pin_5);
+}
+
+void inline flashlight_on()
+{
+	GPIO_SetBits(GPIOA, GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3);
+}
+void inline flashlight_off()
+{
+	GPIO_ResetBits(GPIOA, GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3);
 }
 int y;
 #define ITM_Port8(n)    (*((volatile unsigned char *)(0xE0000000+4*n)))
@@ -287,6 +285,7 @@ int main(void)
 	NRF_Init();
 	MAX7456_SYS_Init();
 	Max7456_Set_System(1);
+	flashlight_on();
 
 	
 
@@ -456,9 +455,9 @@ mag_load:
 		PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
 		
 		if ((getus()/1000)%50 > 25)
-			debugpin_high();
+			led_all_off();
 		else
-			debugpin_low();
+			led_all_on();
 
 		while(getus() - us < cycle_time)
 			;
@@ -551,7 +550,7 @@ mag_load:
 		float interval = (start_tick-last_tick)/1000000.0f;
 		last_tick = start_tick;
 		
-		debugpin_high();
+		led_all_off();
 		if (nrf_ok && cycle_counter % 4 == 0)
 			NRF_RX_Mode();
 
@@ -563,6 +562,11 @@ mag_load:
 			cycle_counter = 0;
 		}
 
+		// flashlight
+		if (getus() % 1500000 < 150000)
+			flashlight_on();
+		else
+			flashlight_off();
 		
 		// RC modes and RC fail detection
 		if (g_ppm_input_update[4] > getus() - RC_TIMEOUT)
@@ -681,6 +685,10 @@ mag_load:
 			double scaling = (double)pressure / ground_pressure;
 			double temp = ((double)ground_temperature) + 273.15f;
 			altitude = 153.8462f * temp * (1.0f - exp(0.190259f * log(scaling)));
+			
+			if (fabs(altitude)<5.0f)
+				ground_temperature = temperature;
+			
 			memmove(climb_rate_filter, climb_rate_filter+1, sizeof(float)*6);
 			memmove(climb_rate_filter_time, climb_rate_filter_time+1, sizeof(float)*6);
 			climb_rate_filter[6] = altitude;
@@ -951,9 +959,9 @@ mag_load:
 			while(true)
 			{
 				delayms(500);
-				debugpin_high();
+				led_all_off();
 				delayms(500);
-				debugpin_low();
+				led_all_on();
 			}
 		}
 		#endif
@@ -1372,7 +1380,7 @@ mag_load:
 
 
 
-		debugpin_low();
+		led_all_on();
 
 		// read and process a packet
 		rf_data packet;
