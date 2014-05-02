@@ -83,6 +83,10 @@ static int parse_command_line(const char * line)
 	float roll,  pitch, yaw;
 	float p,i,d;
 	int log_level;
+	
+	if (line[0] == NULL)
+		return 0;
+	
 	if (strstr(line, "pid3") == line && sscanf(line, "pid3 %f %f %f", &p, &i, &d) == 3)
 	{
 		printf("new pid2 roll & pitch :%f,%f,%f\r\n", p, i, d);
@@ -164,7 +168,6 @@ int GPS_ParseBuffer()
 	int _end_sentence = end_sentence;
 	int j=0;
 	int i;
-	int len;
 	
 	if (_end_sentence == start)
 		return 0;

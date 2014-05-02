@@ -35,8 +35,8 @@
 #define hall_sensor_sensitivity	0.0666		// unit: mV / mA
 #define VOLTAGE_DIVIDER_BASE 6		// uncalibrated voltage divider ratio
 #define MAX_GYRO_BIAS_DRIFT 30
-#define THROTTLE_STOP 1125
-#define THROTTLE_IDLE (THROTTLE_STOP+75)
+#define THROTTLE_STOP 1110
+#define THROTTLE_IDLE (THROTTLE_STOP+60)
 #define THROTTLE_MAX 1888
 #define THROTTLE_CRUISE 1550
 
@@ -48,28 +48,17 @@
 #define MAG_THRESHOLD 0.3
 
 #define CRUISING_SPEED 125				// 125 pascal
-
-
-#if QUADCOPTER == 1
-#define ACRO_MANUAL_FACTOR (0.0)
-extern float pid_factor[3][3];			// pid_factor[roll,pitch,yaw][p,i,d]
-extern float pid_factor2[3][3];			// another pid factor
-extern float stablize_Kp;
-extern int LOG_LEVEL;
 #define LOG_NRF 1
 #define LOG_SDCARD 2
 #define LOG_USART1 4
 #define LOG_USART2 8
+extern int LOG_LEVEL;
 
 extern float pid_limit[3][3]; 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]
-extern float quadcopter_trim[3]
-/*= 
-{
-	-4.5 * PI / 180,			// roll
-	-2.5 * PI / 180,			// pitch
-	0,							// yaw
-}*/;
-
+extern float pid_factor[3][3];			// pid_factor[roll,pitch,yaw][p,i,d]
+extern float pid_factor2[3][3];			// another pid factor
+extern float stablize_Kp;
+extern float quadcopter_trim[3];
 static float quadcopter_range[3] = 
 {
 	PI/8,			// roll target on RC full deflection
@@ -84,16 +73,13 @@ static int quadcopter_mixing_matrix[4][3] = // the motor mixing matrix, [motor n
 	{0, -1, -1},			// front
 	{+1, 0, +1},			// left
 };
+
+#if QUADCOPTER == 1
+#define ACRO_MANUAL_FACTOR (0.0)
+
 #else
 #define ACRO_MANUAL_FACTOR (0.3)		// final output in acrobatic mode, 70% pid, 30% rc
-extern float pid_factor[3][3]; 			// pid_factor[roll,pitch,yaw][p,i,d]
 
-static float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]
-{
-	{PI/4, PI/2, 1},
-	{PI/4, PI/2, 1},
-	{PI/6, PI/3, 1},
-};
 #endif
 
 #define QUADCOPTER_MAX_DELTA 100

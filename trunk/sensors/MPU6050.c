@@ -66,7 +66,7 @@ int64_t lastus = -1;
 int read_MPU6050(short*data)
 {	
 	int i;
-	int64_t us;
+	//int64_t us;
 	int result = I2C_ReadReg(MPU6050SlaveAddress, ACCEL_XOUT_H, (u8*)data, 14);
 	for(i=0; i<7; i++)
 		swap((u8*)&data[i], 2);

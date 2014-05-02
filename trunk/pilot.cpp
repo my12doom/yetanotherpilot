@@ -140,6 +140,7 @@ bool has_airspeed = false;
 float accel_1g = 0;
 float interval = 0;
 
+int64_t last_rc_work = 0;
 float roll;
 float pitch;
 float yaw_est;
@@ -159,9 +160,7 @@ int sdcard_init()
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
 	
 	TRACE("sdcard init...");
-	char path[260] = "";
 	FIL f;
-	UINT done;
   res = disk_initialize(0) == RES_OK ? FR_OK : FR_DISK_ERR;
 	res = f_mount(&fs, "", 0);
 	res = f_open(&f, "test.bin", FA_CREATE_ALWAYS | FA_WRITE | FA_READ);
@@ -229,7 +228,7 @@ int log(void *data, int size)
 			unsigned int done;
 			if (f_write(file, data, size, &done) != FR_OK)
 			{
-				ERROR("\r\nSDCARD ERROR\r\n", sd_ok ? "OK" : "FAIL");
+				ERROR("\r\nSDCARD ERROR\r\n");
 				sd_ok = false;
 			}
 			if (getus() - last_log_flush_time > 1000000)
@@ -249,6 +248,27 @@ int log(void *data, int size)
 
 float errorV[2] = {0};
 float rc_d[3] = {0};
+
+int calculate_position()
+{
+#if QUADCOPTER == 1
+	float new_angle_pos[3] = {roll, pitch, gyroI.array[2]};
+
+	// the quadcopter's main pid lock on angle rate
+	for(int i=0; i<3; i++)
+	{
+		pos[i] = angle_posD[i] = (new_angle_pos[i] - angle_pos[i])/interval;
+		angle_pos[i] = new_angle_pos[i];
+	}
+#else
+
+	for(int i=0; i<3; i++)
+		pos[i] = gyroI.array[i];
+
+#endif
+
+	return 0;
+}
 int calculate_target()
 {
 	// calculate new target
@@ -516,6 +536,24 @@ int output()
 
 	}
 
+
+	// RC pass through for channel 5 & 6
+	for(int i=4; i<6; i++)
+		g_ppm_output[i] = floor(g_ppm_input[i]+0.5);
+
+	if (mode != rc_fail)
+	{
+		// throttle pass through
+		g_ppm_output[2] = floor(g_ppm_input[2]+0.5);
+		last_rc_work = getus();
+
+#if QUADCOPTER == 0
+		if (g_ppm_input[2] > (THROTTLE_STOP + THROTTLE_MAX)/2)
+			launched = true;
+#endif
+	}
+
+
 #if QUADCOPTER == 1
 	if (mode == quadcopter || (mode == rc_fail) )
 	{
@@ -524,7 +562,7 @@ int output()
 		for(int i=0; i<motor_count; i++)
 		{
 			float mix = mode != rc_fail ? g_ppm_input[2] : THROTTLE_STOP;
-			mix = (mix-THROTTLE_STOP)*0.6 + THROTTLE_STOP;
+			mix = (mix-THROTTLE_STOP)*0.8 + THROTTLE_STOP;
 			for(int j=0; j<3; j++)
 				mix += quadcopter_mixing_matrix[i][j] * limit(pid_result[j],-3,3) * QUADCOPTER_MAX_DELTA;
 
@@ -705,6 +743,8 @@ int save_logs()
 		to_send.data.gps = gps;
 		tx_result = log((u8*)&to_send, 32);
 	}
+	
+	return 0;
 }
 
 
@@ -963,18 +1003,19 @@ mag_load:
 	for(int i=0; i<sizeof(mag_zero); i+=2)
 		EE_ReadVariable(VirtAddVarTab[0]+i/2+EEPROM_MAG_ZERO, (uint16_t*)(((uint8_t*)&mag_zero.array)+i));
 
+	int enter_throttle = (THROTTLE_IDLE+THROTTLE_MAX)/2;
 	// enter magnetemeter centering mode if throttle > THROTTLE_STOP (and slowly flash all LED lights)
-	while (g_ppm_input[2] > THROTTLE_STOP)
+	while (g_ppm_input[2] > (enter_throttle))
 	{
 		mag_offset mag_offset;
 		int mag_c = 0;
 		int64_t start_tick = getus();
 
 		delayms(100);
-		if (g_ppm_input[2] < THROTTLE_STOP)
+		if (g_ppm_input[2] < enter_throttle)
 			break;
 
-		while(g_ppm_input[2] > THROTTLE_STOP)
+		while(g_ppm_input[2] > enter_throttle)
 		{
 			// flash LED lights
 			if ((getus()/1000)%250 > 125)
@@ -1159,8 +1200,117 @@ int sensor_calibration()
 	return 0;
 }
 
+int check_mode()
+{
 
-int y;
+	if (g_ppm_input_update[4] > getus() - RC_TIMEOUT)
+	{
+		if (g_ppm_input[4] < 1333)
+#if QUADCOPTER == 1
+			mode = shutdown;
+#else
+			mode = manual;
+#endif
+		else if (g_ppm_input[4] > 1666)
+#if QUADCOPTER == 1
+			mode = quadcopter;
+#else
+			mode = acrobatic;
+#endif
+		else
+		{
+			mode = rc_fail;
+		}
+	}
+	else
+	{
+		TRACE("warning: RC out of controll");
+		mode = rc_fail;	
+	}
+
+	// quadcopter startup protection
+	// if not startup in shutdown mode, we flash the light and refuse to work
+#if QUADCOPTER == 1
+	if (last_mode == initializing && mode != shutdown)
+	{
+		while(true)
+		{
+			delayms(500);
+			led_all_off();
+			delayms(500);
+			led_all_on();
+		}
+	}
+#endif
+
+	// mode changed?
+	if (mode != last_mode)
+	{
+		last_mode = mode;
+
+		target[0] = pos[0];
+		target[1] = pos[1];
+		target[2] = pos[2];
+
+#if QUADCOPTER == 1
+		for(int i=0; i<3; i++)
+		{
+			angle_target[i] = angle_pos[i];
+			error_pid[i][1] = 0;	//reset integration
+		}
+
+#endif
+
+		airborne = false;
+		takeoff_ground_altitude = altitude;
+
+		targetVA = estAccGyro;
+		targetVM = estMagGyro;
+
+		vector_normalize(&targetVA);
+		vector_normalize(&targetVM);
+
+		for(int i=0; i<6; i++)
+			rc_zero[i] = g_ppm_input[i];
+	}
+
+
+	return 0;
+}
+
+int osd()
+{
+	// artificial horizon
+	//while((MAX7456_Read_Reg(STAT) & 0x10) != 0x00); // wait for vsync
+	float roll_constrain = limit(roll, -30*PI/180, +30*PI/180);
+	float pitch_constrain = limit(pitch, -30*PI/180, +30*PI/180);
+
+	float tan_roll = tan(roll_constrain);
+	float tan_pitch = tan(pitch_constrain);
+
+
+	static int last_osd_pos[31] = {0};
+	for(int x = 15-5; x<= 15+5; x++)
+	{
+		int y = floor(-(x - 15)*12*tan_roll +  18 * 16 * tan_pitch + 0.5) + 18*8;
+
+		if (y<0 || y > 18*16)
+			continue;
+
+		MAX7456_Write_Char_XY(x,last_osd_pos[x-15], 0);
+		last_osd_pos[x-15] = y/18;
+		MAX7456_Write_Char_XY(x,y/18, y%18+1);
+	}
+
+	// climb rate & altitude
+	sprintf(climb_rate_string, "%c%.1f", altitude >0 ? ' ' : '-', fabs(altitude));
+	MAX7456_PrintDigitString(climb_rate_string, 0, 8);
+	sprintf(climb_rate_string, "%c%.1f", climb_rate_lowpass >0 ? ' ' : '-', fabs(climb_rate_lowpass));
+	MAX7456_PrintDigitString(climb_rate_string, 0, 9);
+
+	return 0;
+}
+
 #define ITM_Port8(n)    (*((volatile unsigned char *)(0xE0000000+4*n)))
 #define ITM_Port16(n)   (*((volatile unsigned short*)(0xE0000000+4*n)))
 #define ITM_Port32(n)   (*((volatile unsigned long *)(0xE0000000+4*n)))
@@ -1169,7 +1319,8 @@ int y;
 
 int main(void)
 {
-	// Basic Initialization	
+	// Basic Initialization
+	SysClockInit();
 	FLASH_Unlock();
 	EE_Init();
 	ADC1_Init();
@@ -1243,14 +1394,6 @@ int main(void)
 		if (nrf_ok && cycle_counter % 4 == 0)
 			NRF_RX_Mode();
 
-		static long counter2 = getus();
-		if (getus()-counter2 > 1000000)
-		{
-			counter2 = getus();
-			TRACE("cycle_counter=%d\r\n\r\n", cycle_counter);
-			cycle_counter = 0;
-		}
-
 		// flashlight
 		time = getus();
 		int time_mod_1500 = (time%1500000)/1000;
@@ -1260,30 +1403,7 @@ int main(void)
 			flashlight_off();
 		
 		// RC modes and RC fail detection
-		if (g_ppm_input_update[4] > getus() - RC_TIMEOUT)
-		{
-			if (g_ppm_input[4] < 1333)
-				#if QUADCOPTER == 1
-					mode = shutdown;
-				#else
-					mode = manual;
-				#endif
-			else if (g_ppm_input[4] > 1666)
-				#if QUADCOPTER == 1
-					mode = quadcopter;
-				#else
-					mode = acrobatic;
-				#endif
-			else
-			{
-				mode = rc_fail;
-			}
-		}
-		else
-		{
-			TRACE("warning: RC out of controll");
-			mode = rc_fail;	
-		}
+		check_mode();
 
 		// read sensors and update altitude if new air pressure data arrived.
 		read_sensors();
@@ -1291,132 +1411,18 @@ int main(void)
 		// attitude and  heading
 		calculate_attitude();
 
-
 		// gps		
 		if (GPS_ParseBuffer() > 0)
 			last_gps_tick = getus();
 
-		save_logs();
-		
-		//float pos[3] = {roll, pitch, yaw_gyro};
-		//float pos[3] = {gyroI.array[0], gyroI.array[1], gyroI.array[2]};
-		for(int i=0; i<3; i++)
-		{
-			pos[i] = gyroI.array[i];
-		}
-
-		#if QUADCOPTER == 1
-			float new_angle_pos[3] = {roll, pitch, gyroI.array[2]};
-
-			// the quadcopter's main pid lock on angle rate
-			for(int i=0; i<3; i++)
-			{
-				pos[i] = angle_posD[i] = (new_angle_pos[i] - angle_pos[i])/interval;
-				angle_pos[i] = new_angle_pos[i];
-			}
-			TRACE("\rspeed:%.2f, %.2f degree/s \r\n", pos[0] * PI180, target[0] * PI180, pos[2] * PI180);
-
-
-			//pos[2] = yaw_gyro;
-		#endif
-
-		// quadcopter startup protection
-		// if not startup in shutdown mode, we flash the light and refuse to work
-		#if QUADCOPTER == 1
-		if (last_mode == initializing && mode != shutdown)
-		{
-			while(true)
-			{
-				delayms(500);
-				led_all_off();
-				delayms(500);
-				led_all_on();
-			}
-		}
-		#endif
-
-		// mode changed?
-		if (mode != last_mode)
-		{
-			last_mode = mode;
-
-			target[0] = pos[0];
-			target[1] = pos[1];
-			target[2] = pos[2];
-
-			#if QUADCOPTER == 1
-				for(int i=0; i<3; i++)
-				{
-					angle_target[i] = angle_pos[i];
-					error_pid[i][1] = 0;	//reset integration
-				}
-
-				airborne = false;
-				takeoff_ground_altitude = altitude;
-
-			#endif
-
-			targetVA = estAccGyro;
-			targetVM = estMagGyro;
-
-			vector_normalize(&targetVA);
-			vector_normalize(&targetVM);
-			
-			for(int i=0; i<6; i++)
-				rc_zero[i] = g_ppm_input[i];
-		}
-		
-		// RC pass through for channel 5 & 6
-		for(int i=4; i<6; i++)
-			g_ppm_output[i] = floor(g_ppm_input[i]+0.5);
 		
 		
-		static int64_t last_rc_work = 0;
-		if (mode != rc_fail)
-		{
-			// throttle pass through
-			g_ppm_output[2] = floor(g_ppm_input[2]+0.5);
-			last_rc_work = getus();
-
-			#if QUADCOPTER == 0
-			if (g_ppm_input[2] > (THROTTLE_STOP + THROTTLE_MAX)/2)
-				launched = true;
-			#endif
-		}
-		
-		// artificial horizon
-		//while((MAX7456_Read_Reg(STAT) & 0x10) != 0x00); // wait for vsync
-		float roll_constrain = limit(roll, -30*PI/180, +30*PI/180);
-		float pitch_constrain = limit(pitch, -30*PI/180, +30*PI/180);
-		
-		float tan_roll = tan(roll_constrain);
-		float tan_pitch = tan(pitch_constrain);
-		
-		
-		static int last_osd_pos[31] = {0};
-		for(int x = 15-5; x<= 15+5; x++)
-		{
-			y = floor(-(x - 15)*12*tan_roll +  18 * 16 * tan_pitch + 0.5) + 18*8;
-			
-			if (y<0 || y > 18*16)
-				continue;
-			
-			MAX7456_Write_Char_XY(x,last_osd_pos[x-15], 0);
-			last_osd_pos[x-15] = y/18;
-			MAX7456_Write_Char_XY(x,y/18, y%18+1);
-		}
-
-		// climb rate & altitude
-		sprintf(climb_rate_string, "%c%.1f", altitude >0 ? ' ' : '-', fabs(altitude));
-		MAX7456_PrintDigitString(climb_rate_string, 0, 8);
-		sprintf(climb_rate_string, "%c%.1f", climb_rate_lowpass >0 ? ' ' : '-', fabs(climb_rate_lowpass));
-		MAX7456_PrintDigitString(climb_rate_string, 0, 9);
-		
-
-
+		osd();
+		calculate_position();
 		calculate_target();
 		pid();
 		output();
+		save_logs();
 		
 		
 		
@@ -1426,16 +1432,8 @@ int main(void)
 		TRACE("time=%.2f,inte=%.4f,out= %d, %d, %d, %d, input=%f,%f,%f,%f\n", getus()/1000000.0f, interval, g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5]);
 		TRACE (" mag=%.2f,%.2f,%.2f  acc=%.2f,%.2f,%.2f ", estMagGyro.V.x, estMagGyro.V.y, estMagGyro.V.z, estAccGyro.V.x, estAccGyro.V.y, estAccGyro.V.z);
 		TRACE("input= %.2f, %.2f, %.2f, %.2f,%.2f,%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3], g_ppm_input[4], g_ppm_input[5]);
-		
-		static int last_ppm = 1120;
-		if ((int)floor(g_ppm_input[2]) != last_ppm)
-		{
-			//TRACE("newppm:%d\r\n", (int)floor(g_ppm_input[2]));
-			last_ppm = floor(g_ppm_input[2]);
-		}
-		
 		TRACE("input:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5], g_ppm_input[4], g_ppm_input[5], p->voltage/1000.0 );
-
+		
 
 
 		led_all_on();
@@ -1543,9 +1541,7 @@ bool calculate_roll_pitch(vector *accel, vector *mag, vector *accel_target, vect
 
 // System Clock
 static void SysClockInit(void)
-
 {
-	ErrorStatus HSEStartUpStatus;
 	RCC_DeInit();
 
 	RCC_HSEConfig(RCC_HSE_ON);
