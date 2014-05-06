@@ -3,6 +3,31 @@
 float stablize_Kp = 5;
 int LOG_LEVEL = LOG_SDCARD;
 
+float pid_quad_altitude[4]=			// P, I, D, IMAX, 
+									// unit: 1/second, 1/seconds^2, 1, meter*second
+									// convert altitude error(meter) to target climb rate(meter/second)
+{
+	1, 0, 0, 0,
+};
+float pid_quad_alt_rate[4]=			// P, I, D, IMAX
+									// unit: 1/second, 1/seconds^2, 1, meter*second
+									// convert climb rate error(meter/second) to target acceleration(meter/second^2)
+{
+	6, 0, 0, 0,
+};
+float pid_quad_accel[4]=			// P, I, D, IMAX
+									// unit: 1/second, 1/seconds^2, 1, meter*second
+									// convert acceleration error(meter/second^2) to motor output
+									// In ardupilot, default P = 0.75 converts 1 cm/s^2 into 0.75 * 0.1% of full throttle
+									// the max accel error in default value is around +- 6.66 m/s^2, but should not use that much
+{
+	75,
+	150,
+	0,
+	0.05,
+};
+
+
 #if QUADCOPTER == 1
 
 float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]

@@ -87,9 +87,22 @@ typedef struct
 {
 	short climb_rate;		// high-frequency low pass filtered climb rate, unit: cm/s
 	bool airborne;
-	short climb_rate_low;	// low-frequency low pass filtered climb rate, unit: cm/s
-	short climb_rate_lower;	// low-frequency low pass filtered climb rate, unit: cm/s
+	short altitude_inertia;	// unit: cm
+	short climb_rate_inertia;	// unit: cm/s
+	short altitude_baro_raw;	// unit: cm
+	short accel_z;			// unit: cm/s^2
 } quadcopter_data2;
+
+typedef struct
+{
+	short altitude_target;
+	short altitude;
+	short climb_target;
+	short climb;
+	short accel_target;
+	short accel;
+	short throttle_result;
+} quadcopter_data3;
 
 typedef struct
 {
@@ -106,6 +119,7 @@ typedef struct
 		gps_data gps;		// 22 bytes
 		quadcopter_data quadcopter;	// 24 byte
 		quadcopter_data2 quadcopter2;
+		quadcopter_data3 quadcopter3;
 	}data;
 } rf_data;
 
@@ -120,6 +134,7 @@ typedef struct
 #define TAG_GPS_DATA	0x3600000000000000
 #define TAG_QUADCOPTER_DATA	0x3700000000000000
 #define TAG_QUADCOPTER_DATA2	0x3800000000000000
+#define TAG_QUADCOPTER_DATA3	0x3900000000000000
 
 #define CTRL_CMD_SET_VALUE 0
 #define CTRL_CMD_GET_VALUE 1

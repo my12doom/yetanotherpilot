@@ -67,6 +67,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\RFData.h"
+				>
+			</File>
+			<File
 				RelativePath=".\stm32f10x_it.c"
 				>
 			</File>
@@ -391,6 +395,14 @@
 				</File>
 				<File
 					RelativePath=".\osd\MAX7456.h"
+					>
+				</File>
+				<File
+					RelativePath=".\osd\osdcore.c"
+					>
+				</File>
+				<File
+					RelativePath=".\osd\osdcore.h"
 					>
 				</File>
 			</Filter>

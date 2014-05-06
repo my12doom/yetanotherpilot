@@ -25,9 +25,12 @@
 #include "fat/ff.h"
 #include "fat/sdcard.h"
 #include "osd/MAX7456.h"
+
+
 extern "C"
 {
 #include "fat/diskio.h"
+#include "osd/osdcore.h"
 }
 
 
@@ -93,7 +96,6 @@ float ground_pressure = 0;
 float ground_temperature = 0;
 float climb_rate = 0;
 float climb_rate_lowpass = 0;
-float climb_rate_lowpass2 = 0;
 float climb_rate_filter[7] = {0};			// 7 point Derivative Filter(copied from ArduPilot), see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/#noiserobust_2
 float climb_rate_filter_time[7] = {0};
 float accelz = 0;
@@ -114,6 +116,7 @@ vector accel_avg = {0};
 vector mag_zero = {0};
 double altitude = 0;
 int ms5611[2];
+int ms5611_result = -1;
 float adc_2_5_V = -1;
 float VCC_3_3V = -1;
 float VCC_5V = -1;
@@ -147,6 +150,183 @@ float yaw_est;
 float yaw_gyro;
 float pid_result[3] = {0}; // total pid for roll, pitch, yaw
 
+float a_raw_pressure = 0;
+float a_raw_temperature = 0;
+float a_raw_altitude = 0;
+float a_altitude = NAN;
+float a_raw_climb = 0;
+float a_climb = 0;
+float a_accel_z = 0;
+float a_climb2_tick = 0;
+float a_climb_rate_filter[7] = {0};			// 7 point Derivative Filter(copied from ArduPilot), see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/#noiserobust_2
+float a_climb_rate_filter_time[7] = {0};
+
+float _time_constant_z = 2.0f;
+float _k1_z = 3 / _time_constant_z;
+float _k2_z = 3 / (_time_constant_z*_time_constant_z);
+float _k3_z = 1 / (_time_constant_z*_time_constant_z*_time_constant_z);
+float _position_error = 0;            // current position error in cm - is set by the check_* methods and used by update method to calculate the correction terms
+float _position_base = 0;             // (uncorrected) position estimate in cm - relative to the home location (_base_lat, _base_lon, 0)
+float _position_correction = 0;       // sum of corrections to _position_base from delayed 1st order samples in cm
+float _velocity_base = 0;             // latest velocity estimate (integrated from accelerometer values) in cm/s
+float _velocity_correction = 0;       // latest velocity estimate (integrated from accelerometer values) in cm/s
+float _position = 0;                  // sum(_position_base, _position_correction) - corrected position estimate in cm - relative to the home location (_base_lat, _base_lon, 0)
+float _velocity = 0;				  // latest velocity estimate (integrated from accelerometer values) in cm/s
+float _accel_correction_ef = 0;		  // accelerometer corrections
+
+
+float target_altitude = 0;
+float target_climb_rate = 0;
+float target_accel = 0;
+float altitude_error_pid[3] = {0};
+float climb_rate_error_pid[3] = {0};
+float accel_error_pid[3] = {0};
+int throttle_result = 0;
+
+int auto_throttle(float user_climb_rate)
+{
+	// new target altitude
+	target_altitude = limit(target_altitude + user_climb_rate * interval, _position - 2.5, _position + 2.5);
+
+	// new altitude error
+	altitude_error_pid[0] = target_altitude - _position;
+
+	// new target rate, directly use linear approach since we use very tight limit 
+	// TODO: use sqrt approach on large errors (see get_throttle_althold() in Attitude.pde)
+	// TODO: apply pid instead of P only
+	target_climb_rate = pid_quad_altitude[0] * altitude_error_pid[0];
+	target_climb_rate = limit(target_climb_rate, -quadcopter_max_decend_rate, quadcopter_max_climb_rate);
+
+
+	// new climb rate error
+	float climb_rate_error = target_climb_rate - _velocity;
+
+	// apply a 2Hz LPF to rate error
+	const float RC = 1.0f/(2*3.1415926 * 2.0f);
+	float alpha = interval / (interval + RC);
+	// 30Hz LPF for derivative factor
+	const float RC30 = 1.0f/(2*3.1415926 * 30.0f);
+	float alpha30 = interval / (interval + RC);
+
+	// TODO: apply pid instead of P only, and add feed forward
+	// reference: get_throttle_rate()
+	climb_rate_error_pid[0] = climb_rate_error_pid[0] * (1-alpha) + alpha * climb_rate_error;
+	target_accel = climb_rate_error_pid[0] * pid_quad_alt_rate[0];
+	target_accel = limit(target_accel, airborne ? -quadcopter_max_acceleration : -2*quadcopter_max_acceleration, quadcopter_max_acceleration);
+
+	
+	// new accel error, +2Hz LPF
+	float accel_error = target_accel - (accelz + _accel_correction_ef);
+	accel_error = accel_error_pid[0] * (1-alpha) + alpha * accel_error;
+
+	// core pid
+	accel_error_pid[1] += accel_error_pid[0] * interval;
+	accel_error_pid[1] = limit(accel_error_pid[1], -pid_quad_accel[3], pid_quad_accel[3]);
+	accel_error_pid[2] = accel_error_pid[2] * (1-alpha30) + alpha30 * (accel_error - accel_error_pid[0])/interval;
+	accel_error_pid[0] = accel_error;
+
+
+	float output = 0;
+	output += accel_error_pid[0] * pid_quad_accel[0];
+	output += accel_error_pid[1] * pid_quad_accel[1];
+	output += accel_error_pid[2] * pid_quad_accel[2];
+
+	throttle_result  = output/500.0f * (THROTTLE_MAX - THROTTLE_CRUISE) + THROTTLE_CRUISE;
+	throttle_result = limit(throttle_result, THROTTLE_IDLE, THROTTLE_MAX);
+
+	TRACE("\rthrottle=%d, altitude = %.2f/%.2f, pid=%.2f,%.2f,%.2f", throttle_result, _position, target_altitude,
+		accel_error_pid[0], accel_error_pid[1], accel_error_pid[2]);
+
+	return 0;
+}
+
+int climb2()
+{
+	// delta time
+	float time = getus()/1000000.0f;
+	float delta_time = a_climb2_tick == 0 ? 0 : (time - a_climb2_tick);
+	a_climb2_tick = time;
+
+	// raw altitude
+	float scaling = (float)a_raw_pressure / ground_pressure;
+	float temp = ((float)ground_temperature) + 273.15f;
+	a_raw_altitude = 153.8462f * temp * (1.0f - exp(0.190259f * log(scaling)));
+
+	/*
+	// raw_altitude --LPF-->> altitude
+	// 0.3Hz low pass filter
+	if isnan(a_altitude)
+		a_altitude = a_raw_altitude;
+	const float RC = 1.0f/(2*3.1415926 * 0.03f);
+	float alpha = delta_time / (delta_time + RC);
+	a_altitude = a_raw_altitude * alpha + (1-alpha) * a_altitude;
+
+	// altitude ---7 point Derivative Filter -->> raw_climb
+	memmove(a_climb_rate_filter, a_climb_rate_filter+1, sizeof(float)*6);
+	memmove(a_climb_rate_filter_time, a_climb_rate_filter_time+1, sizeof(float)*6);
+	a_climb_rate_filter[6] = altitude;
+	a_climb_rate_filter_time[6] = time;
+	a_raw_climb =   2 * 5 * (a_climb_rate_filter[3] - a_climb_rate_filter[5]) / (a_climb_rate_filter_time[3] - a_climb_rate_filter_time[5]) +
+		4 * 4 * (a_climb_rate_filter[2] - a_climb_rate_filter[6]) / (a_climb_rate_filter_time[3] - a_climb_rate_filter_time[5]) + 
+		6 * 1 * (a_climb_rate_filter[2] - a_climb_rate_filter[6]) / (a_climb_rate_filter_time[3] - a_climb_rate_filter_time[5]);
+	a_raw_climb /= 32.0f;
+
+	// raw_climb ---LPF(0.3hz)--->> climb_rate
+	const float RC2 = 1.0f/(2*3.1415926 * 0.3f);
+	float alpha2 = delta_time / (delta_time + RC2);
+	a_climb = a_raw_climb * alpha2 + (1-alpha2) * a_climb;
+
+	// calculate acceleration into ground including gravity
+	// a = (gravity estamation vector * accelerometer vector) / | gravity estamation vector | / | 1g reference vector | * g
+	vector acc = {-p->accel[1], p->accel[0], p->accel[2]};
+	float dot = acc.V.x * estAccGyro.V.x + acc.V.y * estAccGyro.V.y + acc.V.z * estAccGyro.V.z;
+	dot /= vector_length(&estAccGyro);
+	dot /= accel_1g;
+	a_accel_z = 9.80f * (dot-1);
+
+	// acceleration + baro climb rate CF fusion
+	a_climb = a_climb * alpha2 + (1-alpha2) * (a_climb + a_accel_z * delta_time);
+
+
+	// climb + altitudee CF fusion
+	a_altitude = a_altitude * alpha2 + (1-alpha2) * (a_altitude + a_climb * delta_time);
+
+	char test[20];
+	sprintf(test, "altitude= %.3f, climb_rate= %.3f, p_ac=%.3f,%.3f", _position, _velocity, altitude, a_accel_z);
+	printf("%s\r", test);
+	MAX7456_PrintDigitString(test, 0, 0);
+	
+	*/
+
+	// apm test
+	_position_error = a_raw_altitude - (_position_base + _position_correction);
+
+
+	return 0;
+}
+
+int apm()
+{
+	float &dt = interval;
+	vector acc = {-p->accel[1], p->accel[0], p->accel[2]};
+	float dot = acc.V.x * estAccGyro.V.x + acc.V.y * estAccGyro.V.y + acc.V.z * estAccGyro.V.z;
+	dot /= vector_length(&estAccGyro);
+	dot /= accel_1g;
+	a_accel_z = 9.80f * (dot-1);
+
+	_accel_correction_ef += _position_error * _k3_z  * dt;
+	_velocity_correction += _position_error * _k2_z  * dt;
+	_position_correction += _position_error * _k1_z  * dt;
+
+	const float velocity_increase = (a_accel_z + _accel_correction_ef) * dt;
+	_position_base += (_velocity_base + _velocity_correction + velocity_increase*0.5) * dt;
+	_velocity_base += velocity_increase;
+
+	_position = _position_base + _position_correction;
+	_velocity = _velocity_base + _velocity_correction;
+
+	return 0;
+}
 
 int sdcard_init()
 {
@@ -380,6 +560,19 @@ int calculate_target()
 #if QUADCOPTER == 1
 	case quadcopter:
 		{
+			// auto throttle
+			float v = (g_ppm_input[2] - THROTTLE_STOP) / (THROTTLE_MAX - THROTTLE_STOP) - 0.5f;
+			v = limit(v, -0.5f, 0.5f);
+			float user_rate;
+			if (abs(v)<0.1f)
+				user_rate = 0;
+			else if (v>= 0.1f)
+				user_rate = (v-0.1f)/0.4f * quadcopter_max_climb_rate;
+			else
+				user_rate = (v+0.1f)/0.4f * quadcopter_max_decend_rate;
+			auto_throttle(user_rate);
+
+
 			// first, calculate target angle
 			// roll & pitch, RC trim is accepted.
 			for(int i=0; i<2; i++)
@@ -563,6 +756,9 @@ int output()
 		{
 			float mix = mode != rc_fail ? g_ppm_input[2] : THROTTLE_STOP;
 			mix = (mix-THROTTLE_STOP)*0.8 + THROTTLE_STOP;
+
+			if (mode != rc_fail && g_ppm_input[5] > RC_CENTER)
+				mix = throttle_result;
 			for(int j=0; j<3; j++)
 				mix += quadcopter_mixing_matrix[i][j] * limit(pid_result[j],-3,3) * QUADCOPTER_MAX_DELTA;
 
@@ -700,12 +896,29 @@ int save_logs()
 	{
 		climb_rate * 100,
 		airborne,
-		climb_rate_lowpass2 * 100,
-		climb_rate_lowpass * 100,
+		_position * 100,
+		_velocity * 100,
+		a_raw_altitude * 100,
+		a_accel_z * 100,
 	};
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA2;
 	to_send.data.quadcopter2 = quad2;
+	tx_result = log((u8*)&to_send, 32);
+
+	quadcopter_data3 quad3 = 
+	{
+		target_altitude * 100,
+		_position * 100,
+		target_climb_rate * 100,
+		_velocity * 100,
+		target_accel * 100,
+		(a_accel_z + _accel_correction_ef) * 100,
+		throttle_result,
+	};
+
+	to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA3;
+	to_send.data.quadcopter3 = quad3;
 	tx_result = log((u8*)&to_send, 32);
 #endif
 
@@ -753,7 +966,7 @@ int read_sensors()
 	// always read sensors and calculate attitude
 	read_MPU6050(&p->accel[0]);		
 	read_HMC5883(&p->mag[0]);		
-	int ms5611result = read_MS5611(ms5611);
+	ms5611_result = read_MS5611(ms5611);
 
 	mpu6050_temperature = p->temperature1  / 340.0f + 36.53f;
 
@@ -812,9 +1025,8 @@ int read_sensors()
 
 
 	// calculate altitude
-	if (ms5611result == 0)
+	if (ms5611_result == 0)
 	{
-
 		float this_pressure = ms5611[0] / 100.0f;
 		float this_temperature = ms5611[1] / 100.0f;
 
@@ -858,7 +1070,16 @@ int read_sensors()
 		TRACE("\r\npressure,temperature=%f, %f, ground pressure & temperature=%f, %f, height=%f, climb_rate=%f, time=%f\r\n", pressure, temperature, ground_pressure, ground_temperature, altitude, climb_rate, (double)getus()/1000000);
 
 		last_baro_time = this_baro_time;
+
+
+		// experimental accelerometer assisted altitude/climb fusion.
+		a_raw_pressure = ms5611[0] / 100.0f;
+		a_raw_temperature = ms5611[1] / 100.0f;
+		climb2();
+
 	}
+
+	apm();
 
 	return 0;
 }
@@ -868,9 +1089,9 @@ int calculate_attitude()
 
 	float GYRO_SCALE = 2000.0 * PI / 180 / 32767 * interval;		// full scale: +/-2000 deg/s  +/-31767, 8ms interval
 
-	vector gyro_zero2 = {0.9403 * mpu6050_temperature - 9.3109,
-		0.3134 * mpu6050_temperature - 9.0972,
-		-0.2445 * mpu6050_temperature - 6.0249};
+	vector gyro_zero2 = {0.681 * mpu6050_temperature - 28.075,
+		0.1063 * mpu6050_temperature +3.1409,
+		-0.3083 * mpu6050_temperature - 0.6421};
 
 	if (mpu6050_temperature < 35)
 		gyro_zero2.array[0] = 1.0313*mpu6050_temperature - 14.938;
@@ -925,8 +1146,10 @@ int calculate_attitude()
 		TRACE("rapid movement (%fg, angle=%f)", acc_g, acos(vector_angle(&estAccGyro, &acc)) * 180 / PI );
 	}
 
-
-	accelz = 9.8 * (acc_g - 1);
+	float dot = acc.V.x * estAccGyro.V.x + acc.V.y * estAccGyro.V.y + acc.V.z * estAccGyro.V.z;
+	dot /= vector_length(&estAccGyro);
+	dot /= accel_1g;
+	accelz = 9.80f * (dot-1);
 	climb_rate = climb_rate * 0.05 + 0.95 * (climb_rate + accelz * interval);
 
 	// test climb rate low pass filter
@@ -935,11 +1158,6 @@ int calculate_attitude()
 		static const float RC = 1.0f/(2*3.1415926 * 0.5f);
 		float alpha = interval / (interval + RC);
 		climb_rate_lowpass = alpha * climb_rate + (1-alpha) * climb_rate_lowpass;
-
-		// 2hz
-		static const float RC2 = 1.0f/(2*3.1415926 * 2.0f);
-		float alpha2 = interval / (interval + RC2);
-		climb_rate_lowpass2 = alpha2 * climb_rate + (1-alpha2) * climb_rate_lowpass2;
 	}
 
 	// calculate attitude, unit is radian, range +/-PI
@@ -1090,7 +1308,6 @@ int sensor_calibration()
 	for(int i=0; i<300; i++)
 	{
 		long us = getus();
-		int ms5611[2];
 
 		TRACE("\r%d/300", i);
 		read_MPU6050(p->accel);
@@ -1252,13 +1469,19 @@ int check_mode()
 		target[1] = pos[1];
 		target[2] = pos[2];
 
+		target_altitude = _position - 3.5;
+		target_climb_rate = -quadcopter_max_decend_rate;
+		target_accel = -quadcopter_max_acceleration*2;
+		accel_error_pid[0] = target_accel;
+		accel_error_pid[1] = 0;
+		accel_error_pid[2] = 0;
+
 #if QUADCOPTER == 1
 		for(int i=0; i<3; i++)
 		{
 			angle_target[i] = angle_pos[i];
 			error_pid[i][1] = 0;	//reset integration
 		}
-
 #endif
 
 		airborne = false;
@@ -1303,9 +1526,9 @@ int osd()
 	}
 
 	// climb rate & altitude
-	sprintf(climb_rate_string, "%c%.1f", altitude >0 ? ' ' : '-', fabs(altitude));
+	sprintf(climb_rate_string, "%c%.1f", altitude >0 ? '+' : '-', fabs(altitude));
 	MAX7456_PrintDigitString(climb_rate_string, 0, 8);
-	sprintf(climb_rate_string, "%c%.1f", climb_rate_lowpass >0 ? ' ' : '-', fabs(climb_rate_lowpass));
+	sprintf(climb_rate_string, "%c%.1f", climb_rate_lowpass >0 ? '+' : '-', fabs(climb_rate_lowpass));
 	MAX7456_PrintDigitString(climb_rate_string, 0, 9);
 
 	return 0;
@@ -1340,8 +1563,6 @@ int main(void)
 	MAX7456_SYS_Init();
 	Max7456_Set_System(1);
 	flashlight_on();
-
-	
 
 	
 	#if PCB_VERSION == 3

@@ -118,6 +118,19 @@ static int sensor_reverse[3] = 						// -1 = reverse, 1 = normal, 0 = disable, w
 	-1,			// yaw
 };
 
+extern float pid_quad_altitude[4];	// P, I, D, IMAX, 
+									// unit: 1/second, 1/seconds^2, 1, meter*second
+									// convert altitude error(meter) to target climb rate(meter/second)
+extern float pid_quad_alt_rate[4];	// P, I, D, IMAX
+									// unit: 1/second, 1/seconds^2, 1, meter*second
+									// convert climb rate error(meter/second) to target acceleration(meter/second^2)
+extern float pid_quad_accel[4];		// P, I, D, IMAX
+									// unit:
+									// convert acceleration error(meter/second^2) to motor output
+
+#define quadcopter_max_climb_rate 5
+#define quadcopter_max_decend_rate 2
+#define quadcopter_max_acceleration 3.5
 
 // station configuration
 
