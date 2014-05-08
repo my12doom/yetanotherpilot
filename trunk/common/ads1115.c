@@ -3,7 +3,7 @@
 #include <stm32f10x_gpio.h>
 #include <string.h>
 
-#define ADS1115_ADDR1 0x92
+#define ADS1115_ADDR1 0x90
 #define ADS1115_ADDR2
 
 #define CONVERSION 0
@@ -54,6 +54,7 @@ extern GPIO_TypeDef *SCL_PORT;
 
 static void switch_I2C()
 {
+	/*
 	mSCL_PIN = SCL_PIN;
 	mSDA_PIN = SDA_PIN;
 	mSCL_PORT = SCL_PORT;
@@ -63,14 +64,17 @@ static void switch_I2C()
 	SDA_PIN = GPIO_Pin_1;
 	SCL_PORT = GPIOA;
 	SDA_PORT = GPIOA;
+	*/
 }
 
 static void restore_I2C()
 {
+	/*
 	SCL_PIN = mSCL_PIN;
 	SDA_PIN = mSDA_PIN;
 	SCL_PORT = mSCL_PORT;
 	SDA_PORT = mSDA_PORT;
+	*/
 }
 
 int ads1115_init(void)
@@ -124,7 +128,7 @@ int ads1115_getresult(short *result)		// return -1 if still converting, 0 if con
 	switch_I2C();
 	I2C_ReadReg(ADS1115_ADDR1, CONFIG, (u8*)&config, 2);
 	
-	if (config.MODE == 1 && config.OS == 1)
+	if (config.MODE == 1 && config.OS == 0)
 	{
 		restore_I2C();
 		return -1;

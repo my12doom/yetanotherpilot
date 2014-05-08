@@ -33,6 +33,20 @@ extern "C"
 #include "osd/osdcore.h"
 }
 
+typedef struct
+{
+	ads1115_speed speed;
+	ads1115_channel channel;
+	ads1115_gain gain;
+	int16_t *out;
+}ads1115_work;
+#define MAX_ADS1115_WORKS 8
+int ads1115_work_pos = 0;
+int ads1115_work_count = 0;
+ads1115_work ads1115_works[MAX_ADS1115_WORKS];
+
+int ads1115_new_work(ads1115_speed speed, ads1115_channel channel, ads1115_gain gain, int16_t *out);
+int ads1115_go_on();
 
 #if PCB_VERSION == 2
 #define CURRENT_PIN 2
@@ -49,7 +63,14 @@ float PI180 = 180/PI;
 
 static void SysClockInit(void);
 
-
+static int16_t min(int16_t a, int16_t b)
+{
+	return a>b?b:a;
+}
+static int16_t max(int16_t a, int16_t b)
+{
+	return a<b?b:a;
+}
 class pilot
 {
 public:
@@ -83,6 +104,7 @@ bool launched = false;
 float mpu6050_temperature;
 float angle_pos[3] = {0};
 float angle_posD[3] = {0};
+float angle_target_unrotated[3] = {0};	// for quadcopter only currently, for fixed-wing, pos is also angle_pos
 float angle_target[3] = {0};	// for quadcopter only currently, for fixed-wing, pos is also angle_pos
 float angle_error[3] = {0};
 float angle_errorD[3] = {0};
@@ -114,6 +136,7 @@ vector mag_avg = {0};
 vector gyro_zero = {0};
 vector accel_avg = {0};
 vector mag_zero = {0};
+vector mag_gain = {0.7924,0.8354,0.8658};
 double altitude = 0;
 int ms5611[2];
 int ms5611_result = -1;
@@ -148,6 +171,7 @@ float roll;
 float pitch;
 float yaw_est;
 float yaw_gyro;
+float yaw_launch;
 float pid_result[3] = {0}; // total pid for roll, pitch, yaw
 
 float a_raw_pressure = 0;
@@ -183,6 +207,11 @@ float climb_rate_error_pid[3] = {0};
 float accel_error_pid[3] = {0};
 int throttle_result = 0;
 
+int16_t ads1115_2_5V = 0;
+int16_t ads1115_airspeed = 0;
+int16_t ads1115_voltage = 0;
+int16_t ads1115_current = 0;
+
 int auto_throttle(float user_climb_rate)
 {
 	// new target altitude
@@ -204,9 +233,12 @@ int auto_throttle(float user_climb_rate)
 	// apply a 2Hz LPF to rate error
 	const float RC = 1.0f/(2*3.1415926 * 2.0f);
 	float alpha = interval / (interval + RC);
+	// 5Hz LPF filter
+	const float RC5 = 1.0f/(2*3.1415926 * 2.0f);
+	float alpha5 = interval / (interval + RC5);
 	// 30Hz LPF for derivative factor
 	const float RC30 = 1.0f/(2*3.1415926 * 30.0f);
-	float alpha30 = interval / (interval + RC);
+	float alpha30 = interval / (interval + RC30);
 
 	// TODO: apply pid instead of P only, and add feed forward
 	// reference: get_throttle_rate()
@@ -220,8 +252,11 @@ int auto_throttle(float user_climb_rate)
 	accel_error = accel_error_pid[0] * (1-alpha) + alpha * accel_error;
 
 	// core pid
-	accel_error_pid[1] += accel_error_pid[0] * interval;
-	accel_error_pid[1] = limit(accel_error_pid[1], -pid_quad_accel[3], pid_quad_accel[3]);
+	if (airborne)
+	{
+		accel_error_pid[1] += accel_error_pid[0] * interval;
+		accel_error_pid[1] = limit(accel_error_pid[1], -pid_quad_accel[3], pid_quad_accel[3]);
+	}
 	accel_error_pid[2] = accel_error_pid[2] * (1-alpha30) + alpha30 * (accel_error - accel_error_pid[0])/interval;
 	accel_error_pid[0] = accel_error;
 
@@ -577,11 +612,26 @@ int calculate_target()
 			// roll & pitch, RC trim is accepted.
 			for(int i=0; i<2; i++)
 			{
-				float limit_l = angle_target[i] - 2 * PI * interval;
-				float limit_r = angle_target[i] + 2 * PI * interval;
-				angle_target[i] = limit(-(g_ppm_input[i] - RC_CENTER) * rc_reverse[i] / RC_RANGE, -1, 1) * quadcopter_range[i] + quadcopter_trim[i];
-				angle_target[i] = limit(angle_target[i], limit_l, limit_r);
+				float limit_l = angle_target_unrotated[i] - 2 * PI * interval;
+				float limit_r = angle_target_unrotated[i] + 2 * PI * interval;
+				angle_target_unrotated[i] = limit(-(g_ppm_input[i] - RC_CENTER) * rc_reverse[i] / RC_RANGE, -1, 1) * quadcopter_range[i];
+				angle_target_unrotated[i] = limit(angle_target_unrotated[i], limit_l, limit_r);
+				angle_target[i] = angle_target_unrotated[i];
 			}
+
+			// simple mode test
+			if (g_ppm_input[5] > RC_CENTER)
+			{
+				float diff = yaw_launch - yaw_est;
+				float cosdiff = cos(diff);
+				float sindiff = sin(diff);
+				angle_target[0] = angle_target_unrotated[0] * cosdiff - angle_target_unrotated[1] * sindiff;
+				angle_target[1] = angle_target_unrotated[0] * sindiff + angle_target_unrotated[1] * cosdiff;
+			}
+
+			//trim
+			angle_target[0] += quadcopter_trim[0];
+			angle_target[1] += quadcopter_trim[1];
 
 			// yaw:
 			//target[2] = limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[2] / RC_RANGE, -1, 1) * quadcopter_range[2] + yaw_gyro + quadcopter_trim[2];
@@ -628,7 +678,7 @@ int calculate_target()
 			// check takeoff
 			if ( (altitude > takeoff_ground_altitude + 2.0) ||
 				(altitude > takeoff_ground_altitude && g_ppm_input[2] > THROTTLE_CRUISE) ||
-				(g_ppm_input[2] > THROTTLE_CRUISE + 200))
+				((g_ppm_input[5] > RC_CENTER ? throttle_result : g_ppm_input[2]) > THROTTLE_CRUISE + 200))
 			{
 				airborne = true;
 			}
@@ -915,6 +965,8 @@ int save_logs()
 		target_accel * 100,
 		(a_accel_z + _accel_correction_ef) * 100,
 		throttle_result,
+		yaw_launch * 18000 / PI,
+		yaw_est * 18000 / PI,
 	};
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA3;
@@ -963,9 +1015,15 @@ int save_logs()
 
 int read_sensors()
 {
+	// read external adc
+	ads1115_go_on();
+
 	// always read sensors and calculate attitude
 	read_MPU6050(&p->accel[0]);		
-	read_HMC5883(&p->mag[0]);		
+	read_HMC5883(&p->mag[0]);
+	for(int i=0; i<3; i++)
+		p->mag[i] *= mag_gain.array[i];
+
 	ms5611_result = read_MS5611(ms5611);
 
 	mpu6050_temperature = p->temperature1  / 340.0f + 36.53f;
@@ -974,9 +1032,7 @@ int read_sensors()
 
 	// airspeed voltage low pass
 #if PCB_VERSION == 3
-	short v;
-	ads1115_getresult(&v);
-	airspeed_voltage = v * 2.048 / 32767;
+	airspeed_voltage = ads1115_airspeed * 2.048 / 32767;
 	airspeed_sensor_data = - (airspeed_voltage - airspeed_bias);
 
 	//printf("current:%f mA\r\n", v * 0.256f / 32767 *1000000.0f);
@@ -1180,7 +1236,7 @@ void inline debugpin_init()
 {
 	// use PA-0 as cycle debugger
 	GPIO_InitTypeDef GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_8 |  GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3;
+	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_8 |  GPIO_Pin_1 | GPIO_Pin_2;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
@@ -1216,10 +1272,23 @@ void inline flashlight_off()
 
 int magnet_calibration()
 {
+	short mag_min[3] = {9999,9999,9999};
+	short mag_max[3] = {-9999, -9999, -9999};
+
+
 	// load magnetemeter cneter
 mag_load:
 	for(int i=0; i<sizeof(mag_zero); i+=2)
 		EE_ReadVariable(VirtAddVarTab[0]+i/2+EEPROM_MAG_ZERO, (uint16_t*)(((uint8_t*)&mag_zero.array)+i));
+// 	for(int i=0; i<sizeof(mag_gain); i+=2)
+// 		EE_ReadVariable(VirtAddVarTab[0]+i/2+EEPROM_MAG_GAIN, (uint16_t*)(((uint8_t*)&mag_gain.array)+i));
+
+	for(int i=0; i<3; i++)
+	{
+		ERROR("mag[%d] max/min/gain/zero=%d,%d,%.2f,%.2f\n", i, mag_max[i], mag_min[i], mag_gain.array[i], mag_zero.array[i]);
+
+		mag_gain.array[i] = mag_gain.array[i] == 0 ? 1 : mag_gain.array[i];
+	}
 
 	int enter_throttle = (THROTTLE_IDLE+THROTTLE_MAX)/2;
 	// enter magnetemeter centering mode if throttle > THROTTLE_STOP (and slowly flash all LED lights)
@@ -1252,9 +1321,24 @@ mag_load:
 			PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
 
 			// magnetemeter centering
-			read_HMC5883(&p->mag[0]);
-			float mag_data[4] = {p->mag[0], p->mag[1], p->mag[2], 1};
-			mag_offset.add_value(mag_data);
+			sensor_data mag_data;
+			read_HMC5883(&mag_data.mag[0]);
+			for(int i=0; i<3; i++)
+			{
+				mag_min[i] = min(mag_min[i], mag_data.mag[i]);
+				mag_max[i] = max(mag_max[i], mag_data.mag[i]);
+				mag_data.mag[i] *= mag_gain.array[i];
+			}
+
+			static float last_mag_data[4] = {0,0,0,1};
+			float delta[3] = {mag_data.mag[0]-last_mag_data[0], mag_data.mag[1]-last_mag_data[1], mag_data.mag[2]-last_mag_data[2]};
+			if (delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2] > 600 )
+			{
+				last_mag_data[0] = mag_data.mag[0];
+				last_mag_data[1] = mag_data.mag[1];
+				last_mag_data[2] = mag_data.mag[2];
+				mag_offset.add_value(last_mag_data);
+			}
 
 			if (mag_c++ % 10 == 0)
 			{
@@ -1280,13 +1364,20 @@ mag_load:
 			delayms(50);
 		}
 
-		if (getus() - start_tick < 5000000 || mag_radius < 400 || mag_radius > 480)
+		if (getus() - start_tick < 5000000)
 			goto mag_load;
 
 		// save magnetemeter centering values
+		for(int i=0; i<3; i++)
+		{
+			mag_gain.array[i] = 1000.0f/(mag_max[i] - mag_min[i]);
+			ERROR("mag[%d] max/min/gain=%d,%d,%.2f\n", i, mag_max[i], mag_min[i], mag_gain.array[i]);
+		}
 		mag_offset.get_result(mag_zero.array, &mag_radius);
 		for(int i=0; i<sizeof(mag_zero); i+=2)
 			EE_WriteVariable(VirtAddVarTab[0]+i/2+EEPROM_MAG_ZERO, *(uint16_t*)(((uint8_t*)&mag_zero.array)+i));
+// 		for(int i=0; i<sizeof(mag_gain); i+=2)
+// 			EE_WriteVariable(VirtAddVarTab[0]+i/2+EEPROM_MAG_GAIN, *(uint16_t*)(((uint8_t*)&mag_gain.array)+i));
 
 		// flash all LED to signal success
 		led_all_on();
@@ -1310,6 +1401,7 @@ int sensor_calibration()
 		long us = getus();
 
 		TRACE("\r%d/300", i);
+		ads1115_go_on();
 		read_MPU6050(p->accel);
 		read_HMC5883(p->mag);
 		if (read_MS5611(ms5611) == 0)
@@ -1329,9 +1421,7 @@ int sensor_calibration()
 
 
 #if PCB_VERSION == 3
-		short v;
-		ads1115_getresult(&v);
-		airspeed_voltage = v*0.03 + airspeed_voltage * 0.97;
+		airspeed_voltage = ads1115_voltage*0.03 + airspeed_voltage * 0.97;
 #else
 
 		ADC1_SelectChannel(0);
@@ -1475,6 +1565,7 @@ int check_mode()
 		accel_error_pid[0] = target_accel;
 		accel_error_pid[1] = 0;
 		accel_error_pid[2] = 0;
+		yaw_launch = yaw_est;
 
 #if QUADCOPTER == 1
 		for(int i=0; i<3; i++)
@@ -1567,8 +1658,10 @@ int main(void)
 	
 	#if PCB_VERSION == 3
 	ads1115_init();	
-	ads1115_config(ads1115_speed_16sps, ads1115_channnel_AIN1_AIN3, ads1115_gain_2V, ads1115_mode_continuous);
-	//ads1115_config(ads1115_speed_16sps, ads1115_channnel_AIN1, ads1115_gain_256, ads1115_mode_continuous);
+	ads1115_new_work(ads1115_speed_16sps, ads1115_channnel_AIN0, ads1115_gain_4V, &ads1115_voltage);
+	ads1115_new_work(ads1115_speed_16sps, ads1115_channnel_AIN1_AIN3, ads1115_gain_4V, &ads1115_current);
+	ads1115_new_work(ads1115_speed_16sps, ads1115_channnel_AIN2_AIN3, ads1115_gain_2V, &ads1115_airspeed);
+	ads1115_new_work(ads1115_speed_16sps, ads1115_channnel_AIN3, ads1115_gain_4V, &ads1115_2_5V);
 	#endif
 	
 	delayms(100);
@@ -1579,7 +1672,6 @@ int main(void)
 	if (nrf_ok)
 		NRF_TX_Mode();
 	
-
 	p->voltage = -32768;
 	p->current = -32768;
 
@@ -1589,7 +1681,6 @@ int main(void)
 	
 	magnet_calibration();
 	sensor_calibration();
-
 
 
 	
@@ -1655,6 +1746,7 @@ int main(void)
 		TRACE("input= %.2f, %.2f, %.2f, %.2f,%.2f,%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3], g_ppm_input[4], g_ppm_input[5]);
 		TRACE("input:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5], g_ppm_input[4], g_ppm_input[5], p->voltage/1000.0 );
 		
+		TRACE("\ryaw=%.2f, yt=%.2f, at=%.2f,%.2f", yaw_est *PI180, yaw_launch*PI180, angle_target[0] * PI180, angle_target[1] * PI180);
 
 
 		led_all_on();
@@ -1787,4 +1879,41 @@ static void SysClockInit(void)
 	while(RCC_GetSYSCLKSource() != 0x08)
 	{
 	}
+}
+
+
+int ads1115_new_work(ads1115_speed speed, ads1115_channel channel, ads1115_gain gain, int16_t *out)
+{
+	if (ads1115_work_count >= MAX_ADS1115_WORKS)
+		return -1;
+
+	ads1115_work &p = ads1115_works[ads1115_work_count++];
+	p.speed = speed;
+	p.channel = channel;
+	p.gain = gain;
+	p.out = out;
+
+	if (ads1115_work_count == 1)
+	{
+		ads1115_config(speed, channel, gain, ads1115_mode_singleshot);
+		ads1115_startconvert();
+	}
+}
+
+int ads1115_go_on()
+{
+	if (ads1115_work_count == 0)
+		return 1;
+
+	int res = ads1115_getresult(ads1115_works[ads1115_work_pos].out);
+	if (res == 0)
+	{
+		ads1115_work_pos = (ads1115_work_pos+1)%ads1115_work_count;
+		ads1115_work &p = ads1115_works[ads1115_work_pos];
+		ads1115_config(p.speed, p.channel, p.gain, ads1115_mode_singleshot);
+		ads1115_startconvert();
+		return 0;
+	}
+
+	return 1;
 }

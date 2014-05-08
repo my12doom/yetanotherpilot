@@ -137,5 +137,7 @@ extern float pid_quad_accel[4];		// P, I, D, IMAX
 // EEPROM configuration
 #define EEPROM_MAG_ZERO 0 			// start 0 size 12
 #define EEPROM_VOLTAGE_DIVIDER 12 	// start 12 size 4
+#define EEPROM_MAG_ZERO2 16 		// start 16 size 12
+#define EEPROM_MAG_GAIN 28 		// start 16 size 12
 
 #endif
