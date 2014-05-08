@@ -47,6 +47,7 @@ int main(int argc, char **argv)
 	gps_data gps = {0};
 	quadcopter_data quad = {0};
 	quadcopter_data2 quad2 = {0};
+	quadcopter_data3 quad3 = {0};
 
 
 	FILE * f = fopen(argv[1], "rb");
@@ -86,6 +87,10 @@ int main(int argc, char **argv)
 		{
 			quad2 = rf.data.quadcopter2;
 		}
+		else if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA3)
+		{
+			quad3 = rf.data.quadcopter3;
+		}
 		else if ((rf.time & TAG_MASK) ==  TAG_PPM_DATA)
 			ppm = rf.data.ppm;
 		else
@@ -104,7 +109,7 @@ int main(int argc, char **argv)
 			file ++;
 			sprintf(tmp, "out%d.csv", file);
 			fo = fopen(tmp, "wb");
-			fprintf(fo, "time,voltage,current,airspeed,altitude,accel[0],aceel[1],accel[2],gyro[0](-roll_rate),gyro[1](-pitch_rate),gyro[2],error[0],error[1],error[2],errorI[0],errorD[0],roll,pitch,yaw_gyro,roll_t,pitch_t,yaw_t,throttle, mode,ppmi[0],ppmi[1],ppmi[2],ppmi[3],ppmo[0],ppmo[1],ppmo[2],ppmo[3],est[0],est[1],est[2],gyro[0],gyro[1],gyro[2]\r\n");
+			fprintf(fo, "time,voltage,current,airspeed,altitude,accel[0],aceel[1],accel[2],gyro[0](-roll_rate),gyro[1](-pitch_rate),gyro[2],error[0],error[1],error[2],errorI[0],errorD[0],roll,yaw,yaw_gyro,roll_t,pitch_t,yaw_t,throttle, mode,ppmi[0],ppmi[1],ppmi[2],ppmi[3],ppmo[0],ppmo[1],ppmo[2],ppmo[3],est[0],est[1],est[2],gyro[0],gyro[1],gyro[2]\r\n");
 			sprintf(tmp, "gps%d.csv", file);
 			gpso = fopen(tmp, "wb");
 			fprintf(gpso, "time,angle[1],angle_target[1],speed[1],speed_target[1],angle[0],angle_target[0],speed[0],speed_target[0],mode,climb,altitude\r\n");
@@ -161,7 +166,12 @@ int main(int argc, char **argv)
 		float airspeed = pilot.airspeed<0?0:  sqrt ( 5 * 1.403 * 287.05287 * (20+273.15) *  (pow((pilot.airspeed/1000.0)/(100.0)+1.0, 1/3.5 ) - 1.0) );
 		float mpu6050_temperature = sensor.temperature1/340.0f+36.53f;
 
- 		if (n++ %30 == 0)
+		if (yaw_gyro<0)
+			yaw_gyro += 2*PI;
+		if (yaw_est<0)
+			yaw_est += 2*PI;
+
+ 		if (n++ %20 == 0)
  		fprintf(fo, "%.2f,%.2f,%.2f,%2f,%.2f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d,%d\r\n",
@@ -182,11 +192,13 @@ int main(int argc, char **argv)
 
 		if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA || (rf.time & TAG_MASK) ==  TAG_GPS_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA2)
 		{
-			if (m++ %5 == 0 && pilot.fly_mode == quadcopter && ppm.in[2] > 1300)
+// 			if (m++ %5 == 0 && pilot.fly_mode == quadcopter && ppm.in[2] > 1300)
+			if (m++ %8 == 0)
 			{
 				fprintf(gpso, "%.4f", float(time/1000000.0f));
 				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[1],quad.angle_target[1],quad.speed[1],quad.speed_target[1]);
-				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d", quad.angle_pos[2],quad.angle_target[2],quad.speed[2],quad.speed_target[2], pilot2.D[1], quad2.climb_rate_lower, pilot.altitude);
+				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d,", quad.angle_pos[2],quad.angle_target[2],quad.speed[2],quad.speed_target[2], pilot2.D[1], quad3.climb, quad3.climb_target);
+				fprintf(gpso, "%d,%d,%d", int(quad3.yaw_est/100), int(quad3.yaw_launch/100), int((ppm.in[2]-1110)*0.8+1110 - 1550));
 				fprintf(gpso, "\r\n");
 			}
 		}

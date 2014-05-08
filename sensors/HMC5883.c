@@ -12,6 +12,10 @@ static float gain[3] = {0};
 #define HMC_POS_BIAS 1
 #define HMC_NEG_BIAS 2
 
+static int16_t min(int16_t a, int16_t b)
+{
+	return a>b?b:a;
+}
 
 int init_HMC5883(void)
 {
@@ -21,7 +25,7 @@ int init_HMC5883(void)
 	float mag_ref[3] = {1.16, 1.16, 1.08};
 
 	I2C_WriteReg(HMC5883SlaveAddress, HMC58X3_R_CONFA, 0x010 + HMC_POS_BIAS);	// Reg A DOR=0x010 + MS1,MS0 set to pos bias
-	I2C_WriteReg(HMC5883SlaveAddress, HMC58X3_R_CONFB, 2 << 5);  //Set the Gain
+	I2C_WriteReg(HMC5883SlaveAddress, HMC58X3_R_CONFB, 0x40);  //Set the Gain
 	I2C_WriteReg(HMC5883SlaveAddress,HMC58X3_R_MODE, 1);
 	delayms(10);			// Note that the  very first measurement after a gain change maintains the same gain as the previous setting. 
 											// The new gain setting is effective from the second measurement and on.
@@ -37,8 +41,11 @@ int init_HMC5883(void)
 			swap(&data[i], 2);
 			gain[i] += data[i];
 		}
-				
-		// TODO : detect saturation
+		
+		if (-(1<<12) >= min(data[0],min(data[1],data[2])))
+		{
+			ERROR("mag saturation detected\n");
+		}
 	}
 	
 	I2C_WriteReg(HMC5883SlaveAddress,HMC58X3_R_CONFA, 0x010 + HMC_NEG_BIAS); // Reg A DOR=0x010 + MS1,MS0 set to negative bias.
@@ -57,15 +64,20 @@ int init_HMC5883(void)
 			gain[i] -= data[i];
 		}
 				
-		// TODO : detect saturation
+		if (-(1<<12) >= min(data[0],min(data[1],data[2])))
+		{
+			ERROR("mag saturation detected\n");
+		}
 	}
 	
 	for(i=0; i<3; i++)
 		gain[i]=fabs(820.0*mag_ref[i]*2.0*10.0/gain[i]);
 	
 	I2C_WriteReg(HMC5883SlaveAddress ,HMC58X3_R_CONFA ,0x70 ); //Configuration Register A  -- 0 11 100 00  num samples: 8 ; output rate: 15Hz ; normal measurement mode
-	I2C_WriteReg(HMC5883SlaveAddress ,HMC58X3_R_CONFB ,0x20 ); //Configuration Register B  -- 001 00000    configuration gain 1.3Ga
+	I2C_WriteReg(HMC5883SlaveAddress ,HMC58X3_R_CONFB ,0x10 ); //Configuration Register B  -- 001 00000    configuration gain 1.3Ga
 	I2C_WriteReg(HMC5883SlaveAddress, HMC58X3_R_MODE, 0x00);
+	
+	ERROR("mag gain=%.3f, %.3f, %.3f", gain[0], gain[1], gain[2]);
 	
 	return 0;
 }

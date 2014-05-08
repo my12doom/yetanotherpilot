@@ -102,6 +102,8 @@ typedef struct
 	short accel_target;
 	short accel;
 	short throttle_result;
+	short yaw_launch;
+	short yaw_est;
 } quadcopter_data3;
 
 typedef struct
