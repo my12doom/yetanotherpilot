@@ -491,6 +491,11 @@
               <FileType>1</FileType>
               <FilePath>.\common\config.c</FilePath>
             </File>
+            <File>
+              <FileName>matrix.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\matrix.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

@@ -19,7 +19,7 @@
 // C1 will be at 0xA2 and all the subsequent are multiples of 2
 #define MS561101BA_PROM_REG_COUNT 6 // number of registers in the PROM
 #define MS561101BA_PROM_REG_SIZE 2 // size in bytes of a prom registry.
-#define EXTRA_PRECISION 0 // trick to add more precision to the pressure and temp readings
+#define EXTRA_PRECISION 5 // trick to add more precision to the pressure and temp readings
 
 #define SAMPLEING_TIME 10000 // 10000us, 10ms
 

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <conio.h>
 #include <math.h>
+#include <stdlib.h>
 
 typedef __int64 int64_t;
 #include "..\RFData.h"
@@ -18,6 +19,66 @@ float NDEG2DEG(float ndeg)
 	int minute = int(floor(ndeg)) % 100;	
 
 	return degree + minute/60.0f + modf(ndeg, &ndeg)/60.0f;
+}
+
+int kalman()
+{
+
+	float Q = 0.0001;
+	float R = 200;
+	float x = 40;
+	float p = 1000;
+
+	int i = 0;
+
+
+	float RR = 0;
+
+	while(i<500)
+	{
+		float x1 = i == 100 ? x+3:x;
+		float p1 = p + Q;
+
+		float noise = (rand() % 257 - 128)*14/128;
+		RR += noise * noise;
+		float zk = (i<100?25:28) + noise;
+
+		float Kg = p1/(p1+R);
+
+		x = x1 + Kg * (zk - x1);
+		p = (1-Kg) * p1;
+
+		printf("%d\t%.2f\t%.2f\n", ++i, x, zk, RR/i);
+	}
+
+	exit(0);
+
+	return 0;
+}
+
+void matrix_error(const char*msg)
+{
+	ERROR(msg);
+	while(true)
+		;
+}
+
+int matrix_mul(float *out, const float *m1, int row1, int column1, const float *m2, int row2, int column2)
+{
+	if (column1 != row2)
+		matrix_error("invalid matrix_mul");
+
+	for(int x1 = 0; x1<column2; x1++)
+	{
+		for(int y1 = 0; y1<row1; y1++)
+		{
+			out[y1*column2+x1] = 0;
+			for(int k = 0; k<column1; k++)
+				out[y1*column2+x1] += m1[y1*column1+k] * m2[k*column2+x1];
+		}
+	}
+
+	return 0;
 }
 
 int main(int argc, char **argv)
@@ -112,7 +173,7 @@ int main(int argc, char **argv)
 			fprintf(fo, "time,voltage,current,airspeed,altitude,accel[0],aceel[1],accel[2],gyro[0](-roll_rate),gyro[1](-pitch_rate),gyro[2],error[0],error[1],error[2],errorI[0],errorD[0],roll,yaw,yaw_gyro,roll_t,pitch_t,yaw_t,throttle, mode,ppmi[0],ppmi[1],ppmi[2],ppmi[3],ppmo[0],ppmo[1],ppmo[2],ppmo[3],est[0],est[1],est[2],gyro[0],gyro[1],gyro[2]\r\n");
 			sprintf(tmp, "gps%d.csv", file);
 			gpso = fopen(tmp, "wb");
-			fprintf(gpso, "time,angle[1],angle_target[1],speed[1],speed_target[1],angle[0],angle_target[0],speed[0],speed_target[0],mode,climb,altitude\r\n");
+			fprintf(gpso, "time,angle[1],angle_target[1],speed[1],speed_target[1],angle[0],angle_target[0],speed[0],speed_target[0],mode,climb,altitude,kalman,cf,baro\r\n");
 		}
 		else
 		{
@@ -193,12 +254,12 @@ int main(int argc, char **argv)
 		if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA || (rf.time & TAG_MASK) ==  TAG_GPS_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA2)
 		{
 // 			if (m++ %5 == 0 && pilot.fly_mode == quadcopter && ppm.in[2] > 1300)
-			if (m++ %8 == 0)
+			if (m++ %10 == 0)
 			{
 				fprintf(gpso, "%.4f", float(time/1000000.0f));
 				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[1],quad.angle_target[1],quad.speed[1],quad.speed_target[1]);
-				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d,", quad.angle_pos[2],quad.angle_target[2],quad.speed[2],quad.speed_target[2], pilot2.D[1], quad3.climb, quad3.climb_target);
-				fprintf(gpso, "%d,%d,%d", int(quad3.yaw_est/100), int(quad3.yaw_launch/100), int((ppm.in[2]-1110)*0.8+1110 - 1550));
+				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d,", quad.angle_pos[2],quad.angle_target[2],quad.speed[2],quad.speed_target[2], pilot2.D[1], quad3.climb, quad2.accel_z);
+				fprintf(gpso, "%d,%d,%d", int(quad2.altitude_inertia), int(quad2.climb_rate_inertia), int(quad2.altitude_baro_raw));
 				fprintf(gpso, "\r\n");
 			}
 		}
