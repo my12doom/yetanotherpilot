@@ -53,6 +53,7 @@ typedef struct
 	short error[3];							// 6 byte, unit base: 0.01 degree, range: -18000 ~ 18000
 	short target[3];						// 6 byte, unit base: 0.01 degree, range: -18000 ~ 18000
 	unsigned char fly_mode;					// 1 byte
+	unsigned short mah_consumed;				// mah power consumed
 } pilot_data;
 
 typedef struct
@@ -113,7 +114,7 @@ typedef struct
 	{
 		sensor_data sensor;	// 24 bytes
 		imu_data imu;		// 24 bytes
-		pilot_data pilot;	// 17 bytes
+		pilot_data pilot;	// 21 bytes
 		pilot_data2 pilot2;	// 24 bytes
 		ppm_data ppm;		// 24 bytes
 		controll_data controll; // 24 bytes
