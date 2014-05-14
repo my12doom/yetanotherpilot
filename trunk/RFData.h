@@ -1,6 +1,10 @@
 #ifndef __RFDATA_H__
 #define __RFDATA_H__
 
+#ifdef WIN32
+typedef __int64 int64_t;
+#endif
+
 typedef struct
 {
 	short mag[3];
@@ -15,6 +19,15 @@ typedef struct
 {
 	unsigned short temperature;		// 2 byte
 	int pressure;					// 4 byte
+	short estAccGyro[3];			// 6 byte
+	short estGyro[3];				// 6 byte
+	short estMagGyro[3];			// 6 byte
+} imu_data_v1;
+
+typedef struct
+{
+	int pressure;					// 4 byte
+	unsigned short temperature;		// 2 byte
 	short estAccGyro[3];			// 6 byte
 	short estGyro[3];				// 6 byte
 	short estMagGyro[3];			// 6 byte
@@ -113,12 +126,13 @@ typedef struct
 	union
 	{
 		sensor_data sensor;	// 24 bytes
+// 		imu_data_v1 imu_v1;		// 24 bytes
 		imu_data imu;		// 24 bytes
 		pilot_data pilot;	// 21 bytes
 		pilot_data2 pilot2;	// 24 bytes
 		ppm_data ppm;		// 24 bytes
 		controll_data controll; // 24 bytes
-		gps_data_v1 gps_v1;		// 22 bytes
+// 		gps_data_v1 gps_v1;		// 22 bytes
 		gps_data gps;		// 22 bytes
 		quadcopter_data quadcopter;	// 24 byte
 		quadcopter_data2 quadcopter2;
@@ -127,7 +141,7 @@ typedef struct
 } rf_data;
 
 #define TAG_SENSOR_DATA	0x1200000000000000
-#define TAG_IMU_DATA	0x8700000000000000
+#define TAG_IMU_DATA_V1	0x8700000000000000
 #define TAG_PILOT_DATA	0x6500000000000000
 #define TAG_PILOT_DATA2	0x6600000000000000
 #define TAG_MASK		0xff00000000000000
@@ -138,6 +152,7 @@ typedef struct
 #define TAG_QUADCOPTER_DATA	0x3700000000000000
 #define TAG_QUADCOPTER_DATA2	0x3800000000000000
 #define TAG_QUADCOPTER_DATA3	0x3900000000000000
+#define TAG_IMU_DATA	0x3A00000000000000
 
 #define CTRL_CMD_SET_VALUE 0
 #define CTRL_CMD_GET_VALUE 1
