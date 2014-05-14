@@ -212,6 +212,8 @@ int16_t ads1115_2_5V = 0;
 int16_t ads1115_airspeed = 0;
 int16_t ads1115_voltage = 0;
 int16_t ads1115_current = 0;
+float mah_consumed = 0;
+float wh_consumed = 0;
 
 
 
@@ -348,6 +350,9 @@ int kalman()
 	matrix_mul(P1, F, 4, 4, tmp, 4, 4);
 	matrix_add(P1, Q, 4, 4);
 
+	// controll vector
+	//state1[2] = state1[2] * 0.8f * 0.2f * (target_accel);
+
 	// update
 
 	// kg
@@ -380,7 +385,7 @@ int kalman()
 	matrix_sub(I, tmp, 4, 4);
 	matrix_mul(P, I, 4, 4, P1, 4, 4);
 	
-	ERROR("\rstate:%.2f,%.2f,%.2f,%.2f, ref=%.2f/%.2f   ", state[0], state[1], state[2], state[3], 0.0f, a_raw_altitude);
+	TRACE("state:%.2f,%.2f,%.2f,%.2f, ref=%.2f/%.2f   \n", state[0], state[1], state[2], state[3], _velocity, a_raw_altitude);
 
 	return 0;
 }
@@ -388,10 +393,11 @@ int kalman()
 int auto_throttle(float user_climb_rate)
 {
 	// new target altitude
-	target_altitude = limit(target_altitude + user_climb_rate * interval, state[0] - 2.5, state[0] + 2.5);
+	target_altitude = limit(target_altitude + user_climb_rate * interval, state[0] - 8, state[0] + 8);
 
 	// new altitude error
 	altitude_error_pid[0] = target_altitude - state[0];
+	altitude_error_pid[0] = limit(altitude_error_pid[0], -2.5f, 2.5f);
 
 	// new target rate, directly use linear approach since we use very tight limit 
 	// TODO: use sqrt approach on large errors (see get_throttle_althold() in Attitude.pde)
@@ -421,7 +427,7 @@ int auto_throttle(float user_climb_rate)
 
 	
 	// new accel error, +2Hz LPF
-	float accel_error = target_accel - (state[2] + state[3]);
+	float accel_error = target_accel - (a_accel_z + state[3]);
 	accel_error = accel_error_pid[0] * (1-alpha) + alpha * accel_error;
 
 	// core pid
@@ -440,9 +446,12 @@ int auto_throttle(float user_climb_rate)
 	output += accel_error_pid[2] * pid_quad_accel[2];
 
 	throttle_result  = output/500.0f * (THROTTLE_MAX - THROTTLE_CRUISE) + THROTTLE_CRUISE;
+	float angle_boost_factor = limit(1/ cos(pitch) / cos(roll), 1.0f, 1.5f);
+	throttle_result = (throttle_result - THROTTLE_IDLE) * angle_boost_factor + THROTTLE_IDLE;
+	
 	throttle_result = limit(throttle_result, THROTTLE_IDLE, THROTTLE_MAX);
 
-	TRACE("\rthrottle=%d, altitude = %.2f/%.2f, pid=%.2f,%.2f,%.2f", throttle_result, _position, target_altitude,
+	TRACE("\rthrottle=%d, altitude = %.2f/%.2f, pid=%.2f,%.2f,%.2f", throttle_result, state[0], target_altitude,
 		accel_error_pid[0], accel_error_pid[1], accel_error_pid[2]);
 
 	return 0;
@@ -1030,6 +1039,7 @@ int save_logs()
 		{error_pid[0][0]*180*100/PI, error_pid[1][0]*180*100/PI, error_pid[2][0]*180*100/PI},
 		{target[0]*180*100/PI, target[1]*180*100/PI, target[2]*180*100/PI},
 		mode,
+		mah_consumed,
 	};
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_PILOT_DATA;
@@ -1206,63 +1216,20 @@ int read_sensors()
 	else
 		p->current = p->current * 0.95 + 0.05 * adc_current;			// simple low pass
 
+	p->voltage = abs(ads1115_voltage * 4096 * 6 / 32767);
+	p->current = abs(ads1115_current * 4096 / 32767 / hall_sensor_sensitivity);
+
+	mah_consumed += interval / 3600 * p->current;
+	wh_consumed += interval / 3600 * p->current * p->voltage / 1000000.0f;
 
 	// calculate altitude
 	if (ms5611_result == 0)
 	{
-// 		float this_pressure = ms5611[0] / 100.0f;
-// 		float this_temperature = ms5611[1] / 100.0f;
-// 
-// 		long this_baro_time =getus();
-// 		float delta_time = (this_baro_time - last_baro_time)/1000000.0f;
-// 
-// 
-// 		// 3hz discrete low pass filter
-// 		if (last_baro_time > 0)
-// 		{
-// 			const float RC = 1.0f/(2*3.1415926 * 0.3f);
-// 			float alpha = delta_time / (delta_time + RC);
-// 			pressure = pressure * (1-alpha) + this_pressure * alpha;
-// 			temperature = temperature * (1-alpha) + this_temperature * alpha;
-// 		}
-// 
-// 
-// 
-// 
-// 		double scaling = (double)pressure / ground_pressure;
-// 		double temp = ((double)ground_temperature) + 273.15f;
-// 		altitude = 153.8462f * temp * (1.0f - exp(0.190259f * log(scaling)));
-// 
-// 		if (fabs(altitude)<5.0f)
-// 			ground_temperature = temperature;
-
-
-		// v2
-// 
-// 		memmove(climb_rate_filter, climb_rate_filter+1, sizeof(float)*6);
-// 		memmove(climb_rate_filter_time, climb_rate_filter_time+1, sizeof(float)*6);
-// 		climb_rate_filter[6] = altitude;
-// 		climb_rate_filter_time[6] = this_baro_time / 1000000.0f;
-// 		float raw_climb_rate =   2 * 5 * (climb_rate_filter[3] - climb_rate_filter[5]) / (climb_rate_filter_time[3] - climb_rate_filter_time[5]) +
-// 			4 * 4 * (climb_rate_filter[2] - climb_rate_filter[6]) / (climb_rate_filter_time[3] - climb_rate_filter_time[5]) + 
-// 			6 * 1 * (climb_rate_filter[2] - climb_rate_filter[6]) / (climb_rate_filter_time[3] - climb_rate_filter_time[5]);
-// 		raw_climb_rate /= 32.0f;
-// 
-// 		// low pass filter
-// 		const float RC = 1.0f/(2*3.1415926 * 0.5f);
-// 		float alpha = delta_time / (delta_time + RC);
-// 		climb_rate = raw_climb_rate * alpha + (1-alpha) * climb_rate;
-
 		TRACE("\r\npressure,temperature=%f, %f, ground pressure & temperature=%f, %f, height=%f, climb_rate=%f, time=%f\r\n", pressure, temperature, ground_pressure, ground_temperature, altitude, climb_rate, (double)getus()/1000000);
 
-// 		last_baro_time = this_baro_time;
-
-
-		// experimental accelerometer assisted altitude/climb fusion.
 		a_raw_pressure = ms5611[0] / 100.0f;
 		a_raw_temperature = ms5611[1] / 100.0f;
 		climb2();
-
 	}
 
 	apm();
@@ -1547,7 +1514,7 @@ int sensor_calibration()
 
 
 #if PCB_VERSION == 3
-		airspeed_voltage = ads1115_voltage*0.03 + airspeed_voltage * 0.97;
+		airspeed_voltage = ads1115_airspeed*0.03 + airspeed_voltage * 0.97;
 #else
 
 		ADC1_SelectChannel(0);
@@ -1784,10 +1751,10 @@ int main(void)
 	
 	#if PCB_VERSION == 3
 	ads1115_init();	
-	ads1115_new_work(ads1115_speed_16sps, ads1115_channnel_AIN0, ads1115_gain_4V, &ads1115_voltage);
-	ads1115_new_work(ads1115_speed_16sps, ads1115_channnel_AIN1_AIN3, ads1115_gain_4V, &ads1115_current);
-	ads1115_new_work(ads1115_speed_16sps, ads1115_channnel_AIN2_AIN3, ads1115_gain_2V, &ads1115_airspeed);
-	ads1115_new_work(ads1115_speed_16sps, ads1115_channnel_AIN3, ads1115_gain_4V, &ads1115_2_5V);
+	ads1115_new_work(ads1115_speed_250sps, ads1115_channnel_AIN0, ads1115_gain_4V, &ads1115_voltage);
+	ads1115_new_work(ads1115_speed_250sps, ads1115_channnel_AIN1_AIN3, ads1115_gain_4V, &ads1115_current);
+	ads1115_new_work(ads1115_speed_250sps, ads1115_channnel_AIN2_AIN3, ads1115_gain_2V, &ads1115_airspeed);
+	ads1115_new_work(ads1115_speed_250sps, ads1115_channnel_AIN3, ads1115_gain_4V, &ads1115_2_5V);
 	#endif
 	
 	delayms(100);
@@ -1882,6 +1849,7 @@ int main(void)
 		
 		TRACE("\ryaw=%.2f, yt=%.2f, at=%.2f,%.2f", yaw_est *PI180, yaw_launch*PI180, angle_target[0] * PI180, angle_target[1] * PI180);
 
+		TRACE("\rv/a=%dmV, %dmA, %.1f mah, %.1f Wh   ", p->voltage, p->current, mah_consumed, wh_consumed);
 
 		led_all_on();
 

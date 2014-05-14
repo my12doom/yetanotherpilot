@@ -232,11 +232,11 @@ int main(int argc, char **argv)
 		if (yaw_est<0)
 			yaw_est += 2*PI;
 
- 		if (n++ %20 == 0)
+ 		if (n++ %140 == 0)
  		fprintf(fo, "%.2f,%.2f,%.2f,%2f,%.2f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d,%d\r\n",
-				float(time/1000000.0f), sensor.voltage/1000.0f, sensor.current/1000.0f, pilot.airspeed/1.0f, altitude,
+				float(time/1000000.0f), sensor.voltage/1000.0f, sensor.current/1000.0f, pilot.mah_consumed/1.0f, altitude,
  				sensor.accel[0], sensor.accel[1], sensor.accel[2], sensor.gyro[0], sensor.gyro[1], sensor.gyro[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[0], pilot2.D[0],
 				roll*180/PI, pitch*180/PI, yaw_gyro*180/PI, pilot.target[0]/100.0, pilot.target[1]/100.0, pilot.target[2]/100.0, 
 				(ppm.in[2]-1113)/50, pilot.fly_mode == acrobatic ? 5000 : -5000,
@@ -254,12 +254,12 @@ int main(int argc, char **argv)
 		if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA || (rf.time & TAG_MASK) ==  TAG_GPS_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA2)
 		{
 // 			if (m++ %5 == 0 && pilot.fly_mode == quadcopter && ppm.in[2] > 1300)
-			if (m++ %10 == 0)
+			if (m++ %2 == 0)
 			{
 				fprintf(gpso, "%.4f", float(time/1000000.0f));
 				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[1],quad.angle_target[1],quad.speed[1],quad.speed_target[1]);
-				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d,", quad.angle_pos[2],quad.angle_target[2],quad.speed[2],quad.speed_target[2], pilot2.D[1], quad3.climb, quad2.accel_z);
-				fprintf(gpso, "%d,%d,%d", int(quad2.altitude_inertia), int(quad2.climb_rate_inertia), int(quad2.altitude_baro_raw));
+				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d,", quad.angle_pos[0],quad.angle_target[0],quad.speed[0],quad.speed_target[0], pilot2.D[1], quad3.climb, quad2.accel_z);
+				fprintf(gpso, "%d,%d,%d", int(quad2.altitude_inertia), int(quad3.altitude_target), quad2.airborne ? 500 : 0);
 				fprintf(gpso, "\r\n");
 			}
 		}
