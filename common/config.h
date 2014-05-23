@@ -130,7 +130,7 @@ extern float pid_quad_accel[4];		// P, I, D, IMAX
 
 #define quadcopter_max_climb_rate 5
 #define quadcopter_max_decend_rate 2
-#define quadcopter_max_acceleration 3.5
+#define quadcopter_max_acceleration 7.5
 
 // station configuration
 

@@ -15,6 +15,53 @@ int data_size = 0;
 int data_count = 0;
 
 RGBQUAD red = {0,0,255,0};
+RGBQUAD blue = {255,0,0,0};
+RGBQUAD black = {0,0,0,0};
+
+enum data_type
+{
+	_uint8,
+	_uint16,
+	_uint32,
+	___int8,
+	___int16,
+	___int32,
+	___float,
+};
+typedef struct
+{
+	int64_t tag;
+	int offset;
+	data_type type;
+	float scale;
+	RGBQUAD color;
+} data_source;
+
+data_source sources[] = 
+{
+	{
+		TAG_PILOT_DATA,
+		0,
+		___int32,
+		1,
+		blue,
+	},
+
+	{
+		TAG_IMU_DATA_V1,
+		4,
+		___int32,
+		0.001,
+		red,
+	},
+	{
+		TAG_QUADCOPTER_DATA3,
+		0,
+		___int16,
+		1,
+		{0,255,0,0},
+	},
+};
 
 int main()
 {
@@ -69,29 +116,115 @@ rf_data * find_point(int64_t timestamp)
 	return data+l;
 }
 
+int draw_point(int x, int y, RGBQUAD color)
+{
+	if (y>=0 && y<height && x>=0 && x<width)
+		bits[y*width+x] = color;
+	return 0;
+}
+
+int draw_line(int x1, int y1, int x2, int y2, RGBQUAD color)
+{
+	int dx = x2 - x1;
+	int dy = y2 - y1;
+	int ux = ((dx > 0) << 1) - 1;//x的增量方向，取或-1
+	int uy = ((dy > 0) << 1) - 1;//y的增量方向，取或-1
+	int x = x1, y = y1, eps;//eps为累加误差
+
+	eps = 0;dx = abs(dx); dy = abs(dy); 
+	if (dx > dy) 
+	{
+		for (x = x1; x != x2; x += ux)
+		{
+			draw_point(x, y, color);
+			eps += dy;
+			if ((eps << 1) >= dx)
+			{
+				y += uy; eps -= dx;
+			}
+		}
+	}
+	else
+	{
+		for (y = y1; y != y2; y += uy)
+		{
+			draw_point(x, y, color);
+			eps += dx;
+			if ((eps << 1) >= dy)
+			{
+				x += ux; eps -= dy;
+			}
+		}
+	}
+
+	return 0;
+}
+
 int64_t time_left;
 int64_t time_right;
+int offset_y = 0;
 int drawing()
 {
 	memset(bits, 0xff, width * height * 4);
-	memset(bits + width * height/2, 0, width * 4);
+	draw_line(0, height/2+offset_y, width, height/2+offset_y, black);
 
 	int p = GetTickCount();
-	for(int x=0; x<width; x++)
+
+
+	for(int i=0; i<sizeof(sources)/sizeof(sources[0]); i++)
 	{
-		rf_data *l = find_point(x*(time_right - time_left)/width + time_left);
-		rf_data *r = find_point((x+1)*(time_right-time_left)/width + time_left);
+		data_source &source = sources[i];
+		int last_x = -1;
+		int last_y = -1;
 
-		if (l<=data || r >= data+data_count-1)
-			continue;
-
-		for (rf_data * v = l; v<=r; v++)
+		for(int x=0; x<width; x++)
 		{
-			if ((v->time & TAG_MASK) == TAG_SENSOR_DATA)
+			rf_data *l = find_point(x*(time_right - time_left)/width + time_left);
+			rf_data *r = find_point((x+1)*(time_right-time_left)/width + time_left);
+
+			if (l<=data || r >= data+data_count-1)
+				continue;
+			for (rf_data * v = l; v<=r; v++)
 			{
-				int y = height/2-1 - (v->data.sensor.current * height / 15000) + height/2;
-				if (y>=0 && y<height && x>=0 && x<width)
-					bits[y*width+x] = red;
+				if ((v->time & TAG_MASK) == source.tag)
+				{
+					float data;
+					char *p = (char*)v;
+					p += source.offset + 8;
+					switch(source.type)
+					{
+					case ___int8:
+						data = *(char*)p;
+						break;
+					case ___int16:
+						data = *(short*)p;
+						break;
+					case ___int32:
+						data = *(int*)p;
+						break;
+					case _uint8:
+						data = *(unsigned char*)p;
+						break;
+					case _uint16:
+						data = *(unsigned short*)p;
+						break;
+					case _uint32:
+						data = *(unsigned int*)p;
+						break;
+					case ___float:
+						data = *(float*)p;
+						break;
+					}
+
+					int y = height/2-1 - (data*source.scale * height / 1500) + offset_y;
+
+					if (last_x>0)
+						draw_line(last_x, last_y, x, y, source.color);
+					else
+						draw_point(x, y, source.color);
+					last_x = x;
+					last_y = y;
+				}
 			}
 		}
 	}
@@ -125,25 +258,8 @@ int draw_graph()
 	return 0;
 }
 
-DWORD old_proc;
-INT_PTR CALLBACK graph_proc( HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam )
-{
-	switch(msg)
-	{
-	case WM_MOUSEWHEEL:
-		{
-			int xPos = GET_X_LPARAM(lParam);
-			int yPos = GET_Y_LPARAM(lParam);
-		}
-		break;
-	default:
-		break;
-	}
-
-	return CallWindowProc((WNDPROC)old_proc,hDlg ,msg, wParam, lParam);
-}
-
 int dragging = -9999;
+int draggingy = -9999;
 INT_PTR CALLBACK main_window_proc( HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam )
 {
 	switch( msg ) 
@@ -160,11 +276,16 @@ INT_PTR CALLBACK main_window_proc( HWND hDlg, UINT msg, WPARAM wParam, LPARAM lP
 			{
 				GetCursorPos(&mouse);
 				dragging = mouse.x;
+				draggingy = mouse.y;
 			}
 		}
 		break;
 	case WM_PAINT:
+		PAINTSTRUCT ps;
+		HDC hdc;
+		hdc = BeginPaint(hDlg, &ps);
 		draw_graph();
+		EndPaint(hDlg, &ps);
 		break;
 	case WM_LBUTTONUP:
 		dragging = -9999;
@@ -176,11 +297,13 @@ INT_PTR CALLBACK main_window_proc( HWND hDlg, UINT msg, WPARAM wParam, LPARAM lP
 			POINT mouse;
 			GetCursorPos(&mouse);
 			int delta = dragging - mouse.x;
+			int deltay = draggingy - mouse.y;
 			dragging = mouse.x;
+			draggingy = mouse.y;
 
 			time_left += delta * time_per_pixel;
 			time_right += delta * time_per_pixel;
-			
+			offset_y -= deltay;
 
 			draw_graph();
 		}
@@ -212,8 +335,6 @@ INT_PTR CALLBACK main_window_proc( HWND hDlg, UINT msg, WPARAM wParam, LPARAM lP
 		{
 			g_graph = GetDlgItem(hDlg, IDC_GRAPH);
 			g_hwnd = hDlg;
-			old_proc = GetWindowLong(g_graph, GWL_WNDPROC);
-			SetWindowLongPtr(g_graph, GWL_WNDPROC, (LONG_PTR)graph_proc);
 			RECT rec;
 			GetClientRect(g_graph, &rec);
 			bits = (RGBQUAD*)malloc(rec.right*rec.bottom*4);

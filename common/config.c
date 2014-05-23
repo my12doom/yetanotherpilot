@@ -38,15 +38,15 @@ float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I limit, 
 };
 float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
 {
-	{0.35, 0.70, 0.035,},
-	{0.35, 0.70, 0.035,},
+	{0.35, 0.25, 0.035,},
+	{0.35, 0.25, 0.035,},
 	{1.75, 0.25, 0,},
 };
 float pid_factor2[3][3] = 			// pid_factor2[roll,pitch,yaw][p,i,d]
 {
-	{5, 0, 0.03,},
-	{5, 0, 0.03,},
-	{5, 0, 0.03,},
+	{8, 0, 0.23,},
+	{8, 0, 0.23,},
+	{8, 0, 0.23,},
 };
 float quadcopter_trim[3]
 = 

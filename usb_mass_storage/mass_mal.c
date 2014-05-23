@@ -31,8 +31,8 @@ uint32_t Mass_Block_Size[2];
 uint32_t Mass_Block_Count[2];
 uint32_t read_buffer[1024];
 int64_t buffer_position = -1;
-extern SD_CardInfo SDCardInfo;
-extern SD_Error Status;
+static SD_CardInfo SDCardInfo;
+static SD_Error Status;
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 /*******************************************************************************
