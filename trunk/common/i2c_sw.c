@@ -161,7 +161,7 @@ int I2C_SW_ReadReg(u8 SlaveAddress, u8 startRegister, u8*out, int count)
 
 static void I2C_Delay(void)
 {
-    int speedTick = 5;
+    volatile int speedTick = 5;
     while (speedTick) {
        speedTick--;
     }

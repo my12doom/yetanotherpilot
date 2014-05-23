@@ -415,6 +415,8 @@ int auto_throttle(float user_climb_rate)
 		target_climb_rate = limit(target_climb_rate, -quadcopter_max_decend_rate, quadcopter_max_climb_rate);
 	}
 
+	TRACE("\rtarget_climb_rate=%.2f, out=%d", target_climb_rate, throttle_result);
+
 
 	// new climb rate error
 	float climb_rate_error = target_climb_rate - state[1];
@@ -503,7 +505,7 @@ int apm()
 	_position = _position_base + _position_correction;
 	_velocity = _velocity_base + _velocity_correction;
 
-	kalman();
+	//kalman();
 	
 	state[0] = _position;
 	state[1] = _velocity;
@@ -822,7 +824,7 @@ int calculate_target()
 				// max target rate: 180 degree/second
 				target[i] = limit(target[i], -PI, PI);
 			}
-			ERROR("angle pos,target=%f,%f\r\n", angle_pos[2] * PI180, angle_target[2] * PI180);
+			TRACE("angle pos,target=%f,%f\r\n", angle_pos[2] * PI180, angle_target[2] * PI180);
 
 			// check takeoff
 			if ( (state[0] > takeoff_ground_altitude + 2.0) ||

@@ -2,7 +2,7 @@
 #include "usb_istr.h"
 #include "usb_pwr.h"
 #include "../fat/sdcard.h"
-
+#include <stm32f10x_gpio.h>
 #ifdef STM32F10X_CL
 void OTG_FS_IRQHandler(void)
 {
