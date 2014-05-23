@@ -133,8 +133,8 @@ int main(int argc, char **argv)
 			pilot2 = rf.data.pilot2;
 		else if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA)
 			gps = rf.data.gps;
-		else if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA_V1)
-			gps_v1 = rf.data.gps_v1;
+// 		else if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA_V1)
+// 			gps_v1 = rf.data.gps_v1;
 		else if ((rf.time & TAG_MASK) ==  TAG_SENSOR_DATA)
 		{
 			sensor = rf.data.sensor;

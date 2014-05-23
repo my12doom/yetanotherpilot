@@ -31,7 +31,7 @@
 extern "C"
 {
 #include "fat/diskio.h"
-#include "osd/osdcore.h"
+//#include "osd/osdcore.h"
 }
 
 typedef struct
@@ -393,17 +393,27 @@ int kalman()
 int auto_throttle(float user_climb_rate)
 {
 	// new target altitude
-	target_altitude = limit(target_altitude + user_climb_rate * interval, state[0] - 8, state[0] + 8);
+	if (fabs(user_climb_rate) < 0.001f && isnan(target_altitude))
+		target_altitude = state[0];
+	else
+		target_altitude = NAN;
 
 	// new altitude error
-	altitude_error_pid[0] = target_altitude - state[0];
-	altitude_error_pid[0] = limit(altitude_error_pid[0], -2.5f, 2.5f);
+	if (isnan(target_altitude))
+	{
+		target_climb_rate = user_climb_rate;
+	}
+	else
+	{
+		altitude_error_pid[0] = target_altitude - state[0];
+		altitude_error_pid[0] = limit(altitude_error_pid[0], -2.5f, 2.5f);
 
-	// new target rate, directly use linear approach since we use very tight limit 
-	// TODO: use sqrt approach on large errors (see get_throttle_althold() in Attitude.pde)
-	// TODO: apply pid instead of P only
-	target_climb_rate = pid_quad_altitude[0] * altitude_error_pid[0];
-	target_climb_rate = limit(target_climb_rate, -quadcopter_max_decend_rate, quadcopter_max_climb_rate);
+		// new target rate, directly use linear approach since we use very tight limit 
+		// TODO: use sqrt approach on large errors (see get_throttle_althold() in Attitude.pde)
+		// TODO: apply pid instead of P only
+		target_climb_rate = pid_quad_altitude[0] * altitude_error_pid[0];
+		target_climb_rate = limit(target_climb_rate, -quadcopter_max_decend_rate, quadcopter_max_climb_rate);
+	}
 
 
 	// new climb rate error
@@ -493,7 +503,13 @@ int apm()
 	_position = _position_base + _position_correction;
 	_velocity = _velocity_base + _velocity_correction;
 
-	return kalman();
+	kalman();
+	
+	state[0] = _position;
+	state[1] = _velocity;
+	state[3] = _accel_correction_ef;
+	
+	return 0;
 }
 
 int sdcard_init()
@@ -806,7 +822,7 @@ int calculate_target()
 				// max target rate: 180 degree/second
 				target[i] = limit(target[i], -PI, PI);
 			}
-			TRACE("angle pos,target=%f,%f\r\n", angle_pos[2] * PI180, angle_target[2] * PI180);
+			ERROR("angle pos,target=%f,%f\r\n", angle_pos[2] * PI180, angle_target[2] * PI180);
 
 			// check takeoff
 			if ( (state[0] > takeoff_ground_altitude + 2.0) ||
@@ -1246,15 +1262,15 @@ int calculate_attitude()
 		0.1063 * mpu6050_temperature +3.1409,
 		-0.3083 * mpu6050_temperature - 0.6421};
 
-	if (mpu6050_temperature < 35)
-		gyro_zero2.array[0] = 1.0313*mpu6050_temperature - 14.938;
+	//if (mpu6050_temperature < 35)
+	//	gyro_zero2.array[0] = 1.0313*mpu6050_temperature - 14.938;
 
 	vector gyro = {-p->gyro[0], -p->gyro[1], -p->gyro[2]};
 	vector acc = {-p->accel[1], p->accel[0], p->accel[2]};
 	vector mag = {(p->mag[2]-mag_zero.array[2]), -(p->mag[0]-mag_zero.array[0]), -(p->mag[1]-mag_zero.array[1])};
 	vector_sub(&gyro, &gyro_zero2);
 	for(int i=0; i<3; i++)
-		if (abs(gyro.array[i])<3)
+		if (abs(gyro.array[i])<4)
 			gyro.array[i] = 0;
 	vector_multiply(&gyro, GYRO_SCALE);
 

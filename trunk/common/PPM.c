@@ -13,7 +13,7 @@ u32 g_ppm_input_start[6];
 float g_ppm_input[6];
 int64_t g_ppm_input_update[6] = {0};
 #if QUADCOPTER == 0
-u16 g_ppm_output[8] = {1520, 1520, 1520, 1520, 1520, 1520, 1520, 1520};
+u16 g_ppm_output[8] = {1520, 1520, THROTTLE_STOP, 1520, 1520, 1520, 1520, 1520};
 #else
 u16 g_ppm_output[8] = {THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP};
 #endif
