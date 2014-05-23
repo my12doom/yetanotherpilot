@@ -15,6 +15,8 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include <stm32f10x_sdio.h>
+#include <stm32f10x_gpio.h>
+#include <stm32f10x_rcc.h>
 #include "../fat/sdcard.h"
 //#include "fsmc_nand.h"
 //#include "nand_if.h"
