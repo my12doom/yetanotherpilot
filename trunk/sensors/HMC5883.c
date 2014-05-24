@@ -23,6 +23,11 @@ int init_HMC5883(void)
 	int j;
 	short data[3];
 	float mag_ref[3] = {1.16, 1.16, 1.08};
+	char identification[3] = {0};
+
+	I2C_ReadReg(HMC5883SlaveAddress, 0x0a, identification, 3);
+	if (identification[0] != 'H' || identification[1] != '4' || identification[2] != '3')
+		return -2;
 
 	I2C_WriteReg(HMC5883SlaveAddress, HMC58X3_R_CONFA, 0x010 + HMC_POS_BIAS);	// Reg A DOR=0x010 + MS1,MS0 set to pos bias
 	I2C_WriteReg(HMC5883SlaveAddress, HMC58X3_R_CONFB, 0x40);  //Set the Gain
@@ -45,6 +50,7 @@ int init_HMC5883(void)
 		if (-(1<<12) >= min(data[0],min(data[1],data[2])))
 		{
 			ERROR("mag saturation detected\n");
+			return -1;
 		}
 	}
 	
@@ -67,6 +73,7 @@ int init_HMC5883(void)
 		if (-(1<<12) >= min(data[0],min(data[1],data[2])))
 		{
 			ERROR("mag saturation detected\n");
+			return -1;
 		}
 	}
 	
@@ -81,6 +88,15 @@ int init_HMC5883(void)
 	
 	return 0;
 }
+
+int check_HMC5883(void)			// check for HMC5883 healthy, re-plug and init it if possible
+								// return : 0 if hardware error happend, 
+								//			-1 if hardware error resolved
+								//			1 if everything OK
+{
+	return 1;
+}
+
 int read_HMC5883(short*data)
 {
 	int i;

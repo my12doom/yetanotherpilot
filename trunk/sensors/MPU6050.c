@@ -54,6 +54,9 @@ int init_MPU6050(void)
 	// enable I2C bypass for AUX I2C and initialize HMC5883 into continues mode
 	I2C_WriteReg(MPU6050SlaveAddress, 0x37, 0x02);
 	delayms(10);
+
+	if (who_am_i<<1 != MPU6050SlaveAddress)
+		return -1;
 	
 	return 0;
 }

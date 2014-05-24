@@ -46,6 +46,18 @@ int ads1115_work_pos = 0;
 int ads1115_work_count = 0;
 ads1115_work ads1115_works[MAX_ADS1115_WORKS];
 
+enum
+{
+	error_gyro = 1,
+	error_accelerometer = 2,
+	error_magnet = 4,
+	error_baro = 8,
+	error_RC = 16,
+	error_MAX,
+} critical_error;
+
+int critical_errors = 0;
+
 int ads1115_new_work(ads1115_speed speed, ads1115_channel channel, ads1115_gain gain, int16_t *out);
 int ads1115_go_on();
 
@@ -1754,13 +1766,15 @@ int main(void)
 	printf_init();
 	I2C_init(0x30);
 	init_timer();
-	init_MPU6050();
-	init_HMC5883();	
-	init_MS5611();
+	if (init_MPU6050() < 0)
+		critical_errors |= error_accelerometer | error_gyro;
+	if (init_HMC5883() < 0)
+		critical_errors |= error_magnet;	
+	if (init_MS5611() < 0)
+		critical_errors |= error_baro;
 	debugpin_init();
 	GPS_Init(115200);
-	sdcard_init();
-	
+	sdcard_init();	
 	NRF_Init();
 	MAX7456_SYS_Init();
 	Max7456_Set_System(1);
@@ -1792,6 +1806,34 @@ int main(void)
 	
 	magnet_calibration();
 	sensor_calibration();
+
+	// check critical errors
+	if (critical_errors != 0)
+	{
+		led_all_off();
+		flashlight_off();
+
+		while (1)
+		{
+			// blink error code!
+			for(int i=1; i<error_MAX; i<<=1)
+			{
+				led_all_on();
+				flashlight_on();
+
+				if (critical_errors & i)
+					delayms(500);
+				else
+					delayms(150);
+
+				led_all_off();
+				flashlight_off();
+				delayms(150);
+			}
+
+			delayms(1500);
+		}
+	}
 
 
 	

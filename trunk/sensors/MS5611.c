@@ -51,7 +51,8 @@ int init_MS5611(void)
 		refdata[i] = (tmp[0] << 8) + tmp[1];
 	}
 	
-	I2C_ReadReg(MS5611Address, MS561101BA_PROM_BASE_ADDR+12, tmp, 2);
+	if (I2C_ReadReg(MS5611Address, MS561101BA_PROM_BASE_ADDR+12, tmp, 2) < 0)
+		return -1;
 	crc = (tmp[0] << 8) + tmp[1];
 	
 	// Temperature

@@ -117,8 +117,7 @@ int I2C_ReadReg(u8 SlaveAddress, u8 startRegister, u8*out, int count)
 
 int I2C_WriteReg(u8 SlaveAddress, u8 Register, u8 data)
 {
-	I2C_SW_WriteByte(SlaveAddress, Register, data);
-	return 0;
+	return I2C_SW_WriteByte(SlaveAddress, Register, data);
 }
 int I2C_WriteRegs(u8 SlaveAddress, u8 startRegister, const u8*data, int count)
 {
