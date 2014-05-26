@@ -42,11 +42,11 @@ float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
 	{0.35, 0.25, 0.035,},
 	{1.75, 0.25, 0,},
 };
-float pid_factor2[3][3] = 			// pid_factor2[roll,pitch,yaw][p,i,d]
+float pid_factor2[3][4] = 			// pid_factor2[roll,pitch,yaw][p,i,d,i_limit]
 {
-	{8, 0, 0.35,},
-	{8, 0, 0.35,},
-	{8, 0, 0.23,},
+	{8, 0, 0.35,PI/45},
+	{8, 0, 0.35,PI/45},
+	{8, 0, 0.23,PI/45},
 };
 float quadcopter_trim[3]
 = 

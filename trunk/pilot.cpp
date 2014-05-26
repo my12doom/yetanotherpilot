@@ -125,8 +125,6 @@ float angle_errorI[3] = {0};
 float pos[3] = {0};
 float target[3] = {0};		// target [roll, pitch, yaw] (pid controller target, can be angle or angle rate)
 int cycle_counter = 0;
-static float temperature = 0;
-static float pressure = 0;
 float ground_pressure = 0;
 float ground_temperature = 0;
 // float climb_rate = 0;
@@ -135,6 +133,7 @@ float ground_temperature = 0;
 // float climb_rate_filter_time[7] = {0};
 float accelz = 0;
 bool airborne = false;
+bool nearground = false;
 float takeoff_ground_altitude = 0;
 int mode = initializing;
 u8 data[TX_PLOAD_WIDTH];
@@ -193,7 +192,6 @@ float a_raw_altitude = 0;
 float a_altitude = NAN;
 float a_raw_climb = 0;
 float a_climb = 0;
-float a_accel_z = 0;
 float a_climb2_tick = 0;
 float a_climb_rate_filter[7] = {0};			// 7 point Derivative Filter(copied from ArduPilot), see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/#noiserobust_2
 float a_climb_rate_filter_time[7] = {0};
@@ -219,6 +217,8 @@ float altitude_error_pid[3] = {0};
 float climb_rate_error_pid[3] = {0};
 float accel_error_pid[3] = {0};
 int throttle_result = 0;
+int throttle_real = 0;
+int throttle_real_crusing = THROTTLE_CRUISE;
 
 int16_t ads1115_2_5V = 0;
 int16_t ads1115_airspeed = 0;
@@ -354,7 +354,7 @@ int kalman()
 	float tmp3[16];
 	float kg[8];
 
-	float zk[2] = {a_raw_altitude, a_accel_z};
+	float zk[2] = {a_raw_altitude, accelz};
 
 	// predict
 	matrix_mul(state1, F, 4, 4, state, 4, 1);
@@ -424,7 +424,7 @@ int auto_throttle(float user_climb_rate)
 		// TODO: use sqrt approach on large errors (see get_throttle_althold() in Attitude.pde)
 		// TODO: apply pid instead of P only
 		target_climb_rate = pid_quad_altitude[0] * altitude_error_pid[0];
-		target_climb_rate = limit(target_climb_rate, -quadcopter_max_decend_rate, quadcopter_max_climb_rate);
+		target_climb_rate = limit(target_climb_rate, -quadcopter_max_descend_rate, quadcopter_max_climb_rate);
 	}
 
 	TRACE("\rtarget_climb_rate=%.2f, out=%d", target_climb_rate, throttle_result);
@@ -451,7 +451,7 @@ int auto_throttle(float user_climb_rate)
 
 	
 	// new accel error, +2Hz LPF
-	float accel_error = target_accel - (a_accel_z + state[3]);
+	float accel_error = target_accel - (accelz + state[3]);
 	accel_error = accel_error_pid[0] * (1-alpha) + alpha * accel_error;
 
 	// core pid
@@ -469,7 +469,7 @@ int auto_throttle(float user_climb_rate)
 	output += accel_error_pid[1] * pid_quad_accel[1];
 	output += accel_error_pid[2] * pid_quad_accel[2];
 
-	throttle_result  = output/500.0f * (THROTTLE_MAX - THROTTLE_CRUISE) + THROTTLE_CRUISE;
+	throttle_result  = output/500.0f * (THROTTLE_MAX - throttle_real_crusing) + throttle_real_crusing;
 	float angle_boost_factor = limit(1/ cos(pitch) / cos(roll), 1.0f, 1.5f);
 	throttle_result = (throttle_result - THROTTLE_IDLE) * angle_boost_factor + THROTTLE_IDLE;
 	
@@ -478,15 +478,25 @@ int auto_throttle(float user_climb_rate)
 	TRACE("\rthrottle=%d, altitude = %.2f/%.2f, pid=%.2f,%.2f,%.2f", throttle_result, state[0], target_altitude,
 		accel_error_pid[0], accel_error_pid[1], accel_error_pid[2]);
 
+	// update throttle_real_crusing if we're in near level state and no violent climbing/descending action
+	if (airborne && throttle_real>THROTTLE_IDLE && fabs(state[1]) < 0.5 && fabs(state[3] + accelz)<0.5 && fabs(roll)<5 && fabs(pitch)<5)
+	{
+		// 0.2Hz low pass filter
+		const float RC02 = 1.0f/(2*3.1415926 * 0.2f);
+		float alpha02 = interval / (interval + RC02);
+
+		//throttle_real_crusing = throttle_real_crusing * (1-alpha02) + alpha02 * throttle_real;
+	}
+
 	return 0;
 }
 
-int climb2()
+int altitude_estimation_baro()
 {
 	// delta time
-	float time = getus()/1000000.0f;
-	float delta_time = a_climb2_tick == 0 ? 0 : (time - a_climb2_tick);
-	a_climb2_tick = time;
+// 	float time = getus()/1000000.0f;
+// 	float delta_time = a_climb2_tick == 0 ? 0 : (time - a_climb2_tick);
+// 	a_climb2_tick = time;
 
 	// raw altitude
 	double scaling = (double)a_raw_pressure / ground_pressure;
@@ -495,14 +505,13 @@ int climb2()
 	if (fabs(a_raw_altitude) < 5.0f)
 		ground_temperature = a_raw_temperature;
 
-	// apm test
  	_position_error = a_raw_altitude - (_position_base + _position_correction);
 
 
 	return 0;
 }
 
-int apm()
+int altitude_estimation_inertial()
 {
 	float &dt = interval;
 
@@ -510,18 +519,18 @@ int apm()
 	_velocity_correction += _position_error * _k2_z  * dt;
 	_position_correction += _position_error * _k1_z  * dt;
 
-	const float velocity_increase = (a_accel_z + _accel_correction_ef) * dt;
+	const float velocity_increase = (accelz + _accel_correction_ef) * dt;
 	_position_base += (_velocity_base + _velocity_correction + velocity_increase*0.5) * dt;
 	_velocity_base += velocity_increase;
 
 	_position = _position_base + _position_correction;
 	_velocity = _velocity_base + _velocity_correction;
 
-	//kalman();
+	kalman();
 	
-	state[0] = _position;
-	state[1] = _velocity;
-	state[3] = _accel_correction_ef;
+// 	state[0] = _position;
+// 	state[1] = _velocity;
+// 	state[3] = _accel_correction_ef;
 	
 	return 0;
 }
@@ -767,7 +776,7 @@ int calculate_target()
 			else if (v>= 0.1f)
 				user_rate = (v-0.1f)/0.4f * quadcopter_max_climb_rate;
 			else
-				user_rate = (v+0.1f)/0.4f * quadcopter_max_decend_rate;
+				user_rate = (v+0.1f)/0.4f * quadcopter_max_descend_rate;
 			auto_throttle(user_rate);
 
 
@@ -826,7 +835,11 @@ int calculate_target()
 				static const float lpf_RC = 1.0f/(2*PI * 5.0f);
 				float alpha = interval / (interval + lpf_RC);
 
-				angle_errorI[i] = angle_error[i] + new_angle_error * interval;
+				if (airborne)
+				{
+					angle_errorI[i] += new_angle_error * interval;
+					angle_errorI[i] = limit(angle_errorI[i], -pid_factor2[i][3], pid_factor2[i][3]);
+				}
 				angle_errorD[i] = (1-alpha) * angle_errorD[i] + alpha * (new_angle_error - angle_error[i]) / interval;
 				angle_error[i] = new_angle_error;
 
@@ -840,8 +853,8 @@ int calculate_target()
 
 			// check takeoff
 			if ( (state[0] > takeoff_ground_altitude + 2.0) ||
-				(state[0] > takeoff_ground_altitude && ((g_ppm_input[5] > RC_CENTER) ? throttle_result : g_ppm_input[2]) > THROTTLE_CRUISE) ||
-				(((g_ppm_input[5] > RC_CENTER) ? throttle_result : g_ppm_input[2]) > THROTTLE_CRUISE + 100))
+				(state[0] > takeoff_ground_altitude && ((g_ppm_input[5] > RC_CENTER) ? throttle_result : g_ppm_input[2]) > throttle_real_crusing) ||
+				(((g_ppm_input[5] > RC_CENTER) ? throttle_real_crusing : g_ppm_input[2]) > throttle_real_crusing + 100))
 			{
 				airborne = true;
 			}
@@ -965,6 +978,7 @@ int output()
 	{
 		//pid[2] = -pid[2];
 		int motor_count = sizeof(quadcopter_mixing_matrix) / sizeof(quadcopter_mixing_matrix[0]);
+		throttle_real = 0;
 		for(int i=0; i<motor_count; i++)
 		{
 			float mix = mode != rc_fail ? g_ppm_input[2] : THROTTLE_STOP;
@@ -981,7 +995,9 @@ int output()
 				g_ppm_output[i] = limit(mix, THROTTLE_IDLE, THROTTLE_MAX);
 
 			TRACE("\rpid[x] = %f, %f, %f", pid[0], pid[1], pid[2]);
+			throttle_real += g_ppm_output[i];
 		}
+		throttle_real /= motor_count;
 	}
 	else
 #endif
@@ -1116,7 +1132,7 @@ int save_logs()
 		state[0] * 100,
 		state[2] * 100,
 		a_raw_altitude * 100,
-		a_accel_z * 100,
+		accelz * 100,
 	};
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA2;
@@ -1130,10 +1146,11 @@ int save_logs()
 		target_climb_rate * 100,
 		_velocity * 100,
 		target_accel * 100,
-		(a_accel_z + _accel_correction_ef) * 100,
+		(accelz + _accel_correction_ef) * 100,
 		throttle_result,
 		yaw_launch * 18000 / PI,
 		yaw_est * 18000 / PI,
+		throttle_real_crusing,
 	};
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA3;
@@ -1259,10 +1276,10 @@ int read_sensors()
 
 		a_raw_pressure = ms5611[0] / 100.0f;
 		a_raw_temperature = ms5611[1] / 100.0f;
-		climb2();
+		altitude_estimation_baro();
 	}
 
-	apm();
+	altitude_estimation_inertial();
 
 	return 0;
 }
@@ -1328,7 +1345,7 @@ int calculate_attitude()
 	float dot = acc.V.x * estAccGyro.V.x + acc.V.y * estAccGyro.V.y + acc.V.z * estAccGyro.V.z;
 	dot /= vector_length(&estAccGyro);
 	dot /= accel_1g;
-	a_accel_z  = accelz = 9.80f * (dot-1);
+	accelz = 9.80f * (dot-1);
 // 	climb_rate = climb_rate * 0.05 + 0.95 * (climb_rate + accelz * interval);
 // 
 // 	// test climb rate low pass filter
@@ -1618,8 +1635,6 @@ int sensor_calibration()
 	vector_divide(&mag_avg, 300);
 	ground_pressure /= baro_counter * 100;
 	ground_temperature /= baro_counter * 100;
-	pressure = ground_pressure;
-	temperature = ground_temperature;
 
 	estAccGyro = accel_avg;
 	estGyro= estMagGyro = mag_avg;
@@ -1683,7 +1698,7 @@ int check_mode()
 		target[2] = pos[2];
 
 		target_altitude = state[0] - 3.5;
-		target_climb_rate = -quadcopter_max_decend_rate;
+		target_climb_rate = -quadcopter_max_descend_rate;
 		target_accel = -quadcopter_max_acceleration*2;
 		accel_error_pid[0] = target_accel;
 		accel_error_pid[1] = 0;
@@ -1695,6 +1710,7 @@ int check_mode()
 		{
 			angle_target[i] = angle_pos[i];
 			error_pid[i][1] = 0;	//reset integration
+			angle_errorI[i] = 0;
 		}
 #endif
 
@@ -1870,7 +1886,7 @@ int main(void)
 		// flashlight
 		time = getus();
 		int time_mod_1500 = (time%1500000)/1000;
-		if (time_mod_1500 < 150 || (time_mod_1500 > 200 && time_mod_1500 < 350))
+		if (time_mod_1500 < 150 || (time_mod_1500 > 200 && time_mod_1500 < 350) || (time_mod_1500 > 400 && time_mod_1500 < 550 && sd_ok))
 			flashlight_on();
 		else
 			flashlight_off();
@@ -2060,6 +2076,8 @@ int ads1115_new_work(ads1115_speed speed, ads1115_channel channel, ads1115_gain 
 		ads1115_config(speed, channel, gain, ads1115_mode_singleshot);
 		ads1115_startconvert();
 	}
+	
+	return 0;
 }
 
 int ads1115_go_on()
