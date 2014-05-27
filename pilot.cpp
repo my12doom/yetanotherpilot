@@ -404,11 +404,20 @@ int kalman()
 
 int auto_throttle(float user_climb_rate)
 {
+	// better ground...
+	if (!airborne && user_climb_rate < 0)
+		user_climb_rate *= 1.5;
+
 	// new target altitude
-	if (fabs(user_climb_rate) < 0.001f && isnan(target_altitude))
-		target_altitude = state[0];
+	if (fabs(user_climb_rate) < 0.001f)
+	{
+		if (isnan(target_altitude))
+			target_altitude = state[0];
+	}
 	else
+	{
 		target_altitude = NAN;
+	}
 
 	// new altitude error
 	if (isnan(target_altitude))
@@ -473,7 +482,7 @@ int auto_throttle(float user_climb_rate)
 	float angle_boost_factor = limit(1/ cos(pitch) / cos(roll), 1.0f, 1.5f);
 	throttle_result = (throttle_result - THROTTLE_IDLE) * angle_boost_factor + THROTTLE_IDLE;
 	
-	throttle_result = limit(throttle_result, THROTTLE_IDLE, THROTTLE_MAX);
+	throttle_result = limit(throttle_result, THROTTLE_IDLE, THROTTLE_MAX - QUADCOPTER_MAX_DELTA);
 
 	TRACE("\rthrottle=%d, altitude = %.2f/%.2f, pid=%.2f,%.2f,%.2f", throttle_result, state[0], target_altitude,
 		accel_error_pid[0], accel_error_pid[1], accel_error_pid[2]);
@@ -807,21 +816,24 @@ int calculate_target()
 
 			// yaw:
 			//target[2] = limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[2] / RC_RANGE, -1, 1) * quadcopter_range[2] + yaw_gyro + quadcopter_trim[2];
-			float rc = g_ppm_input[3] - rc_zero[3];
-			if (abs(rc) < RC_DEAD_ZONE)
-				rc = 0;
-			else
-				rc *= QUADCOPTER_ACRO_YAW_RATE * interval / RC_RANGE;
+			if (airborne)
+			{
+				float rc = g_ppm_input[3] - rc_zero[3];
+				if (abs(rc) < RC_DEAD_ZONE)
+					rc = 0;
+				else
+					rc *= QUADCOPTER_ACRO_YAW_RATE * interval / RC_RANGE;
 
-			rc_d[2] = rc * rc_reverse[2] * sensor_reverse[2];
+				rc_d[2] = rc * rc_reverse[2] * sensor_reverse[2];
 
-			float trimmed_pos = radian_add(angle_pos[2], quadcopter_trim[2]);
-			float new_target = radian_add(angle_target[2], rc_d[2]);
-			float new_error = abs(radian_sub(trimmed_pos, new_target));
-			if (new_error > QUADCOPTER_MAX_YAW_OFFSET && new_error > abs(angle_error[2]))
-				rc_d[2] = 0;
-			else
-				angle_target[2] = new_target;
+				float trimmed_pos = radian_add(angle_pos[2], quadcopter_trim[2]);
+				float new_target = radian_add(angle_target[2], rc_d[2]);
+				float new_error = abs(radian_sub(trimmed_pos, new_target));
+				if (new_error > QUADCOPTER_MAX_YAW_OFFSET && new_error > abs(angle_error[2]))
+					rc_d[2] = 0;
+				else
+					angle_target[2] = new_target;
+			}
 
 
 			// now calculate target angle rate
@@ -1697,7 +1709,7 @@ int check_mode()
 		target[1] = pos[1];
 		target[2] = pos[2];
 
-		target_altitude = state[0] - 3.5;
+		target_altitude = NAN;
 		target_climb_rate = -quadcopter_max_descend_rate;
 		target_accel = -quadcopter_max_acceleration*2;
 		accel_error_pid[0] = target_accel;
