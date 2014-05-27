@@ -482,7 +482,7 @@ int auto_throttle(float user_climb_rate)
 	float angle_boost_factor = limit(1/ cos(pitch) / cos(roll), 1.0f, 1.5f);
 	throttle_result = (throttle_result - THROTTLE_IDLE) * angle_boost_factor + THROTTLE_IDLE;
 	
-	throttle_result = limit(throttle_result, THROTTLE_IDLE, THROTTLE_MAX - QUADCOPTER_MAX_DELTA);
+	throttle_result = limit(throttle_result, THROTTLE_IDLE + (airborne ? QUADCOPTER_MAX_DELTA : 0), THROTTLE_MAX - QUADCOPTER_MAX_DELTA);
 
 	TRACE("\rthrottle=%d, altitude = %.2f/%.2f, pid=%.2f,%.2f,%.2f", throttle_result, state[0], target_altitude,
 		accel_error_pid[0], accel_error_pid[1], accel_error_pid[2]);
