@@ -23,7 +23,6 @@
 #include "common/eeprom.h"
 #include "common/ads1115.h"
 #include "fat/ff.h"
-#include "fat/sdcard.h"
 #include "osd/MAX7456.h"
 #include "common/matrix.h"
 
@@ -31,7 +30,12 @@
 extern "C"
 {
 #include "fat/diskio.h"
+#include "fat/sdcard.h"
+
 //#include "osd/osdcore.h"
+#include "usb_mass_storage/hw_config.h"
+#include "usb_mass_storage/usb_init.h"
+#include "usb_mass_storage/mass_mal.h"
 }
 
 typedef struct
@@ -544,6 +548,43 @@ int altitude_estimation_inertial()
 	return 0;
 }
 
+int sdcard_speed_test()
+{
+	FIL f;
+	res = f_open(&f, "test.bin", FA_CREATE_ALWAYS | FA_WRITE | FA_READ);
+	if (sd_ok)
+	{
+		UINT done;
+		int64_t ttt = getus();
+		char blk[512*16] = {0};
+// 		for(int i=0; i<4096; i++)
+// 			f_write(&f, blk, 512, &done);
+		ttt = getus() - ttt;
+
+		ERROR("SDCARD 2Mbyte write cost %dus\r\n", int(ttt));
+		f_lseek(&f, 0);
+		ttt = getus();
+// 		for(int i=0; i<4096; i++)
+// 			f_read(&f, blk, 512, &done);
+		ttt = getus() - ttt;
+		ERROR("SDCARD 2Mbyte read cost %dus\r\n", int(ttt));
+
+		ttt = getus();
+		for(int i=0; i<4096; i++)
+			SD_ReadBlock(((int64_t)i) << 9 ,(uint32_t*)blk, 512);
+		ttt = getus() - ttt;
+		ERROR("SDCARD 2Mbyte raw read cost %dus\r\n", int(ttt));
+
+		ttt = getus();
+		for(int i=0; i<4096; i+=8)
+			SD_ReadMultiBlocks(((int64_t)i+8192) << 9 ,(uint32_t*)blk, 512,8);
+		ttt = getus() - ttt;
+		ERROR("SDCARD 2Mbyte raw read cost %dus\r\n", int(ttt));
+	}
+	f_close(&f);
+	return 0;
+}
+
 int sdcard_init()
 {
 	// SD CARD
@@ -557,12 +598,11 @@ int sdcard_init()
 	
 	TRACE("sdcard init...");
 	FIL f;
-  res = disk_initialize(0) == RES_OK ? FR_OK : FR_DISK_ERR;
+	res = disk_initialize(0) == RES_OK ? FR_OK : FR_DISK_ERR;
 	res = f_mount(&fs, "", 0);
 	res = f_open(&f, "test.bin", FA_CREATE_ALWAYS | FA_WRITE | FA_READ);
-	f_close(&f);
 	sd_ok = res == FR_OK;
-
+	f_close(&f);
 	TRACE("%s\r\n", sd_ok ? "OK" : "FAIL");
 	return 0;
 }
@@ -636,7 +676,16 @@ int log(void *data, int size)
 	}
 	
 	if (getus() - us > 7000)
-		TRACE("log cost %d us\r\n\r\n", int(getus()-us));
+	{
+		TRACE("log cost %d us  ", int(getus()-us));
+		TRACE("  fat R/R:%d/%d\r\n", read_count, write_count);
+	}
+
+// 	ERROR("\rfat R/R:%d/%d", read_count, write_count);
+// 	if (read_count + write_count > 1)
+// 		ERROR("\r\n");
+
+	read_count = write_count = 0;
 
 	return 0;
 }
@@ -1056,6 +1105,12 @@ int save_logs()
 	if (LOG_LEVEL == LOG_SDCARD && !sd_ok)
 		return 0;
 
+	// disable USB interrupt to prevent sdcard dead lock
+	NVIC_DisableIRQ(USB_LP_CAN1_RX0_IRQn);
+	__DSB();
+	__ISB();
+
+
 	// send/store debug data
 	time = getus();
 	rf_data to_send;
@@ -1205,6 +1260,10 @@ int save_logs()
 		tx_result = log((u8*)&to_send, 32);
 	}
 	
+	// restore USB
+	NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
+
+
 	return 0;
 }
 
@@ -1657,6 +1716,29 @@ int sensor_calibration()
 	return 0;
 }
 
+int usb_lock()
+{
+	if (Mal_Accessed())
+	{
+		for(int i=0; i<sizeof(g_ppm_output)/sizeof(g_ppm_output[0]); i++)
+		{
+#if QUADCOPTER == 1
+			g_ppm_output[i] = THROTTLE_STOP;
+#else
+			g_ppm_output[i] = i==2?THROTTLE_STOP : RC_CENTER;
+#endif
+
+		}
+		PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
+		while(1)
+		{
+
+		}
+	}
+
+	return -1;
+}
+
 int check_mode()
 {
 
@@ -1808,6 +1890,11 @@ int main(void)
 	Max7456_Set_System(1);
 	flashlight_on();
 
+	// USB
+	Set_System();
+	Set_USBClock();
+	USB_Interrupts_Config();
+	USB_Init();
 	
 	#if PCB_VERSION == 3
 	ads1115_init();	
@@ -1883,6 +1970,8 @@ int main(void)
 		int64_t round_start_tick = getus();
 		interval = (round_start_tick-last_tick)/1000000.0f;
 		last_tick = round_start_tick;
+
+		usb_lock();	// lock the system if usb transfer occurred
 		
 		led_all_off();
 		if (nrf_ok && cycle_counter % 4 == 0)

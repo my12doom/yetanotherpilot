@@ -35,6 +35,7 @@ uint32_t read_buffer[1024];
 int64_t buffer_position = -1;
 static SD_CardInfo SDCardInfo;
 static SD_Error Status;
+static int _Mal_Accessed = 0;
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 /*******************************************************************************
@@ -101,6 +102,7 @@ uint16_t MAL_Write(uint8_t lun, uint64_t Memory_Offset, uint32_t *Writebuff, uin
     case 0:
 //#ifdef USE_STM3210E_EVAL
       Status = SD_WriteBlock(Memory_Offset, Writebuff, Transfer_Length);
+	  _Mal_Accessed = 1;
       if ( Status != SD_OK )
       {
         return MAL_FAIL;
@@ -136,6 +138,7 @@ uint16_t MAL_Read(uint8_t lun, uint64_t Memory_Offset, uint32_t *Readbuff, uint1
   {
     case 0:
 			Status = SD_OK;
+			_Mal_Accessed = 1;
 				
 			if (pos != buffer_position)
 			{
@@ -253,5 +256,8 @@ uint16_t MAL_GetStatus (uint8_t lun)
 //  STM_EVAL_LEDOn(LED2);
   return MAL_FAIL;
 }
-
+int Mal_Accessed(void)
+{
+	return _Mal_Accessed;
+}
 /******************* (C) COPYRIGHT 2010 STMicroelectronics *****END OF FILE****/
