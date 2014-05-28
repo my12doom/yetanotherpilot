@@ -22,6 +22,8 @@ typedef enum {
 	RES_PARERR		/* 4: Invalid Parameter */
 } DRESULT;
 
+extern int read_count;
+extern int write_count;
 
 /*---------------------------------------*/
 /* Prototypes for disk control functions */

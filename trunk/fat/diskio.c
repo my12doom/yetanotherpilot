@@ -17,6 +17,8 @@
 /* accesses drive number 0.                                              */
 
 #define SECTOR_SIZE 512U
+int read_count = 0;
+int write_count = 0;
 
 /*-----------------------------------------------------------------------*/
 /* Inidialize a Drive                                                   */
@@ -74,6 +76,8 @@ DRESULT disk_read (
 			return RES_ERROR;;
 	}
 
+	read_count++;
+
 	return RES_OK;
 }
 
@@ -100,6 +104,7 @@ DRESULT disk_write (
 		if (SD_WriteMultiBlocks(((int64_t)sector) << 9 ,(uint32_t*)buff,SECTOR_SIZE,count) != SD_OK)
 			return RES_ERROR;
 	}
+	write_count++;
 	return RES_OK;
 }
 #endif /* _READONLY */
