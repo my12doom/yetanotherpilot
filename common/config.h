@@ -8,6 +8,7 @@
 #define SW_I2C
 #define GPS_BUFFER_BLOCK 512
 #define PCB_VERSION 3
+//#define EXTERNAL_HMC5883
 
 #ifndef PCB_VERSION
 #define PCB_VERSION 1
