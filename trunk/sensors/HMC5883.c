@@ -2,8 +2,8 @@
 #include "../common/I2C.h"
 #include "../common/common.h"
 #include <math.h>
+#include <stm32f10x_gpio.h>
 
-static float gain[3] = {0};
 
 #define	HMC5883SlaveAddress 0x3C
 #define HMC58X3_R_CONFA 0
@@ -17,6 +17,37 @@ static int16_t min(int16_t a, int16_t b)
 	return a>b?b:a;
 }
 
+static float gain[3] = {0};
+static int mSCL_PIN;
+static int mSDA_PIN;
+static GPIO_TypeDef *mSDA_PORT;
+static GPIO_TypeDef *mSCL_PORT;
+extern volatile int SCL_PIN;
+extern volatile int SDA_PIN;
+extern GPIO_TypeDef * volatile SDA_PORT;
+extern GPIO_TypeDef * volatile SCL_PORT;
+
+static void switch_I2C()
+{
+	mSCL_PIN = SCL_PIN;
+	mSDA_PIN = SDA_PIN;
+	mSCL_PORT = SCL_PORT;
+	mSDA_PORT = SDA_PORT;
+
+	SCL_PIN = GPIO_Pin_0;
+	SDA_PIN = GPIO_Pin_1;
+	SCL_PORT = GPIOA;
+	SDA_PORT = GPIOA;
+}
+
+static void restore_I2C()
+{
+	SCL_PIN = mSCL_PIN;
+	SDA_PIN = mSDA_PIN;
+	SCL_PORT = mSCL_PORT;
+	SDA_PORT = mSDA_PORT;
+}
+
 int init_HMC5883(void)
 {
 	int i;
@@ -25,9 +56,18 @@ int init_HMC5883(void)
 	float mag_ref[3] = {1.16, 1.16, 1.08};
 	char identification[3] = {0};
 
+#ifdef EXTERNAL_HMC5883
+	switch_I2C();
+#endif
+
 	I2C_ReadReg(HMC5883SlaveAddress, 0x0a, identification, 3);
 	if (identification[0] != 'H' || identification[1] != '4' || identification[2] != '3')
+	{
+#ifdef EXTERNAL_HMC5883
+		restore_I2C();
+#endif
 		return -2;
+	}
 
 	I2C_WriteReg(HMC5883SlaveAddress, HMC58X3_R_CONFA, 0x010 + HMC_POS_BIAS);	// Reg A DOR=0x010 + MS1,MS0 set to pos bias
 	I2C_WriteReg(HMC5883SlaveAddress, HMC58X3_R_CONFB, 0x40);  //Set the Gain
@@ -50,6 +90,9 @@ int init_HMC5883(void)
 		if (-(1<<12) >= min(data[0],min(data[1],data[2])))
 		{
 			ERROR("mag saturation detected\n");
+#ifdef EXTERNAL_HMC5883
+			restore_I2C();
+#endif
 			return -1;
 		}
 	}
@@ -73,6 +116,9 @@ int init_HMC5883(void)
 		if (-(1<<12) >= min(data[0],min(data[1],data[2])))
 		{
 			ERROR("mag saturation detected\n");
+#ifdef EXTERNAL_HMC5883
+			restore_I2C();
+#endif
 			return -1;
 		}
 	}
@@ -85,7 +131,9 @@ int init_HMC5883(void)
 	I2C_WriteReg(HMC5883SlaveAddress, HMC58X3_R_MODE, 0x00);
 	
 	ERROR("mag gain=%.3f, %.3f, %.3f", gain[0], gain[1], gain[2]);
-	
+#ifdef EXTERNAL_HMC5883
+	restore_I2C();
+#endif	
 	return 0;
 }
 
@@ -100,7 +148,13 @@ int check_HMC5883(void)			// check for HMC5883 healthy, re-plug and init it if p
 int read_HMC5883(short*data)
 {
 	int i;
+#ifdef EXTERNAL_HMC5883
+	switch_I2C();
+#endif
 	int result = I2C_ReadReg(HMC5883SlaveAddress, 0x03, (u8*)data, 6);
+#ifdef EXTERNAL_HMC5883
+	restore_I2C();
+#endif
 	for(i=0; i<3; i++)
 	{
 		swap((u8*)&data[i], 2);
