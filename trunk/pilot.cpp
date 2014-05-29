@@ -25,7 +25,7 @@
 #include "fat/ff.h"
 #include "osd/MAX7456.h"
 #include "common/matrix.h"
-
+#include "sensors/sonar.h"
 
 extern "C"
 {
@@ -231,6 +231,8 @@ int16_t ads1115_current = 0;
 float mah_consumed = 0;
 float wh_consumed = 0;
 
+float sonar_distance = NAN;
+int64_t last_sonar_time = getus();
 
 
 void matrix_error(const char*msg)
@@ -1218,6 +1220,7 @@ int save_logs()
 		yaw_launch * 18000 / PI,
 		yaw_est * 18000 / PI,
 		throttle_real_crusing,
+		sonar_result(),
 	};
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA3;
@@ -1272,6 +1275,16 @@ int read_sensors()
 {
 	// read external adc
 	ads1115_go_on();
+
+	if (sonar_update() == 0)
+	{
+		sonar_distance = sonar_result() > 0 ? sonar_result()/1000.0f : NAN;
+		last_sonar_time = getus();
+		ERROR("\rdis=%.2f", sonar_distance);
+	}
+
+	if (getus()-last_sonar_time > 200000)		//200ms
+		sonar_distance = NAN;
 
 	// always read sensors and calculate attitude
 	read_MPU6050(&p->accel[0]);		
@@ -1889,6 +1902,7 @@ int main(void)
 	MAX7456_SYS_Init();
 	Max7456_Set_System(1);
 	flashlight_on();
+	sonar_init();
 
 	// USB
 	Set_System();

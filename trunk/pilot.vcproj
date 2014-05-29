@@ -393,6 +393,14 @@
 					RelativePath=".\sensors\MS5611.h"
 					>
 				</File>
+				<File
+					RelativePath=".\sensors\sonar.c"
+					>
+				</File>
+				<File
+					RelativePath=".\sensors\sonar.h"
+					>
+				</File>
 			</Filter>
 			<Filter
 				Name="osd"
