@@ -350,40 +350,16 @@ void GPIO_Config(void)
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
   GPIO_Init(GPIOF, &GPIO_InitStructure);
 
-  /* RIGHT Button */
-  GPIO_EXTILineConfig(GPIO_PortSourceGPIOF, GPIO_PinSource9);
-
-  /* LEFT Button */
-  GPIO_EXTILineConfig(GPIO_PortSourceGPIOF, GPIO_PinSource8);
-
-  /* DOWN Button */
-  GPIO_EXTILineConfig(GPIO_PortSourceGPIOF, GPIO_PinSource7);
-
-  /* UP Button */
-  GPIO_EXTILineConfig(GPIO_PortSourceGPIOF, GPIO_PinSource6);
-
-  /* SEL Button */
-  GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource8);
-
-  /* KEY Button */
-  GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource9);
-
-    /* SEL Button */
-  GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource10);
-
-  /* KEY Button */
-  GPIO_EXTILineConfig(GPIO_PortSourceGPIOC, GPIO_PinSource7);
-
   /* Configure PC.00 (ADC Channel10) as analog input -------------------------*/
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
   GPIO_Init(GPIOC, &GPIO_InitStructure);
 
   //USB
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_Init(GPIOB, &GPIO_InitStructure);
+  //GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
+  //GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+  //GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  //GPIO_Init(GPIOB, &GPIO_InitStructure);
 
   // power
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;

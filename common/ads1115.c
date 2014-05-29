@@ -79,11 +79,11 @@ static void restore_I2C()
 
 int ads1115_init(void)
 {
-	GPIO_InitTypeDef  GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
+// 	GPIO_InitTypeDef  GPIO_InitStructure;
+// 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1;
+// 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+// 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
+// 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 	
 	memset(&config, 0, 4);
 	switch_I2C();
