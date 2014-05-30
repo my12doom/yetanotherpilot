@@ -851,15 +851,13 @@ int calculate_target()
 				angle_target[i] = angle_target_unrotated[i];
 			}
 
-// 			// simple mode test
-// 			if (g_ppm_input[5] > RC_CENTER)
-// 			{
-// 				float diff = yaw_launch - yaw_est;
-// 				float cosdiff = cos(diff);
-// 				float sindiff = sin(diff);
-// 				angle_target[0] = angle_target_unrotated[0] * cosdiff - angle_target_unrotated[1] * sindiff;
-// 				angle_target[1] = angle_target_unrotated[0] * sindiff + angle_target_unrotated[1] * cosdiff;
-// 			}
+#ifdef HEADFREE
+			float diff = yaw_launch - yaw_est;
+			float cosdiff = cos(diff);
+			float sindiff = sin(diff);
+			angle_target[0] = angle_target_unrotated[0] * cosdiff - angle_target_unrotated[1] * sindiff;
+			angle_target[1] = angle_target_unrotated[0] * sindiff + angle_target_unrotated[1] * cosdiff;
+#endif
 
 			//trim
 			angle_target[0] += quadcopter_trim[0];
@@ -1280,7 +1278,7 @@ int read_sensors()
 	{
 		sonar_distance = sonar_result() > 0 ? sonar_result()/1000.0f : NAN;
 		last_sonar_time = getus();
-		ERROR("\rdis=%.2f", sonar_distance);
+		TRACE("\rdis=%.2f", sonar_distance);
 	}
 
 	if (getus()-last_sonar_time > 200000)		//200ms
@@ -2038,7 +2036,7 @@ int main(void)
 		TRACE("input= %.2f, %.2f, %.2f, %.2f,%.2f,%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3], g_ppm_input[4], g_ppm_input[5]);
 		TRACE("input:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5], g_ppm_input[4], g_ppm_input[5], p->voltage/1000.0 );
 		
-		TRACE("\ryaw=%.2f, yt=%.2f, at=%.2f,%.2f", yaw_est *PI180, yaw_launch*PI180, angle_target[0] * PI180, angle_target[1] * PI180);
+		TRACE("\ryaw=%.2f, yt=%.2f, mag=%d,%d,%d           ", yaw_est *PI180, yaw_launch*PI180, p->mag[0], p->mag[1], p->mag[2]);
 
 		TRACE("\rv/a=%dmV, %dmA, %.1f mah, %.1f Wh   ", p->voltage, p->current, mah_consumed, wh_consumed);
 
