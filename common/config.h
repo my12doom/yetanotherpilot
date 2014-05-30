@@ -9,6 +9,8 @@
 #define GPS_BUFFER_BLOCK 512
 #define PCB_VERSION 3
 //#define EXTERNAL_HMC5883
+#define EXTERNAL_HMC5883_2
+#define HEADFREE
 
 #ifndef PCB_VERSION
 #define PCB_VERSION 1

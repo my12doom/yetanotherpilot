@@ -66,6 +66,7 @@ int init_HMC5883(void)
 #ifdef EXTERNAL_HMC5883
 		restore_I2C();
 #endif
+		ERROR("HMC5883 not found\n");
 		return -2;
 	}
 
@@ -127,7 +128,7 @@ int init_HMC5883(void)
 		gain[i]=fabs(820.0*mag_ref[i]*2.0*10.0/gain[i]);
 	
 	I2C_WriteReg(HMC5883SlaveAddress ,HMC58X3_R_CONFA ,0x70 ); //Configuration Register A  -- 0 11 100 00  num samples: 8 ; output rate: 15Hz ; normal measurement mode
-	I2C_WriteReg(HMC5883SlaveAddress ,HMC58X3_R_CONFB ,0x10 ); //Configuration Register B  -- 001 00000    configuration gain 1.3Ga
+	I2C_WriteReg(HMC5883SlaveAddress ,HMC58X3_R_CONFB ,0x20 ); //Configuration Register B  -- 001 00000    configuration gain 1.3Ga
 	I2C_WriteReg(HMC5883SlaveAddress, HMC58X3_R_MODE, 0x00);
 	
 	ERROR("mag gain=%.3f, %.3f, %.3f", gain[0], gain[1], gain[2]);

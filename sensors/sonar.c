@@ -8,7 +8,7 @@
 
 #define SONAR_TIMEOUT 1000000
 #define SOUND_SPEED 3.4f		// sound speed in mm/10us
-#define SONAR_MIN 50			// min valid distance
+#define SONAR_MIN 1			// min valid distance
 #define SONAR_MAX 5000			// max valid distance
 
 static int result = -1;			// unit: cm
@@ -99,7 +99,7 @@ void EXTI0_IRQHandler(void)
 		rising_time = time;
 	else if (rising_time > 0)
 	{
-		int delta_time = time - rising_time;
+		volatile int delta_time = time - rising_time;
 		if (delta_time < 0)
 			delta_time += 60000;
 		delta_time *= SOUND_SPEED/2;
