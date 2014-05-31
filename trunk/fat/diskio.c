@@ -8,8 +8,7 @@
 #include <string.h>
 #include "diskio.h"
 #include "sdcard.h"
-#include <stm32f10x_sdio.h>
-
+#include "../mcu.h"
 
 /*-----------------------------------------------------------------------*/
 /* Correspondence between physical drive number and physical drive.      */

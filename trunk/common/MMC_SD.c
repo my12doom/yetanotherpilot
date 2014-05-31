@@ -24,9 +24,7 @@
 /*******************************************************************/
 
 #include "MMC_SD.h"
-#include "stm32f10x_spi.h"
-#include <stm32f10x_gpio.h>
-#include <stm32f10x_rcc.h>
+#include "../mcu.h"
 #include <stdio.h>
 
 #define SPI_CS_Assert   GPIO_ResetBits(MMC_SD_CS_PORT, MMC_SD_CS) 

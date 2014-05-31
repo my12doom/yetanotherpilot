@@ -1,9 +1,8 @@
 #include <stdio.h>
-#include <stm32f10x.h>
-#include <misc.h>
+#include "mcu.h"
 #include <math.h>
 #include <string.h>
-#include <stm32f10x_usart.h>
+
 
 #include "RFData.h"
 #include "common/adc.h"
@@ -429,6 +428,9 @@ int auto_throttle(float user_climb_rate)
 	// better ground...
 // 	if (!airborne && user_climb_rate < 0)
 // 		user_climb_rate *= 1.5;
+
+	if (!airborne)
+		user_climb_rate -= 0.2f;
 
 	// new target altitude
 	if (fabs(user_climb_rate) < 0.001f && airborne)

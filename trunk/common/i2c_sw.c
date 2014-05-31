@@ -1,6 +1,4 @@
-#include <stm32f10x.h>
-#include <stm32f10x_gpio.h>
-#include <stm32f10x_rcc.h>
+#include "../mcu.h"
 #include "i2c_sw.h"
 #include "i2c_sw_priv.h"
 
