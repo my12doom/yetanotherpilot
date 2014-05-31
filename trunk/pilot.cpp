@@ -215,6 +215,7 @@ float _velocity = 0;				  // latest velocity estimate (integrated from accelerom
 float _accel_correction_ef = 0;		  // accelerometer corrections
 
 float target_altitude = 0;
+float ground_altitude = NAN;
 float target_climb_rate = 0;
 float target_accel = 0;
 float altitude_error_pid[3] = {0};
@@ -310,6 +311,14 @@ float Q[16] =
 	0, 0, 0, 0.01,
 };
 
+float Q_ground[16] = 
+{
+	0.4, 0, 0, 0,
+	0, 4, 0, 0,
+	0, 0, 4, 0,
+	0, 0, 0, 0.01,
+};
+
 float R[4] = 
 {
 	48000, 50,
@@ -366,7 +375,14 @@ int kalman()
 	matrix_mul(state1, F, 4, 4, state, 4, 1);
 	matrix_mul(tmp, P, 4, 4, FT, 4, 4);
 	matrix_mul(P1, F, 4, 4, tmp, 4, 4);
-	matrix_add(P1, Q, 4, 4);
+
+	// covariance
+	if (mode == shutdown)
+		matrix_add(P1, Q, 4, 4);
+	else if (!airborne || (!isnan(sonar_distance) && sonar_distance < 1.0f) || fabs(state[0] - ground_altitude) < 1.0f )
+		matrix_add(P1, Q_ground, 4, 4);		// lower ground effect
+	else
+		matrix_add(P1, Q, 4, 4);
 
 	// controll vector
 	//state1[2] = state1[2] * 0.8f * 0.2f * (target_accel);
@@ -411,11 +427,11 @@ int kalman()
 int auto_throttle(float user_climb_rate)
 {
 	// better ground...
-	if (!airborne && user_climb_rate < 0)
-		user_climb_rate *= 1.5;
+// 	if (!airborne && user_climb_rate < 0)
+// 		user_climb_rate *= 1.5;
 
 	// new target altitude
-	if (fabs(user_climb_rate) < 0.001f)
+	if (fabs(user_climb_rate) < 0.001f && airborne)
 	{
 		if (isnan(target_altitude))
 			target_altitude = state[0];
@@ -831,12 +847,12 @@ int calculate_target()
 			float v = (g_ppm_input[2] - THROTTLE_STOP) / (THROTTLE_MAX - THROTTLE_STOP) - 0.5f;
 			v = limit(v, -0.5f, 0.5f);
 			float user_rate;
-			if (fabs(v)<0.1f)
+			if (fabs(v)<0.05f)
 				user_rate = 0;
-			else if (v>= 0.1f)
-				user_rate = (v-0.1f)/0.4f * quadcopter_max_climb_rate;
+			else if (v>= 0.05f)
+				user_rate = (v-0.1f)/0.45f * quadcopter_max_climb_rate;
 			else
-				user_rate = (v+0.1f)/0.4f * quadcopter_max_descend_rate;
+				user_rate = (v+0.1f)/0.45f * quadcopter_max_descend_rate;
 			auto_throttle(user_rate);
 
 
@@ -1803,6 +1819,7 @@ int check_mode()
 		target[2] = pos[2];
 
 		target_altitude = NAN;
+		ground_temperature = state[0];
 		target_climb_rate = -quadcopter_max_descend_rate;
 		target_accel = -quadcopter_max_acceleration*2;
 		accel_error_pid[0] = target_accel;
