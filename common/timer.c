@@ -1,7 +1,5 @@
 #include "timer.h"
-#include <stm32f10x_tim.h>
-#include <stm32f10x_rcc.h>
-#include <misc.h>
+#include "../mcu.h"
 
 #define overflow 60000
 #define overhead 144

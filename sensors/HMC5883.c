@@ -2,8 +2,7 @@
 #include "../common/I2C.h"
 #include "../common/common.h"
 #include <math.h>
-#include <stm32f10x_gpio.h>
-
+#include "../mcu.h"
 
 #define	HMC5883SlaveAddress 0x3C
 #define HMC58X3_R_CONFA 0

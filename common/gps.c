@@ -1,11 +1,8 @@
 #include "gps.h"
 #include "config.h"
 #include <string.h>
-#include <misc.h>
 #include <stdio.h>
-#include <stm32f10x_rcc.h>
-#include <stm32f10x_gpio.h>
-#include <stm32f10x_usart.h>
+#include "../mcu.h"
 #include "common.h"
 
 static nmeaINFO info;

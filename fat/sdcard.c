@@ -20,10 +20,8 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "sdcard.h"
-#include <stm32f10x_dma.h>
-#include <stm32f10x_sdio.h>
-#include <stm32f10x_gpio.h>
-#include <stm32f10x_rcc.h>
+#include "../mcu.h"
+
 #define rt_kprintf(...) 
 
 /** @addtogroup STM32F10x_StdPeriph_Examples

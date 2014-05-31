@@ -21,10 +21,7 @@
 #include "usb_desc.h"
 #include "usb_pwr.h"
 #include "usb_lib.h"
-#include <misc.h>
-
-#include <stm32f10x_rcc.h>
-#include <stm32f10x_gpio.h>
+#include "../mcu.h"
 
 //#include "stm32_eval.h"
 

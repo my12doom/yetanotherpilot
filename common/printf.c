@@ -1,14 +1,11 @@
 #include "printf.h"
 #include "config.h"
 #include <stdarg.h>
-#include <misc.h>
 #include <stdio.h>
 #if __GNUC__ > 0
 #include <unistd.h>
 #endif
-#include <stm32f10x_gpio.h>
-#include <stm32f10x_rcc.h>
-#include <stm32f10x_usart.h>
+#include "../mcu.h"
 
 #if __GNUC__ > 0
 char gcc_printf_buffer[256];

@@ -1,11 +1,7 @@
 #include "PPM.h"
 #include "timer.h"
 #include "config.h"
-#include <stm32f10x_exti.h>
-#include <stm32f10x_tim.h>
-#include <stm32f10x_gpio.h>
-#include <stm32f10x_rcc.h>
-#include <misc.h>
+#include "../mcu.h"
 
 #define PPM_6 1
 

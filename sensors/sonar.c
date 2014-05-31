@@ -1,10 +1,6 @@
 #include "sonar.h"
 #include "../common/timer.h"
-#include <stm32f10x_rcc.h>
-#include <stm32f10x_gpio.h>
-#include <stm32f10x_exti.h>
-#include <stm32f10x_tim.h>
-#include <misc.h>
+#include "../mcu.h"
 
 #define SONAR_TIMEOUT 1000000
 #define SOUND_SPEED 3.4f		// sound speed in mm/10us

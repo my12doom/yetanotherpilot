@@ -56,16 +56,16 @@ data_source sources[] =
 	},
 	{
 		TAG_QUADCOPTER_DATA3,
-		0,
+		20,
 		___int16,
-		1,
+		0.1,
 		{0,255,0,0},
 	},
 };
 
 int main()
 {
-	FILE * f = fopen("C:\\Tencent Files\\411384033\\FileRecv\\MobileFile\\0002.DAT", "rb");
+	FILE * f = fopen("C:\\Tencent Files\\411384033\\FileRecv\\MobileFile\\0032.DAT", "rb");
 	fseek(f, 0, SEEK_END);
 	data_size = ftell(f);
 	fseek(f, 0, SEEK_SET);

@@ -1,4 +1,4 @@
-#include <stm32f10x.h>
+#include "../mcu.h"
 
 #if 1
 

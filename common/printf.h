@@ -6,7 +6,7 @@
 #include "config.h"
 
 #ifndef WIN32
-#include <stm32f10x_usart.h>
+#include "../mcu.h"
 #endif
 
 #ifdef __cplusplus

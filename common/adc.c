@@ -1,7 +1,5 @@
 #include "adc.h"
-#include <stm32f10x_adc.h>
-#include <stm32f10x_rcc.h>
-#include <stm32f10x_gpio.h>
+#include "../mcu.h"
 
 static void ADC1_GPIO_Config(void)
 {	
@@ -41,7 +39,7 @@ int ADC1_SelectChannel(uint16_t ADC_Channel)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 
-	if (ADC_Channel < 0 || ADC_Channel > 9)
+	if (ADC_Channel > 9)
 		return 0;
 
 	// Configure GPIO as analog input

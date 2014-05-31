@@ -1,12 +1,10 @@
 #include "I2C.h"
-#include <stm32f10x_i2c.h>
+#include "../mcu.h"
 #include <stdio.h>
 #include "timer.h"
 #include "i2c_sw.h"
 #include "printf.h"
 
-#include <stm32f10x_gpio.h>
-#include <stm32f10x_rcc.h>
 
 int I2C_Reset()
 {
