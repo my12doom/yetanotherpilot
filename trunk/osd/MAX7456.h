@@ -50,25 +50,25 @@ extern "C" {
 #endif
 
 void MAX7456_SYS_Init(void); 
-u8 MAX7456_Read_Reg(u8 add); 
-void MAX7456_Write_Char(u16 add,u8 chr); 
-void MAX7456_WriteAtt_Char(u16 add,u8 attribute); 
-void MAX7456_Write_Char_XY(u8 X,u8 Y,u8 chr); 
-void MAX7456_WriteAtt_XY(u8 X,u8 Y,u8 chr); 
+uint8_t MAX7456_Read_Reg(uint8_t add); 
+void MAX7456_Write_Char(uint16_t add,uint8_t chr); 
+void MAX7456_WriteAtt_Char(uint16_t add,uint8_t attribute); 
+void MAX7456_Write_Char_XY(uint8_t X,uint8_t Y,uint8_t chr); 
+void MAX7456_WriteAtt_XY(uint8_t X,uint8_t Y,uint8_t chr); 
 void MAX7456_Clear(void); 
-void MAX7456_Write_ASCII_Chr(u8 X,u8 Y,u8 chr); 
-void MAX7456_Write_ASCII_Char(u16 address, u8 c); 
-void MAX7456_Write_ASCII_String(u8 X,u8 Y,u8 *Str); 
-void Max7456_Learn_Char(u8 number, const u8 *data); 
+void MAX7456_Write_ASCII_Chr(uint8_t X,uint8_t Y,uint8_t chr); 
+void MAX7456_Write_ASCII_Char(uint16_t address, uint8_t c); 
+void MAX7456_Write_ASCII_String(uint8_t X,uint8_t Y,uint8_t *Str); 
+void Max7456_Learn_Char(uint8_t number, const uint8_t *data); 
 void Max7456_Write_CustomChar(void); 
 //void Max7456_Write_FileChar(void); 
 void Max7456_Display_AllChar(void); 
 void Max7456_Check_Custom(void);
-u8	 Max7456_Get_System(void);
-void Max7456_Set_System(u8 system);
-void Max7456_Download_Char(u8 number, u8 *data);
-void Max7456_Update_Char(u8 number, const u8 *data);
-void MAX7456_Write_String(u16 address, u8 *Str);
+uint8_t	 Max7456_Get_System(void);
+void Max7456_Set_System(uint8_t system);
+void Max7456_Download_Char(uint8_t number, uint8_t *data);
+void Max7456_Update_Char(uint8_t number, const uint8_t *data);
+void MAX7456_Write_String(uint16_t address, uint8_t *Str);
 void MAX7456_ClearScreen(void);
 void MAX7456_WriteScreen(void);
 

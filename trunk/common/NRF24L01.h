@@ -1,7 +1,7 @@
 ﻿#ifndef __NRF24L01_H__
 #define __NRF24L01_H__
 
-#include "stm32f10x.h"
+#include "../mcu.h"
 
 // callback prototype
 typedef int (*nrf_callback)(int result, int user_data);
@@ -25,13 +25,13 @@ extern "C" {
 #endif
 
 void NRF_Init(void);
-u8 NRF_Check(void);
+uint8_t NRF_Check(void);
 void NRF_RX_Mode(void);
 void NRF_TX_Mode(void);
 void NRF_Handle_Queue(void);
-u8 NRF_Tx_Dat(u8 *txbuf);
-u8 NRF_Tx_DatEx(u8 *txbuf, int confirm, nrf_callback cb, int user_data);		// confirm : 0: same as NRF_Tx_Dat(), 1: always retry until a TX_OK recieved
-u8 NRF_Rx_Dat(u8 *rxbuf);
+uint8_t NRF_Tx_Dat(uint8_t *txbuf);
+uint8_t NRF_Tx_DatEx(uint8_t *txbuf, int confirm, nrf_callback cb, int user_data);		// confirm : 0: same as NRF_Tx_Dat(), 1: always retry until a TX_OK recieved
+uint8_t NRF_Rx_Dat(uint8_t *rxbuf);
 
 #ifdef __cplusplus
 }

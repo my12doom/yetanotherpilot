@@ -64,16 +64,16 @@
                               //bit4,TX FIFO空标志;bit5,TX FIFO满标志;bit6,1,循环发送上一数据包.0,不循环;
 
 void power_off(void);
-u8 SPI_NRF_RW(u8 dat);
-u8 SPI_NRF_WriteBuf(u8 reg ,u8 *pBuf,u8 bytes);
-u8 SPI_NRF_ReadBuf(u8 reg,u8 *pBuf,u8 bytes);
-u8 SPI_NRF_WriteReg(u8 reg,u8 dat);
-u8 SPI_NRF_ReadReg(u8 reg);
+uint8_t SPI_NRF_RW(uint8_t dat);
+uint8_t SPI_NRF_WriteBuf(uint8_t reg ,uint8_t *pBuf,uint8_t bytes);
+uint8_t SPI_NRF_ReadBuf(uint8_t reg,uint8_t *pBuf,uint8_t bytes);
+uint8_t SPI_NRF_WriteReg(uint8_t reg,uint8_t dat);
+uint8_t SPI_NRF_ReadReg(uint8_t reg);
 
-u8 TX_ADDRESS[TX_ADR_WIDTH] = {0xb0,0x3d,0x12,0x34,0x01}; //发送地址
-u8 RX_ADDRESS[RX_ADR_WIDTH] = {0xb0,0x3d,0x12,0x34,0x01}; //发送地址
+uint8_t TX_ADDRESS[TX_ADR_WIDTH] = {0xb0,0x3d,0x12,0x34,0x01}; //发送地址
+uint8_t RX_ADDRESS[RX_ADR_WIDTH] = {0xb0,0x3d,0x12,0x34,0x01}; //发送地址
 
-u8 tx_queue[TX_QUEUE_SIZE * TX_QUEUE_ITEM_SIZE];
+uint8_t tx_queue[TX_QUEUE_SIZE * TX_QUEUE_ITEM_SIZE];
 int tx_queue_count = 0;
 int busy = 0;
 int rxmode = 0;
@@ -132,7 +132,7 @@ static void handleQueue(int result)
 
 void NRF_Init(void)
 {
-	u8 state;
+	uint8_t state;
 	SPI_InitTypeDef  SPI_InitStructure;
 	GPIO_InitTypeDef GPIO_InitStructure;
 	
@@ -220,7 +220,7 @@ int tx_ok = 0;
 int max_retry = 0;
 void EXTI3_IRQHandler(void)
 {
-	u8 state;
+	uint8_t state;
 	EXTI_ClearITPendingBit(EXTI_Line3);
 	
 	t3++;	
@@ -255,7 +255,7 @@ void EXTI3_IRQHandler(void)
 }
 
 
-u8 SPI_NRF_RW(u8 dat)
+uint8_t SPI_NRF_RW(uint8_t dat)
 {
 	// 当 SPI 发送缓冲器非空时等待 */
 	while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);
@@ -270,9 +270,9 @@ u8 SPI_NRF_RW(u8 dat)
 	return SPI_I2S_ReceiveData(SPI1);
 }
 
-u8 SPI_NRF_WriteBuf(u8 reg , u8 *pBuf, u8 bytes)
+uint8_t SPI_NRF_WriteBuf(uint8_t reg , uint8_t *pBuf, uint8_t bytes)
 {
-	u8 status, byte_cnt;
+	uint8_t status, byte_cnt;
 	NRF_CE_LOW();
 	//置低 CSN，使能 SPI 传输*/
 	NRF_CSN_LOW();
@@ -290,9 +290,9 @@ u8 SPI_NRF_WriteBuf(u8 reg , u8 *pBuf, u8 bytes)
 	return (status);    //返回 NRF24L01 的状态
 }
 
-u8 SPI_NRF_ReadBuf(u8 reg, u8 *pBuf, u8 bytes)
+uint8_t SPI_NRF_ReadBuf(uint8_t reg, uint8_t *pBuf, uint8_t bytes)
 {
-	u8 status, byte_cnt;
+	uint8_t status, byte_cnt;
 
 	NRF_CE_LOW();
 	//置低CSN，使能SPI传输*/
@@ -311,9 +311,9 @@ u8 SPI_NRF_ReadBuf(u8 reg, u8 *pBuf, u8 bytes)
 	return status;                //返回寄存器状态值
 }
 
-u8 SPI_NRF_WriteReg(u8 reg, u8 dat)
+uint8_t SPI_NRF_WriteReg(uint8_t reg, uint8_t dat)
 {
-	u8 status;
+	uint8_t status;
 	NRF_CE_LOW();
 	//置低CSN，使能SPI传输*/
 	NRF_CSN_LOW();
@@ -331,9 +331,9 @@ u8 SPI_NRF_WriteReg(u8 reg, u8 dat)
 	return(status);
 }
 
-u8 SPI_NRF_ReadReg(u8 reg)
+uint8_t SPI_NRF_ReadReg(uint8_t reg)
 {
-	u8 reg_val;
+	uint8_t reg_val;
 
 	NRF_CE_LOW();
 	//置低CSN，使能SPI传输*/
@@ -351,11 +351,11 @@ u8 SPI_NRF_ReadReg(u8 reg)
 	return reg_val;
 }
 
-u8 NRF_Check(void)
+uint8_t NRF_Check(void)
 {
-	u8 buf[5] = {0xC2, 0xC2, 0xC2, 0xC2, 0xC2};
-	u8 buf1[5] = {0};
-	u8 i;
+	uint8_t buf[5] = {0xC2, 0xC2, 0xC2, 0xC2, 0xC2};
+	uint8_t buf1[5] = {0};
+	uint8_t i;
 
 	//写入 5 个字节的地址.  */
 	SPI_NRF_WriteBuf(NRF_WRITE_REG + TX_ADDR, buf, 5);
@@ -466,7 +466,7 @@ void NRF_TX_Mode(void)
 * 输出  ：发送结果，成功返回TXDS,失败返回MAXRT或ERROR
 * 调用  ：外部调用
 */
-u8 NRF_Tx_DatEx(u8 *txbuf, int confirm, nrf_callback cb, int user_data)
+uint8_t NRF_Tx_DatEx(uint8_t *txbuf, int confirm, nrf_callback cb, int user_data)
 {
 	if (NRF_Read_IRQ() == 0)
 		EXTI3_IRQHandler();
@@ -496,7 +496,7 @@ u8 NRF_Tx_DatEx(u8 *txbuf, int confirm, nrf_callback cb, int user_data)
 	}
 }
 
-u8 NRF_Tx_Dat(u8 *txbuf)
+uint8_t NRF_Tx_Dat(uint8_t *txbuf)
 {
 	return NRF_Tx_DatEx(txbuf, 0, NULL, 0);
 }
@@ -517,9 +517,9 @@ void NRF_Handle_Queue(void)
 * 输出  ：接收结果，
 * 调用  ：外部调用
 */
-u8 NRF_Rx_Dat(u8 *rxbuf)
+uint8_t NRF_Rx_Dat(uint8_t *rxbuf)
 {
-	u8 state;
+	uint8_t state;
 	int i = 0;
 
 	if (!rxmode)

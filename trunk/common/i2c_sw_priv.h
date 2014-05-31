@@ -18,7 +18,7 @@
 
 static void I2C_Delay(void);
 
-static u8 I2C_Start(void);
+static uint8_t I2C_Start(void);
 
 static void I2C_Stop(void);
 
@@ -26,8 +26,8 @@ static void I2C_SendAck(void);
 
 static void I2C_SendNoAck(void);
 
-static u8 I2C_WaitAck(void);
+static uint8_t I2C_WaitAck(void);
 
-static void I2C_SendByte(u8 Data);
+static void I2C_SendByte(uint8_t Data);
 
-static u8 I2C_ReceiveByte(void);
+static uint8_t I2C_ReceiveByte(void);

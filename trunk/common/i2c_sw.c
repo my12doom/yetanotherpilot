@@ -35,7 +35,7 @@ void I2C2_SW_Configuration(void)
     I2C_Stop();
 }
 
-int I2C_SW_WriteByte(u8 deviceAddr, u8 writeReg, u8 writeValue)
+int I2C_SW_WriteByte(uint8_t deviceAddr, uint8_t writeReg, uint8_t writeValue)
 {
     if (!I2C_Start()) {
         return -1;
@@ -59,7 +59,7 @@ int I2C_SW_WriteByte(u8 deviceAddr, u8 writeReg, u8 writeValue)
 	return 0;
 }
 
-int I2C_SW_WriteReg(u8 SlaveAddress, u8 startRegister, const u8*data, int count)
+int I2C_SW_WriteReg(uint8_t SlaveAddress, uint8_t startRegister, const uint8_t*data, int count)
 {
     int i;
     if (!I2C_Start()) {
@@ -92,9 +92,9 @@ int I2C_SW_WriteReg(u8 SlaveAddress, u8 startRegister, const u8*data, int count)
     return 0;
 }
 
-u8 I2C_SW_ReadByte(u8 deviceAddr, u8 readReg)
+uint8_t I2C_SW_ReadByte(uint8_t deviceAddr, uint8_t readReg)
 {
-    u8 readValue = 0xFF;
+    uint8_t readValue = 0xFF;
 
     if (!I2C_Start()) {
         return 0xFF;
@@ -122,7 +122,7 @@ u8 I2C_SW_ReadByte(u8 deviceAddr, u8 readReg)
 }
 
 
-int I2C_SW_ReadReg(u8 SlaveAddress, u8 startRegister, u8*out, int count)
+int I2C_SW_ReadReg(uint8_t SlaveAddress, uint8_t startRegister, uint8_t*out, int count)
 {	
 	int i;
 
@@ -167,7 +167,7 @@ static void I2C_Delay(void)
     }
 }
 
-static u8 I2C_Start(void)
+static uint8_t I2C_Start(void)
 {
     SDA_HI;
     SCL_HI;
@@ -223,7 +223,7 @@ static void I2C_SendNoAck(void)
     I2C_Delay();
 }
 
-static u8 I2C_WaitAck(void)
+static uint8_t I2C_WaitAck(void)
 {
     SCL_LO;
     I2C_Delay();
@@ -239,9 +239,9 @@ static u8 I2C_WaitAck(void)
     return 1;
 }
 
-static void I2C_SendByte(u8 Data)
+static void I2C_SendByte(uint8_t Data)
 {
-    u8 i = 8;
+    uint8_t i = 8;
     while (i--) {
         SCL_LO;
         I2C_Delay();
@@ -259,10 +259,10 @@ static void I2C_SendByte(u8 Data)
     SCL_LO;
 }
 
-static u8 I2C_ReceiveByte(void)
+static uint8_t I2C_ReceiveByte(void)
 {
-    u8 i = 8;
-    u8 Data = 0;
+    uint8_t i = 8;
+    uint8_t Data = 0;
     SDA_HI;
     while (i--) {
         Data <<= 1;

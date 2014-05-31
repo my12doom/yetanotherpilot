@@ -139,7 +139,7 @@ bool airborne = false;
 bool nearground = false;
 float takeoff_ground_altitude = 0;
 int mode = initializing;
-u8 data[TX_PLOAD_WIDTH];
+uint8_t data[TX_PLOAD_WIDTH];
 static sensor_data *p = (sensor_data*)data;
 vector estAccGyro = {0};			// for roll & pitch
 vector estMagGyro = {0};			// for yaw
@@ -606,16 +606,7 @@ int sdcard_speed_test()
 }
 
 int sdcard_init()
-{
-	// SD CARD
-	NVIC_InitTypeDef NVIC_InitStructure;	
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_InitStructure.NVIC_IRQChannel = SDIO_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-	NVIC_Init(&NVIC_InitStructure);
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
-	
+{	
 	TRACE("sdcard init...");
 	FIL f;
 	res = disk_initialize(0) == RES_OK ? FR_OK : FR_DISK_ERR;
@@ -633,7 +624,7 @@ int log(void *data, int size)
 	
 	// NRF
 	if (nrf_ok && size <= 32 && LOG_LEVEL & LOG_NRF)
-		NRF_Tx_Dat((u8*)data);
+		NRF_Tx_Dat((uint8_t*)data);
 	
 	// USART, "\r" are escaped into "\r\r"
 	if (LOG_LEVEL & LOG_USART1)
@@ -1137,7 +1128,7 @@ int save_logs()
 
 
 	int tx_result;
-	tx_result = log((u8*)&to_send, 32);
+	tx_result = log((uint8_t*)&to_send, 32);
 
 	static int t1 = 0, t2=0;
 	if (tx_result == TX_OK)
@@ -1155,7 +1146,7 @@ int save_logs()
 	to_send.time = (time & (~TAG_MASK)) | TAG_IMU_DATA;
 	to_send.data.imu = imu;
 
-	tx_result = log((u8*)&to_send, 32);
+	tx_result = log((uint8_t*)&to_send, 32);
 	if (tx_result == TX_OK)
 		t2++;
 
@@ -1175,7 +1166,7 @@ int save_logs()
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_PILOT_DATA;
 	to_send.data.pilot = pilot;
-	tx_result = log((u8*)&to_send, 32);
+	tx_result = log((uint8_t*)&to_send, 32);
 
 	pilot_data2 pilot2 = 
 	{
@@ -1185,7 +1176,7 @@ int save_logs()
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_PILOT_DATA2;
 	to_send.data.pilot2 = pilot2;
-	tx_result = log((u8*)&to_send, 32);
+	tx_result = log((uint8_t*)&to_send, 32);
 
 	ppm_data ppm = 
 	{
@@ -1195,7 +1186,7 @@ int save_logs()
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_PPM_DATA;
 	to_send.data.ppm = ppm;
-	tx_result = log((u8*)&to_send, 32);
+	tx_result = log((uint8_t*)&to_send, 32);
 
 #if QUADCOPTER == 1
 	quadcopter_data quad = 
@@ -1208,7 +1199,7 @@ int save_logs()
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA;
 	to_send.data.quadcopter = quad;
-	tx_result = log((u8*)&to_send, 32);
+	tx_result = log((uint8_t*)&to_send, 32);
 
 	quadcopter_data2 quad2 = 
 	{
@@ -1222,7 +1213,7 @@ int save_logs()
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA2;
 	to_send.data.quadcopter2 = quad2;
-	tx_result = log((u8*)&to_send, 32);
+	tx_result = log((uint8_t*)&to_send, 32);
 
 	quadcopter_data3 quad3 = 
 	{
@@ -1241,7 +1232,7 @@ int save_logs()
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA3;
 	to_send.data.quadcopter3 = quad3;
-	tx_result = log((u8*)&to_send, 32);
+	tx_result = log((uint8_t*)&to_send, 32);
 #endif
 
 	// only 5 seconds magnet centering data
@@ -1256,7 +1247,7 @@ int save_logs()
 		controll.data[1] = mag_zero.array[1] * 1000;
 		controll.data[2] = mag_zero.array[2] * 1000;
 
-		tx_result = log((u8*)&to_send, 32);
+		tx_result = log((uint8_t*)&to_send, 32);
 	}
 
 
@@ -1276,7 +1267,7 @@ int save_logs()
 
 		to_send.time = (time & (~TAG_MASK)) | TAG_GPS_DATA;
 		to_send.data.gps = gps;
-		tx_result = log((u8*)&to_send, 32);
+		tx_result = log((uint8_t*)&to_send, 32);
 	}
 	
 	// restore USB
@@ -1598,7 +1589,7 @@ mag_load:
 				controll.data[1] = mag_zero.array[1] * 1000;
 				controll.data[2] = mag_zero.array[2] * 1000;
 
-				int tx_result = log((u8*)&to_send, 32);
+				int tx_result = log((uint8_t*)&to_send, 32);
 			}
 
 			delayms(50);
@@ -2063,7 +2054,7 @@ int main(void)
 
 		// read and process a packet
 		rf_data packet;
-		if (NRF_Rx_Dat((u8*)&packet) == RX_OK)
+		if (NRF_Rx_Dat((uint8_t*)&packet) == RX_OK)
 		{
 			TRACE("packet!!!!\r\n\r\n");
 		}

@@ -7,7 +7,7 @@
 #ifndef WIN32
 #include "timer.h"
 #else
-typedef unsigned char u8;
+typedef unsigned char uint8_t;
 #endif
 #include "config.h"
 
@@ -33,8 +33,8 @@ static int abs(int x)
 static void swap(void *p, int size)
 {
 	int i;
-	u8 *pp = (u8*)p;
-	u8 tmp;
+	uint8_t *pp = (uint8_t*)p;
+	uint8_t tmp;
 	for(i=0; i<size/2; i++)
 	{
 		tmp = pp[i];

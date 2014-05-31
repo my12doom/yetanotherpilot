@@ -32,7 +32,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 static uint8_t LCD_Code;
-u8 newdata[8192];
+uint8_t newdata[8192];
 
 /* Private define ------------------------------------------------------------*/
 #define  ILI9320    0  /* 0x9320 */
@@ -1755,12 +1755,12 @@ __inline uint16_t LCD_ReadReg(uint16_t LCD_Reg)
 *******************************************************************************/
 void Picshow(int x,int y, const char *bmp_name)					 
 {
-  u16 p=0,q=0;
-  u16 i;
+  uint16_t p=0,q=0;
+  uint16_t i;
   UINT br;
   FIL file;
   FRESULT res;
-  u16 temp,temp1,temp2;	
+  uint16_t temp,temp1,temp2;	
   res = f_open(&file, bmp_name, FA_OPEN_EXISTING | FA_READ);//´ò¿ªÍ¼Æ¬
   res = f_read(&file, newdata, 0x36, &br);//¶ÁÈ¡ÎÄ¼şÍ·ĞÅÏ¢
   if(newdata[0]==0x42 && newdata[1]==0x4D)//ÎÄ¼ş¸ñÊ½±ê¼ÇÎªBM
@@ -1912,7 +1912,7 @@ void Txt_Viewer(const char *txt_name)
 		        goto ref;
 			}
 		}
-		i=0;//1024¸öÊı¾İÏÔÊ¾Íê£¬iÇåã
+		i=0;//1024¸öÊı¾İÏÔÊ¾Íê£¬iÇå?
   }		   
 f_close(&file);
 ref: return;

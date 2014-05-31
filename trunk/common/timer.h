@@ -1,7 +1,7 @@
 #ifndef __TIMER_H__
 #define __TIMER_H__
 
-#include "stm32f10x.h"
+#include "../mcu.h"
 
 #ifdef __cplusplus
 extern "C" {

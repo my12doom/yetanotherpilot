@@ -28,13 +28,13 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 #ifdef USE_STM3210B_EVAL
-u32 Max_Lun = 0;
+uint32_t Max_Lun = 0;
 #elif defined (USE_STM3210E_EVAL)
-u32 Max_Lun = 0;
+uint32_t Max_Lun = 0;
 #elif defined (USE_STM3210C_EVAL)
-u32 Max_Lun = 0;
+uint32_t Max_Lun = 0;
 #else
-u32 Max_Lun =0;
+uint32_t Max_Lun =0;
 #endif
 
 DEVICE Device_Table =

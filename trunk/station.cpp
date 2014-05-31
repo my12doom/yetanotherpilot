@@ -75,7 +75,7 @@ SD_Error SD_InitAndConfig(void)
   }
   if (Status == SD_OK)
   {
-    Status = SD_SelectDeselect((u32) (SDCardInfo.RCA << 16));
+    Status = SD_SelectDeselect((uint32_t) (SDCardInfo.RCA << 16));
   }
   if (Status == SD_OK)
   {
@@ -268,7 +268,7 @@ int main(void)
 		for(int i=0; i<4; i++)
 			keys[i] = GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_12<<i);
 
-		int result = NRF_Rx_Dat((u8*)&recv);
+		int result = NRF_Rx_Dat((uint8_t*)&recv);
 		if (getus() - packet_speed_time > 1000000)
 		{
 			packet_speed = packet_speed_counter;
@@ -377,7 +377,7 @@ int main(void)
 			if (heartbeat == 1)
 			{
 				heartbeat = 0;
-				u8 packet[32];
+				uint8_t packet[32];
 				NRF_Tx_DatEx(packet, 1, nrfcb, getus());
 			}
 			

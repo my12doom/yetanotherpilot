@@ -34,7 +34,7 @@
 // call initI2C before this
 int init_MPU6050(void)
 {
-	u8 who_am_i = 0;
+	uint8_t who_am_i = 0;
 
 	TRACE("start MPU6050\r\n");
 	delayms(10);
@@ -72,9 +72,9 @@ int read_MPU6050(short*data)
 {	
 	int i;
 	//int64_t us;
-	int result = I2C_ReadReg(MPU6050SlaveAddress, ACCEL_XOUT_H, (u8*)data, 14);
+	int result = I2C_ReadReg(MPU6050SlaveAddress, ACCEL_XOUT_H, (uint8_t*)data, 14);
 	for(i=0; i<7; i++)
-		swap((u8*)&data[i], 2);
+		swap((uint8_t*)&data[i], 2);
 
 	// apply 5hz high pass filter for gyro data
 	/*

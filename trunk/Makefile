@@ -23,7 +23,7 @@ error:
 	$(error Invalid configuration, please check your inputs)
 endif
 
-SOURCEFILES := pilot.cpp stm32f10x_it.c $(BSP_ROOT)/STM32F1xxxx/CMSIS/CM3/CoreSupport/core_cm3.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/misc.c $(BSP_ROOT)/STM32F1xxxx/Startup/startup_stm32f10x_xl.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_adc.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_bkp.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_can.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_cec.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_crc.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_dac.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_dbgmcu.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_dma.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_exti.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_flash.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_fsmc.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_gpio.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_i2c.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_iwdg.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_pwr.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_rcc.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_rtc.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_sdio.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_spi.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_tim.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_usart.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_wwdg.c $(BSP_ROOT)/STM32F1xxxx/CMSIS/CM3/DeviceSupport/ST/STM32F10x/system_stm32f10x.c common/adc.c common/ads1115.c common/config.c common/eeprom.c common/gps.c common/I2C.c common/i2c_sw.c common/matrix.cpp common/MMC_SD.c common/NRF24L01.c common/PPM.c common/printf.c common/timer.c common/vector.c fat/diskio.c fat/ff.c fat/sdcard.c sensors/BMP085.c sensors/HMC5883.c sensors/mag_offset.cpp sensors/MPU6050.c sensors/MS5611.c sensors/sonar.c osd/MAX7456.c osd/osdcore.c nmea/context.c nmea/generate.c nmea/generator.c nmea/gmath.c nmea/info.c nmea/parse.c nmea/parser.c nmea/sentence.c nmea/time.c nmea/tok.c usb_mass_storage/hw_config.c usb_mass_storage/interupt.c usb_mass_storage/mass_mal.c usb_mass_storage/memory.c usb_mass_storage/otgd_fs_cal.c usb_mass_storage/otgd_fs_dev.c usb_mass_storage/otgd_fs_int.c usb_mass_storage/otgd_fs_pcd.c usb_mass_storage/scsi_data.c usb_mass_storage/usb_bot.c usb_mass_storage/usb_core.c usb_mass_storage/usb_desc.c usb_mass_storage/usb_endp.c usb_mass_storage/usb_init.c usb_mass_storage/usb_int.c usb_mass_storage/usb_istr.c usb_mass_storage/usb_mem.c usb_mass_storage/usb_prop.c usb_mass_storage/usb_pwr.c usb_mass_storage/usb_regs.c usb_mass_storage/usb_scsi.c usb_mass_storage/usb_sil.c
+SOURCEFILES := pilot.cpp stm32f10x_it.c $(BSP_ROOT)/STM32F4xxxx-HAL/startup_stm32f4xx.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc_ex.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_can.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_crc.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cryp.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cryp_ex.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dac.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dac_ex.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dcmi.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma2d.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma_ex.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_eth.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ex.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_hash.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_hash_ex.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_hcd.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s_ex.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_irda.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_iwdg.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_ltdc.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_msp_template.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_nand.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_nor.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pccard.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr_ex.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rng.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rtc.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rtc_ex.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_sai.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_sd.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_sdram.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_smartcard.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_sram.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_usart.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_wwdg.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_fmc.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_fsmc.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_sdmmc.c $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.c $(BSP_ROOT)/STM32F4xxxx-HAL/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c common/adc.c common/ads1115.c common/config.c common/eeprom.c common/gps.c common/I2C.c common/i2c_sw.c common/matrix.cpp common/MMC_SD.c common/NRF24L01.c common/PPM.c common/printf.c common/timer.c common/vector.c fat/diskio.c fat/ff.c fat/sdcard.c sensors/BMP085.c sensors/HMC5883.c sensors/mag_offset.cpp sensors/MPU6050.c sensors/MS5611.c sensors/sonar.c osd/MAX7456.c osd/osdcore.c nmea/context.c nmea/generate.c nmea/generator.c nmea/gmath.c nmea/info.c nmea/parse.c nmea/parser.c nmea/sentence.c nmea/time.c nmea/tok.c usb_mass_storage/hw_config.c usb_mass_storage/interupt.c usb_mass_storage/mass_mal.c usb_mass_storage/memory.c usb_mass_storage/otgd_fs_cal.c usb_mass_storage/otgd_fs_dev.c usb_mass_storage/otgd_fs_int.c usb_mass_storage/otgd_fs_pcd.c usb_mass_storage/scsi_data.c usb_mass_storage/usb_bot.c usb_mass_storage/usb_core.c usb_mass_storage/usb_desc.c usb_mass_storage/usb_endp.c usb_mass_storage/usb_init.c usb_mass_storage/usb_int.c usb_mass_storage/usb_istr.c usb_mass_storage/usb_mem.c usb_mass_storage/usb_prop.c usb_mass_storage/usb_pwr.c usb_mass_storage/usb_regs.c usb_mass_storage/usb_scsi.c usb_mass_storage/usb_sil.c
 EXTERNAL_LIBS := 
 EXTERNAL_LIBS_COPIED := $(foreach lib, $(EXTERNAL_LIBS),$(BINARYDIR)/$(notdir $(lib)))
 
@@ -131,107 +131,231 @@ $(BINARYDIR)/%.o : %.s $(all_make_files) |$(BINARYDIR)
 #VisualGDB: GeneratedRules				#<--- All lines below are auto-generated
 
 
-$(BINARYDIR)/core_cm3.o : $(BSP_ROOT)/STM32F1xxxx/CMSIS/CM3/CoreSupport/core_cm3.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/startup_stm32f4xx.o : $(BSP_ROOT)/STM32F4xxxx-HAL/startup_stm32f4xx.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/misc.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/misc.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/startup_stm32f10x_xl.o : $(BSP_ROOT)/STM32F1xxxx/Startup/startup_stm32f10x_xl.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_adc.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_adc.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_adc.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_adc_ex.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc_ex.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_bkp.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_bkp.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_can.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_can.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_can.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_can.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_cortex.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_cec.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_cec.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_crc.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_crc.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_crc.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_crc.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_cryp.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cryp.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_dac.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_dac.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_cryp_ex.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cryp_ex.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_dbgmcu.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_dbgmcu.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_dac.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dac.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_dma.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_dma.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_dac_ex.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dac_ex.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_exti.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_exti.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_dcmi.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dcmi.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_flash.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_flash.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_dma.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_fsmc.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_fsmc.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_dma2d.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma2d.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_gpio.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_gpio.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_dma_ex.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma_ex.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_i2c.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_i2c.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_eth.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_eth.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_iwdg.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_iwdg.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_flash.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_pwr.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_pwr.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_flash_ex.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ex.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_rcc.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_rcc.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_gpio.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_rtc.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_rtc.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_hash.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_hash.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_sdio.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_sdio.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_hash_ex.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_hash_ex.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_spi.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_spi.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_hcd.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_hcd.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_tim.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_tim.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_i2c.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_usart.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_usart.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_i2c_ex.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/stm32f10x_wwdg.o : $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_wwdg.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_i2s.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
-$(BINARYDIR)/system_stm32f10x.o : $(BSP_ROOT)/STM32F1xxxx/CMSIS/CM3/DeviceSupport/ST/STM32F10x/system_stm32f10x.c $(all_make_files) |$(BINARYDIR)
+$(BINARYDIR)/stm32f4xx_hal_i2s_ex.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2s_ex.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_irda.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_irda.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_iwdg.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_iwdg.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_ltdc.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_ltdc.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_msp_template.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_msp_template.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_nand.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_nand.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_nor.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_nor.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_pccard.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pccard.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_pcd.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_pwr.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_pwr_ex.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr_ex.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_rcc.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_rcc_ex.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_rng.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rng.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_rtc.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rtc.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_rtc_ex.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rtc_ex.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_sai.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_sai.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_sd.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_sd.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_sdram.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_sdram.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_smartcard.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_smartcard.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_spi.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_sram.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_sram.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_tim.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_tim_ex.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_uart.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_usart.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_usart.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_hal_wwdg.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_wwdg.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_ll_fmc.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_fmc.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_ll_fsmc.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_fsmc.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_ll_sdmmc.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_sdmmc.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/stm32f4xx_ll_usb.o : $(BSP_ROOT)/STM32F4xxxx-HAL/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/system_stm32f4xx.o : $(BSP_ROOT)/STM32F4xxxx-HAL/CMSIS/Device/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 

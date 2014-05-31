@@ -29,7 +29,7 @@
 #ifndef STM32F10X_CL
  void USB_Istr(void);
 #else /* STM32F10X_CL */
- u32 STM32_PCD_OTG_ISR_Handler(void);
+ uint32_t STM32_PCD_OTG_ISR_Handler(void);
 #endif /* STM32F10X_CL */
 
 /* function prototypes Automatically built defining related macros */
