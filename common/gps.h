@@ -1,7 +1,7 @@
 #ifndef __GPS_H
 #define	__GPS_H
 
-#include <stm32f10x.h>
+#include "../mcu.h"
 #include "../nmea/nmea.h"
 
 #ifdef __cplusplus

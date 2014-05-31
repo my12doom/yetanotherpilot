@@ -75,7 +75,7 @@ int checkEvent_and_reset(I2C_TypeDef* I2Cx, int event)
 	return 0;
 }
 
-int I2C_init(u8 OwnAddress1)
+int I2C_init(uint8_t OwnAddress1)
 {
 #ifndef SW_I2C
 	I2C_InitTypeDef I2C_InitStructure;
@@ -108,21 +108,21 @@ int I2C_init(u8 OwnAddress1)
 }
 
 #ifdef SW_I2C
-int I2C_ReadReg(u8 SlaveAddress, u8 startRegister, u8*out, int count)
+int I2C_ReadReg(uint8_t SlaveAddress, uint8_t startRegister, uint8_t*out, int count)
 {
 	return I2C_SW_ReadReg(SlaveAddress, startRegister, out, count);
 }
 
-int I2C_WriteReg(u8 SlaveAddress, u8 Register, u8 data)
+int I2C_WriteReg(uint8_t SlaveAddress, uint8_t Register, uint8_t data)
 {
 	return I2C_SW_WriteByte(SlaveAddress, Register, data);
 }
-int I2C_WriteRegs(u8 SlaveAddress, u8 startRegister, const u8*data, int count)
+int I2C_WriteRegs(uint8_t SlaveAddress, uint8_t startRegister, const uint8_t*data, int count)
 {
 	return I2C_SW_WriteReg(SlaveAddress, startRegister, data, count);
 }
 #else
-int I2C_ReadReg(u8 SlaveAddress, u8 startRegister, u8*out, int count)
+int I2C_ReadReg(uint8_t SlaveAddress, uint8_t startRegister, uint8_t*out, int count)
 {
 	int i;
 
@@ -175,7 +175,7 @@ int I2C_ReadReg(u8 SlaveAddress, u8 startRegister, u8*out, int count)
 }
 
 
-int I2C_WriteReg(u8 SlaveAddress, u8 Register, u8 data)
+int I2C_WriteReg(uint8_t SlaveAddress, uint8_t Register, uint8_t data)
 {
 	// wait for bus
 	if (waitFlag_and_reset(I2C2, I2C_FLAG_BUSY)<0)

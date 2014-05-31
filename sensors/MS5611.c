@@ -23,7 +23,7 @@
 
 #define SAMPLEING_TIME 10000 // 10000us, 10ms
 
-u8 OSR = MS561101BA_OSR_4096;
+uint8_t OSR = MS561101BA_OSR_4096;
 int temperature = 0;
 int pressure = 0;
 int new_temperature = 0;
@@ -34,13 +34,13 @@ int64_t rawPressure = 0;
 int64_t DeltaTemp = 0;
 int64_t off;//  = (((int64_t)_C[1]) << 16) + ((_C[3] * dT) >> 7);
 int64_t sens;// = (((int64_t)_C[0]) << 15) + ((_C[2] * dT) >> 8);
-u16 refdata[6];
+uint16_t refdata[6];
 uint16_t crc;
 
 // call initI2C before this
 int init_MS5611(void)
 {
-	u8 tmp[3];
+	uint8_t tmp[3];
 	int i;
 	
 	I2C_WriteReg(MS5611Address, MS561101BA_RESET, 0x00);	
@@ -91,7 +91,7 @@ int check_MS5611(void)
 int read_MS5611(int *data)
 {
 	int rtn = 1;
-	u8 tmp[3];
+	uint8_t tmp[3];
 
 	do
 	{

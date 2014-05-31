@@ -22,8 +22,7 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f10x_it.h"
-#include "misc.h"
+#include "mcu.h"
 
 /** @addtogroup STM32F10x_StdPeriph_Template
   * @{

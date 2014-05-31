@@ -52,7 +52,7 @@ ResumeS;
 RESULT PowerOn(void)
 {
 #ifndef STM32F10X_CL
-  u16 wRegVal;
+  uint16_t wRegVal;
   
   /*** cable plugged-in ? ***/
   /*while(!CablePluggedIn());*/
@@ -151,7 +151,7 @@ void Resume_Init(void)
   /* restart the clocks */
   /* ...  */
 #ifndef STM32F10X_CL
-  u16 wCNTR;
+  uint16_t wCNTR;
   
   /* CNTR_LPMODE = 0 */
   wCNTR = _GetCNTR();
@@ -187,7 +187,7 @@ void Resume_Init(void)
 void Resume(RESUME_STATE eResumeSetVal)
 {
 #ifndef STM32F10X_CL
-  u16 wCNTR;
+  uint16_t wCNTR;
 #endif /* STM32F10X_CL */
 
   if (eResumeSetVal != RESUME_ESOF)

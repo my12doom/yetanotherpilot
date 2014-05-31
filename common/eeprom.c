@@ -34,7 +34,6 @@ uint16_t DataVar = 0;
 uint32_t CurWrAddress;
 /* Virtual address defined by the user: 0xFFFF value is prohibited */
 uint16_t VirtAddVarTab[NumbOfVar] = {0x5555, 0x6666, 0x7777};
-
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 static FLASH_Status EE_Format(void);

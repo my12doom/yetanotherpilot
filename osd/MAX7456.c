@@ -317,7 +317,7 @@ void MAX7456_SPI_Init(void)
 
 } 
 
-u8 MAX7456_SPI_WriteByte(u8 Data) 
+uint8_t MAX7456_SPI_WriteByte(uint8_t Data) 
 { 
 	/* Wait for SPI2 Tx buffer empty */ 
 	while (SPI_I2S_GetFlagStatus(MAX7456_SPI, SPI_I2S_FLAG_TXE) == RESET); 
@@ -331,9 +331,9 @@ u8 MAX7456_SPI_WriteByte(u8 Data)
     return Data; 
 } 
 
-u8 MAX7456_SPI_ReadByte(void) 
+uint8_t MAX7456_SPI_ReadByte(void) 
 { 
-	u8 Data=0; 
+	uint8_t Data=0; 
 	/* Wait for SPI2 Tx buffer empty */ 
 	while (SPI_I2S_GetFlagStatus(MAX7456_SPI, SPI_I2S_FLAG_TXE) == RESET); 
     /* Send SPI2 data */ 
@@ -348,23 +348,23 @@ u8 MAX7456_SPI_ReadByte(void)
 
 void MAX7456_Delay_uS(void) 
 { 
-	u8 i=100;
+	uint8_t i=100;
 	while(i)
 	{  
 		i--;  
 	}  
 } 
 
-void MAX7456_Delay_mS(u32 mS) 
+void MAX7456_Delay_mS(uint32_t mS) 
 { 
-	u32 i=0; 
+	uint32_t i=0; 
 	for(i=0;i<mS*10;i++) 
 	{ 
 		MAX7456_Delay_uS(); 
 	} 
 } 
 
-void MAX7456_Write_Reg(u8 add,u8 data) 
+void MAX7456_Write_Reg(uint8_t add,uint8_t data) 
 { 
 	MAX7456_StartSpi(); 
 	
@@ -374,9 +374,9 @@ void MAX7456_Write_Reg(u8 add,u8 data)
 	MAX7456_EndSpi(); 
 } 
 
-u8 MAX7456_Read_Reg(u8 add)
+uint8_t MAX7456_Read_Reg(uint8_t add)
 { 
-	u8 Data=0; 
+	uint8_t Data=0; 
 	MAX7456_StartSpi(); 
 	
 	MAX7456_SPI_WriteByte(add | RADD1);//???? 
@@ -445,7 +445,7 @@ void MAX7456_SYS_Init(void)
 			//printf("%02x", character[i]);
 			for(j=0; j<4; j++)
 			{
-				u8 c = (character[i] >> (6-j*2))&3;
+				uint8_t c = (character[i] >> (6-j*2))&3;
 				TRACE("%c", tbl[c]);
 			}
 			
@@ -486,7 +486,7 @@ void MAX7456_SYS_Init(void)
 
 
 
-void MAX7456_Write_Char(u16 add,u8 chr) 
+void MAX7456_Write_Char(uint16_t add,uint8_t chr) 
 { 
 	MAX7456_Write_Reg(DMAH, (add&0XFF00)>>8); 
 	MAX7456_Write_Reg(DMAL, (add&0XFF)); 
@@ -495,7 +495,7 @@ void MAX7456_Write_Char(u16 add,u8 chr)
 
 
   
-void MAX7456_WriteAtt_Char(u16 add,u8 attribute) 
+void MAX7456_WriteAtt_Char(uint16_t add,uint8_t attribute) 
 { 
 	MAX7456_Write_Reg(DMAH, ((add&0XFF00)>>8)|2); 
 	MAX7456_Write_Reg(DMAL, (add&0XFF)); 
@@ -503,24 +503,24 @@ void MAX7456_WriteAtt_Char(u16 add,u8 attribute)
 } 
 
 
-void MAX7456_Write_Char_XY(u8 X,u8 Y,u8 chr) 
+void MAX7456_Write_Char_XY(uint8_t X,uint8_t Y,uint8_t chr) 
 { 
-	u16 add=0; 
-	add=((u16)Y)*30+X; 
+	uint16_t add=0; 
+	add=((uint16_t)Y)*30+X; 
 	MAX7456_Write_Char(add,chr); 
 } 
 
 
-void MAX7456_WriteAtt_XY(u8 X,u8 Y,u8 chr) 
+void MAX7456_WriteAtt_XY(uint8_t X,uint8_t Y,uint8_t chr) 
 { 
-	u16 add=0; 
-	add=((u16)Y)*30+X; 
+	uint16_t add=0; 
+	add=((uint16_t)Y)*30+X; 
 	MAX7456_WriteAtt_Char(add,chr); 
 } 
 
 void MAX7456_Clear(void) 
 { 
-	u16 memory_address = 0,i=0; 
+	uint16_t memory_address = 0,i=0; 
     for (i = 0; i < 480; i++)  
         MAX7456_Write_Char(memory_address++, 0); 
 } 
@@ -546,7 +546,7 @@ void MAX7456_WriteScreen(void)
 			}
 }
 
-void MAX7456_Write_ASCII_Char(u16 address, u8 c)  
+void MAX7456_Write_ASCII_Char(uint16_t address, uint8_t c)  
 { 
     if (c == 32) c = 0; // remap space
 		else if (c > 48 && c <= 57) c -= 48; // remap numbers 
@@ -610,21 +610,21 @@ void MAX7456_PrintDigitString(const char *string, int x, int y)
 	}
 }
 
-void MAX7456_Write_ASCII_Chr(u8 X,u8 Y,u8 chr) 
+void MAX7456_Write_ASCII_Chr(uint8_t X,uint8_t Y,uint8_t chr) 
 { 
-	MAX7456_Write_ASCII_Char(((X++)+(((u16)Y*30))),chr); 
+	MAX7456_Write_ASCII_Char(((X++)+(((uint16_t)Y*30))),chr); 
 } 
 
-void MAX7456_Write_ASCII_String(u8 X,u8 Y,u8 *Str) 
+void MAX7456_Write_ASCII_String(uint8_t X,uint8_t Y,uint8_t *Str) 
 { 
 	while(*Str) 
 	{ 
-		MAX7456_Write_ASCII_Char(((X++)+(((u16)Y*30))),*Str); 
+		MAX7456_Write_ASCII_Char(((X++)+(((uint16_t)Y*30))),*Str); 
 		Str++; 
 	} 
 } 
 
-void MAX7456_Write_String(u16 address, u8 *Str)
+void MAX7456_Write_String(uint16_t address, uint8_t *Str)
 { 
 	while(*Str) 
 	{ 
@@ -632,9 +632,9 @@ void MAX7456_Write_String(u16 address, u8 *Str)
 	} 
 }
 
-void Max7456_Learn_Char(u8 number, const u8 *data)  
+void Max7456_Learn_Char(uint8_t number, const uint8_t *data)  
 { 
-	u8 i, vm0;
+	uint8_t i, vm0;
 	
 	vm0 = MAX7456_Read_Reg(VM0 | RADD1);
 	MAX7456_Write_Reg(VM0, vm0 & (~ENABLE_OSD));
@@ -659,9 +659,9 @@ void Max7456_Learn_Char(u8 number, const u8 *data)
 	MAX7456_Write_Reg(VM0, vm0 | ENABLE_OSD);
 } 
 
-void Max7456_Download_Char(u8 number, u8 *data)
+void Max7456_Download_Char(uint8_t number, uint8_t *data)
 { 
-	u8 i, vm0; 
+	uint8_t i, vm0; 
 
 	vm0 = MAX7456_Read_Reg(VM0 | RADD1);
 	MAX7456_Write_Reg(VM0, vm0 & (~ENABLE_OSD));
@@ -682,9 +682,9 @@ void Max7456_Download_Char(u8 number, u8 *data)
 	MAX7456_Write_Reg(VM0, vm0 | ENABLE_OSD);
 }
 
-void Max7456_Update_Char(u8 number, const u8 *data)
+void Max7456_Update_Char(uint8_t number, const uint8_t *data)
 {
-	u8 read[54];
+	uint8_t read[54];
 	int i;
 	
 	// 3 retries, to avoid eeprom wring by read failure.
@@ -701,12 +701,12 @@ void Max7456_Update_Char(u8 number, const u8 *data)
 	Max7456_Learn_Char(number, data);
 }
 
-u8	 Max7456_Get_System()
+uint8_t	 Max7456_Get_System()
 {
 	return MAX7456_Read_Reg(0xA0) & 0x03;
 }
 
-void Max7456_Set_System(u8 system)
+void Max7456_Set_System(uint8_t system)
 {
 	if(system)
 		MAX7456_Write_Reg(VM0,MAX7456_Read_Reg(VM0)|0x40); 
@@ -716,7 +716,7 @@ void Max7456_Set_System(u8 system)
 
 void Max7456_Display_AllChar(void) 
 { 
-	u16 i=0; 
+	uint16_t i=0; 
 	for(i=0;i<25;i++) 
 	MAX7456_Write_Char_XY(i, 1, i); 
 	for(i=25;i<50;i++) 

@@ -186,10 +186,10 @@ void USB_Istr(void)
 * Output         : None
 * Return         : status
 *******************************************************************************/
-u32 STM32_PCD_OTG_ISR_Handler (void)
+uint32_t STM32_PCD_OTG_ISR_Handler (void)
 {
   USB_OTG_int_sts_data gintr_status;
-  u32 retval = 0;
+  uint32_t retval = 0;
 
   if (IsDeviceMode()) /* ensure that we are in device mode */
   {

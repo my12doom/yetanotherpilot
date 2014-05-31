@@ -133,7 +133,7 @@ uint8 MMC_SD_SendCommand(uint8 cmd, uint32 arg)
 /* SD card initialization, include reset and configuration */
 uint8 MMC_SD_Init(void)
 {
-	u16 i;
+	uint16_t i;
 	uint8 retry = 0;
 	uint8 r1 = 0;
 	

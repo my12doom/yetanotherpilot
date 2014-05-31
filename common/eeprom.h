@@ -30,8 +30,7 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f10x.h"
-#include "stm32f10x_flash.h"
+#include "../mcu.h"
 
 #ifdef STM32F103RF
 #define STM32F10X_HD

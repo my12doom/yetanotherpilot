@@ -716,7 +716,7 @@ SD_Error SD_GetCardInfo(SD_CardInfo *cardinfo)
   *     @arg SDIO_BusWide_1b: 1-bit data transfer
   * @retval SD_Error: SD Card Error code.
   */
-SD_Error SD_EnableWideBusOperation(u32 WideMode)
+SD_Error SD_EnableWideBusOperation(uint32_t WideMode)
 {
   SD_Error errorstatus = SD_OK;
 

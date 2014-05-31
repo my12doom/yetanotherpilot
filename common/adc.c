@@ -10,7 +10,12 @@ static void ADC1_Mode_Config(void)
 {
 	ADC_InitTypeDef ADC_InitStructure;
 	
+#ifdef STM32F1
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_GPIOA, ENABLE);
+#endif
+#ifdef STM32F4
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_GPIOA, ENABLE);
+#endif
 
 
 	// ADC1 configuration

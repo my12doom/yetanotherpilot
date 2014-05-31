@@ -27,7 +27,7 @@
 				CleanCommandLine="&quot;$(VISUALGDB_DIR)\VisualGDB.exe&quot; /clean &quot;$(ProjectPath)&quot; &quot;/solution:$(SolutionPath)&quot; &quot;/config:$(ConfigurationName)&quot; &quot;/platform:$(PlatformName)&quot;"
 				Output="$(ProjectDir)pilot-Debug.vgdbsettings"
 				PreprocessorDefinitions="__VisualGDB_CFG_Debug"
-				IncludeSearchPath="$(LOCALAPPDATA)\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\CMSIS\CM3\CoreSupport;$(LOCALAPPDATA)\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\CMSIS\CM3\DeviceSupport\ST\STM32F10x;$(LOCALAPPDATA)\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc;c:\sysgcc\arm-eabi\arm-eabi\include\c++\4.8.2;c:\sysgcc\arm-eabi\arm-eabi\include\c++\4.8.2\arm-eabi\thumb\cortex_m3;c:\sysgcc\arm-eabi\arm-eabi\include\c++\4.8.2\backward;c:\sysgcc\arm-eabi\lib\gcc\arm-eabi\4.8.2\include;c:\sysgcc\arm-eabi\lib\gcc\arm-eabi\4.8.2\include-fixed;c:\sysgcc\arm-eabi\arm-eabi\sys-include;c:\sysgcc\arm-eabi\arm-eabi\include"
+				IncludeSearchPath="$(ProjectDir)\.;$(LOCALAPPDATA)\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Device\ST\STM32F4xx\Include;$(LOCALAPPDATA)\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Include;$(LOCALAPPDATA)\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\RTOS;$(LOCALAPPDATA)\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc;c:\sysgcc\arm-eabi\arm-eabi\include\c++\4.8.2;c:\sysgcc\arm-eabi\arm-eabi\include\c++\4.8.2\arm-eabi\thumb\cortex_m4;c:\sysgcc\arm-eabi\arm-eabi\include\c++\4.8.2\backward;c:\sysgcc\arm-eabi\lib\gcc\arm-eabi\4.8.2\include;c:\sysgcc\arm-eabi\lib\gcc\arm-eabi\4.8.2\include-fixed;c:\sysgcc\arm-eabi\arm-eabi\sys-include;c:\sysgcc\arm-eabi\arm-eabi\include;$(ProjectDir)\."
 				ForcedIncludes="$(ProjectDir)\gcc_Debug.h;$(VISUALGDB_DIR)\gcc_compat.h;C:\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\stm32_compat.h"
 				AssemblySearchPath=""
 				ForcedUsingAssemblies=""
@@ -86,15 +86,7 @@
 				Name="Device-specific files"
 				>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\CMSIS\CM3\CoreSupport\core_cm3.c"
-					>
-				</File>
-				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\misc.c"
-					>
-				</File>
-				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\Startup\startup_stm32f10x_xl.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\startup_stm32f4xx.c"
 					>
 				</File>
 				<File
@@ -102,95 +94,227 @@
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_adc.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_bkp.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_adc.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_can.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_adc_ex.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_cec.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_can.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_crc.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_cortex.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_dac.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_crc.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_dbgmcu.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_cryp.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_dma.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_cryp_ex.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_exti.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_dac.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_flash.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_dac_ex.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_fsmc.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_dcmi.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_gpio.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_dma.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_i2c.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_dma2d.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_iwdg.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_dma_ex.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_pwr.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_eth.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_rcc.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_flash.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_rtc.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_flash_ex.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_sdio.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_gpio.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_spi.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_hash.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_tim.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_hash_ex.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_usart.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_hcd.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\src\stm32f10x_wwdg.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_i2c.c"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\CMSIS\CM3\DeviceSupport\ST\STM32F10x\system_stm32f10x.c"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_i2c_ex.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_i2s.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_i2s_ex.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_irda.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_iwdg.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_ltdc.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_msp_template.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_nand.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_nor.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_pccard.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_pcd.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_pwr.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_pwr_ex.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_rcc.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_rcc_ex.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_rng.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_rtc.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_rtc_ex.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_sai.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_sd.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_sdram.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_smartcard.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_spi.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_sram.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_tim.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_tim_ex.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_uart.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_usart.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_hal_wwdg.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_ll_fmc.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_ll_fsmc.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_ll_sdmmc.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Src\stm32f4xx_ll_usb.c"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Device\ST\STM32F4xx\Source\Templates\system_stm32f4xx.c"
 					>
 				</File>
 			</Filter>
@@ -723,107 +847,331 @@
 				Name="Device-specific files"
 				>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\CMSIS\CM3\CoreSupport\core_cm3.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Include\arm_common_tables.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\misc.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Include\arm_const_structs.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\CMSIS\CM3\DeviceSupport\ST\STM32F10x\stm32f10x.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Include\arm_math.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_adc.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\RTOS\cmsis_os.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_bkp.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Include\core_cm0.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_can.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Include\core_cm0plus.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_cec.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Include\core_cm3.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_crc.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Include\core_cm4.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_dac.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Include\core_cm4_simd.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_dbgmcu.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Include\core_cmFunc.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_dma.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Include\core_cmInstr.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_exti.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Include\core_sc000.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_flash.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Include\core_sc300.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_fsmc.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Device\ST\STM32F4xx\Include\stm32f401xc.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_gpio.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Device\ST\STM32F4xx\Include\stm32f401xe.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_i2c.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Device\ST\STM32F4xx\Include\stm32f405xx.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_iwdg.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Device\ST\STM32F4xx\Include\stm32f407xx.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_pwr.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Device\ST\STM32F4xx\Include\stm32f415xx.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_rcc.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Device\ST\STM32F4xx\Include\stm32f417xx.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_rtc.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Device\ST\STM32F4xx\Include\stm32f427xx.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_sdio.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Device\ST\STM32F4xx\Include\stm32f429xx.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_spi.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Device\ST\STM32F4xx\Include\stm32f437xx.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_tim.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Device\ST\STM32F4xx\Include\stm32f439xx.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_usart.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Device\ST\STM32F4xx\Include\stm32f4xx.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\STM32F10x_StdPeriph_Driver\inc\stm32f10x_wwdg.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal.h"
 					>
 				</File>
 				<File
-					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F1xxxx\CMSIS\CM3\DeviceSupport\ST\STM32F10x\system_stm32f10x.h"
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_adc.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_adc_ex.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_can.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_conf_template.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_cortex.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_crc.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_cryp.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_cryp_ex.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_dac.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_dac_ex.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_dcmi.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_def.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_dma.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_dma2d.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_dma_ex.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_eth.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_flash.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_flash_ex.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_gpio.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_gpio_ex.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_hash.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_hash_ex.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_hcd.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_i2c.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_i2c_ex.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_i2s.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_i2s_ex.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_irda.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_iwdg.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_ltdc.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_nand.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_nor.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_pccard.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_pcd.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_pwr.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_pwr_ex.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_rcc.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_rcc_ex.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_rng.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_rtc.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_rtc_ex.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_sai.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_sd.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_sdram.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_smartcard.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_spi.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_sram.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_tim.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_tim_ex.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_uart.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_usart.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_wwdg.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_ll_fmc.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_ll_fsmc.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_ll_sdmmc.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\STM32F4xx_HAL_Driver\Inc\stm32f4xx_ll_usb.h"
+					>
+				</File>
+				<File
+					RelativePath="..\Users\my12doom\AppData\Local\VisualGDB\EmbeddedBSPs\arm-eabi\com.sysprogs.arm.stm32\STM32F4xxxx-HAL\CMSIS\Device\ST\STM32F4xx\Include\system_stm32f4xx.h"
 					>
 				</File>
 			</Filter>

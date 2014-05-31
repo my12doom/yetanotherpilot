@@ -63,7 +63,7 @@ int init_BMP085(void)
 int read_BMP085(int *data)
 {
 	int rtn = 1;
-	u8 tmp[2];
+	uint8_t tmp[2];
 
 	do
 	{

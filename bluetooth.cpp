@@ -121,7 +121,7 @@ int main()
 	
 	while(1)
 	{
-		int result = NRF_Rx_Dat((u8*)buf1);
+		int result = NRF_Rx_Dat((uint8_t*)buf1);
 		
 		if (result & RX_OK)
 		{

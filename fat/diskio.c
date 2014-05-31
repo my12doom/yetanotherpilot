@@ -30,7 +30,7 @@ DSTATUS disk_initialize (
 	
 	if (SD_Init() != SD_OK ||
 		SD_GetCardInfo(&SDCardInfo) != SD_OK ||
-		SD_SelectDeselect((u32) (SDCardInfo.RCA << 16)) != SD_OK ||
+		SD_SelectDeselect((uint32_t) (SDCardInfo.RCA << 16)) != SD_OK ||
 		SD_EnableWideBusOperation(SDIO_BusWide_4b) != SD_OK ||
 		SD_SetDeviceMode(SD_DMA_MODE) != SD_OK)
 	{

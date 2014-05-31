@@ -1,13 +1,13 @@
 #ifndef __PPM_H__
 #define __PPM_H__
 
-#include "stm32f10x.h"
+#include "../mcu.h"
 
 
 // constants and enums
 extern float g_ppm_input[6];
 extern int64_t g_ppm_input_update[6];
-extern u16 g_ppm_output[8];
+extern uint16_t g_ppm_output[8];
 
 enum PPM_OUTPUT_CHANNEL
 {

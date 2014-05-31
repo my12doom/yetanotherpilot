@@ -74,13 +74,13 @@ int init_HMC5883(void)
 	I2C_WriteReg(HMC5883SlaveAddress,HMC58X3_R_MODE, 1);
 	delayms(10);			// Note that the  very first measurement after a gain change maintains the same gain as the previous setting. 
 											// The new gain setting is effective from the second measurement and on.
-	I2C_ReadReg(HMC5883SlaveAddress, 0x03, (u8*)data, 6);
+	I2C_ReadReg(HMC5883SlaveAddress, 0x03, (uint8_t*)data, 6);
 	
 	for(j=0; j<10; j++)
 	{
 		I2C_WriteReg(HMC5883SlaveAddress,HMC58X3_R_MODE, 1);
 		delayms(10);
-		I2C_ReadReg(HMC5883SlaveAddress, 0x03, (u8*)data, 6);
+		I2C_ReadReg(HMC5883SlaveAddress, 0x03, (uint8_t*)data, 6);
 		for(i=0; i<3; i++)
 		{
 			swap(&data[i], 2);
@@ -100,13 +100,13 @@ int init_HMC5883(void)
 	I2C_WriteReg(HMC5883SlaveAddress,HMC58X3_R_CONFA, 0x010 + HMC_NEG_BIAS); // Reg A DOR=0x010 + MS1,MS0 set to negative bias.
 	I2C_WriteReg(HMC5883SlaveAddress,HMC58X3_R_MODE, 1);
 	delayms(10);
-	I2C_ReadReg(HMC5883SlaveAddress, 0x03, (u8*)data, 6);
+	I2C_ReadReg(HMC5883SlaveAddress, 0x03, (uint8_t*)data, 6);
 	
 	for(j=0; j<10; j++)
 	{
 		I2C_WriteReg(HMC5883SlaveAddress,HMC58X3_R_MODE, 1);
 		delayms(10);
-		I2C_ReadReg(HMC5883SlaveAddress, 0x03, (u8*)data, 6);
+		I2C_ReadReg(HMC5883SlaveAddress, 0x03, (uint8_t*)data, 6);
 		for(i=0; i<3; i++)
 		{
 			swap(&data[i], 2);
@@ -151,13 +151,13 @@ int read_HMC5883(short*data)
 #ifdef EXTERNAL_HMC5883
 	switch_I2C();
 #endif
-	int result = I2C_ReadReg(HMC5883SlaveAddress, 0x03, (u8*)data, 6);
+	int result = I2C_ReadReg(HMC5883SlaveAddress, 0x03, (uint8_t*)data, 6);
 #ifdef EXTERNAL_HMC5883
 	restore_I2C();
 #endif
 	for(i=0; i<3; i++)
 	{
-		swap((u8*)&data[i], 2);
+		swap((uint8_t*)&data[i], 2);
 		data[i] *= gain[i];
 	}
 	
