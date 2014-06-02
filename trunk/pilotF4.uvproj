@@ -334,7 +334,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>1</Optim>
+            <Optim>4</Optim>
             <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
@@ -348,7 +348,7 @@
             <uSurpInc>0</uSurpInc>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>USE_STDPERIPH_DRIVER,STM32F429_439xx,USE_STM324x9I_EVAL,STM32F4,__FPU_USED=1,USE_USB_OTG_FS</Define>
+              <Define>USE_STDPERIPH_DRIVER,STM32F429_439xx,USE_STM324x9I_EVAL,STM32F4,USE_USB_OTG_FS,__FPU_USED=1,HSE_VALUE=8000000</Define>
               <Undefine></Undefine>
               <IncludePath>.\stm32\STM32F4xx_StdPeriph_Driver</IncludePath>
             </VariousControls>
@@ -397,14 +397,14 @@
               <FilePath>.\mcu.h</FilePath>
             </File>
             <File>
-              <FileName>pilot.cpp</FileName>
-              <FileType>8</FileType>
-              <FilePath>.\pilot.cpp</FilePath>
-            </File>
-            <File>
               <FileName>stm32f4xx_it.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\stm32f4xx_it.c</FilePath>
+            </File>
+            <File>
+              <FileName>pilot.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\pilot.cpp</FilePath>
             </File>
           </Files>
         </Group>
@@ -787,16 +787,6 @@
               <FilePath>.\common\config.h</FilePath>
             </File>
             <File>
-              <FileName>eeprom.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\common\eeprom.c</FilePath>
-            </File>
-            <File>
-              <FileName>eeprom.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\common\eeprom.h</FilePath>
-            </File>
-            <File>
               <FileName>gps.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\common\gps.c</FilePath>
@@ -902,14 +892,14 @@
               <FilePath>.\common\vector.h</FilePath>
             </File>
             <File>
-              <FileName>settings.c</FileName>
+              <FileName>eepromF4.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\common\settings.c</FilePath>
+              <FilePath>.\common\eepromF4.c</FilePath>
             </File>
             <File>
-              <FileName>settings.h</FileName>
+              <FileName>eepromF4.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\common\settings.h</FilePath>
+              <FilePath>.\common\eepromF4.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -1706,14 +1696,14 @@
               <FilePath>.\mcu.h</FilePath>
             </File>
             <File>
-              <FileName>pilot.cpp</FileName>
-              <FileType>8</FileType>
-              <FilePath>.\pilot.cpp</FilePath>
-            </File>
-            <File>
               <FileName>stm32f4xx_it.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\stm32f4xx_it.c</FilePath>
+            </File>
+            <File>
+              <FileName>pilot.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\pilot.cpp</FilePath>
             </File>
           </Files>
         </Group>
@@ -2096,16 +2086,6 @@
               <FilePath>.\common\config.h</FilePath>
             </File>
             <File>
-              <FileName>eeprom.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\common\eeprom.c</FilePath>
-            </File>
-            <File>
-              <FileName>eeprom.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\common\eeprom.h</FilePath>
-            </File>
-            <File>
               <FileName>gps.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\common\gps.c</FilePath>
@@ -2211,14 +2191,14 @@
               <FilePath>.\common\vector.h</FilePath>
             </File>
             <File>
-              <FileName>settings.c</FileName>
+              <FileName>eepromF4.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\common\settings.c</FilePath>
+              <FilePath>.\common\eepromF4.c</FilePath>
             </File>
             <File>
-              <FileName>settings.h</FileName>
+              <FileName>eepromF4.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\common\settings.h</FilePath>
+              <FilePath>.\common\eepromF4.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -3015,14 +2995,14 @@
               <FilePath>.\mcu.h</FilePath>
             </File>
             <File>
-              <FileName>pilot.cpp</FileName>
-              <FileType>8</FileType>
-              <FilePath>.\pilot.cpp</FilePath>
-            </File>
-            <File>
               <FileName>stm32f4xx_it.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\stm32f4xx_it.c</FilePath>
+            </File>
+            <File>
+              <FileName>pilot.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\pilot.cpp</FilePath>
             </File>
           </Files>
         </Group>
@@ -3405,16 +3385,6 @@
               <FilePath>.\common\config.h</FilePath>
             </File>
             <File>
-              <FileName>eeprom.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\common\eeprom.c</FilePath>
-            </File>
-            <File>
-              <FileName>eeprom.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\common\eeprom.h</FilePath>
-            </File>
-            <File>
               <FileName>gps.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\common\gps.c</FilePath>
@@ -3520,14 +3490,14 @@
               <FilePath>.\common\vector.h</FilePath>
             </File>
             <File>
-              <FileName>settings.c</FileName>
+              <FileName>eepromF4.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\common\settings.c</FilePath>
+              <FilePath>.\common\eepromF4.c</FilePath>
             </File>
             <File>
-              <FileName>settings.h</FileName>
+              <FileName>eepromF4.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\common\settings.h</FilePath>
+              <FilePath>.\common\eepromF4.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -4324,14 +4294,14 @@
               <FilePath>.\mcu.h</FilePath>
             </File>
             <File>
-              <FileName>pilot.cpp</FileName>
-              <FileType>8</FileType>
-              <FilePath>.\pilot.cpp</FilePath>
-            </File>
-            <File>
               <FileName>stm32f4xx_it.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\stm32f4xx_it.c</FilePath>
+            </File>
+            <File>
+              <FileName>pilot.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\pilot.cpp</FilePath>
             </File>
           </Files>
         </Group>
@@ -4714,16 +4684,6 @@
               <FilePath>.\common\config.h</FilePath>
             </File>
             <File>
-              <FileName>eeprom.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\common\eeprom.c</FilePath>
-            </File>
-            <File>
-              <FileName>eeprom.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\common\eeprom.h</FilePath>
-            </File>
-            <File>
               <FileName>gps.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\common\gps.c</FilePath>
@@ -4829,14 +4789,14 @@
               <FilePath>.\common\vector.h</FilePath>
             </File>
             <File>
-              <FileName>settings.c</FileName>
+              <FileName>eepromF4.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\common\settings.c</FilePath>
+              <FilePath>.\common\eepromF4.c</FilePath>
             </File>
             <File>
-              <FileName>settings.h</FileName>
+              <FileName>eepromF4.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\common\settings.h</FilePath>
+              <FilePath>.\common\eepromF4.h</FilePath>
             </File>
           </Files>
         </Group>

@@ -163,7 +163,7 @@ static void Timer_Config(int enable_input)
 	TIM_TimeBaseStructure.TIM_Prescaler = 71;
 #endif
 #ifdef STM32F4
-	TIM_TimeBaseStructure.TIM_Prescaler = 84;
+	TIM_TimeBaseStructure.TIM_Prescaler = 83;
 #endif
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;

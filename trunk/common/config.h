@@ -9,8 +9,8 @@
 #define GPS_BUFFER_BLOCK 512
 #define PCB_VERSION 3
 //#define EXTERNAL_HMC5883
-//#define EXTERNAL_HMC5883_2
-//#define HEADFREE
+#define EXTERNAL_HMC5883_2
+#define HEADFREE
 
 #ifndef PCB_VERSION
 #define PCB_VERSION 1
@@ -38,7 +38,7 @@
 #define hall_sensor_sensitivity	0.0666		// unit: mV / mA
 #define VOLTAGE_DIVIDER_BASE 6		// uncalibrated voltage divider ratio
 #define MAX_GYRO_BIAS_DRIFT 30
-#define THROTTLE_STOP 1090
+#define THROTTLE_STOP 1110
 #define THROTTLE_IDLE (THROTTLE_STOP+60)
 #define THROTTLE_MAX 1888
 #define THROTTLE_CRUISE 1550

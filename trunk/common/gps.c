@@ -56,6 +56,8 @@ void GPS_Init(uint32_t baud_rate)
 #ifdef STM32F4
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_USART1);
+	GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_USART1);
 #endif
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
@@ -64,7 +66,7 @@ void GPS_Init(uint32_t baud_rate)
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
 #endif
 #ifdef STM32F4
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
 #endif
 	GPIO_Init(GPIOA, &GPIO_InitStructure);

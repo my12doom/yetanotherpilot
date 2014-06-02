@@ -1126,10 +1126,18 @@ int output()
 	return 0;
 }
 
+int log_counter = 0;
+
 int save_logs()
 {
 	if (LOG_LEVEL == LOG_SDCARD && !sd_ok)
 		return 0;
+
+	if (log_counter++ != 10)
+		return 0;
+
+	log_counter = 0;
+
 
 	// disable USB interrupt to prevent sdcard dead lock
 #ifdef STM32F1
@@ -1506,7 +1514,7 @@ void inline debugpin_init()
 #endif
 #ifdef STM32F4
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 #endif
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -1927,15 +1935,8 @@ int osd()
 #define DEMCR           (*((volatile unsigned long *)(0xE000EDFC)))
 #define TRCENA          0x01000000
 
-uint16_t cpuGetFlashSize(void)
-{
-   return (*(__IO u16*)(0x1FFF7A22));
-   // return (*(__IO u32*)(0x1FFF7A20))>>16;
-}
-
 int main(void)
-{
-	
+{	
 	//Basic Initialization
 	init_timer();
 	SysClockInit();
