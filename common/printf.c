@@ -46,7 +46,7 @@ void printf_init(void)
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
 #endif
 #ifdef STM32F4
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
 #endif
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
