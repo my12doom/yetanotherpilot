@@ -34,22 +34,46 @@ int sonar_init()
 	TIM_Cmd(TIM6,ENABLE);
 
 	// A0 as input
-	RCC_APB1PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE); 
+#ifdef STM32F1
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE); 
+#endif
+#ifdef STM32F4
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+#endif
+
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_0;
+#ifdef STM32F1
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
+#endif
+#ifdef STM32F4
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
+#endif
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
 	// A1 as trigger
 	GPIO_ResetBits(GPIOA, GPIO_Pin_1);
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_1;
+#ifdef STM32F1
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+#endif
+#ifdef STM32F4
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+#endif
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 	GPIO_ResetBits(GPIOA, GPIO_Pin_1);
 
 	// EXTI
 	EXTI_ClearITPendingBit(EXTI_Line0);
+#ifdef STM32F1
 	GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource0);
+#endif
+#ifdef STM32F4
+	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, EXTI_PinSource0);
+#endif
 
 	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
 	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;

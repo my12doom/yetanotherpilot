@@ -52,7 +52,12 @@
 #define MMC_SD_SPI_PORT	GPIOA
 /*****************************/
 
+#ifdef STM32F1
 #define MMC_SD_GPIO_PORTS	RCC_APB2Periph_GPIOA
+#endif
+#ifdef STM32F4
+#define MMC_SD_GPIO_PORTS	RCC_AHB1Periph_GPIOA
+#endif
 /****************************************************************/
 
 

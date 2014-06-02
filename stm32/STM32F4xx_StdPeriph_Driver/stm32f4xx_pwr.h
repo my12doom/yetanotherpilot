@@ -93,11 +93,11 @@
 /** @defgroup PWR_Regulator_state_in_UnderDrive_mode 
   * @{
   */
-#define PWR_MainRegulator_UnderDrive_ON               PWR_CR_MRUDS
-#define PWR_LowPowerRegulator_UnderDrive_ON           ((uint32_t)(PWR_CR_LPDS | PWR_CR_LPUDS))
-
-#define IS_PWR_REGULATOR_UNDERDRIVE(REGULATOR) (((REGULATOR) == PWR_MainRegulator_UnderDrive_ON) || \
-                                                ((REGULATOR) == PWR_LowPowerRegulator_UnderDrive_ON))
+// #define PWR_MainRegulator_UnderDrive_ON               PWR_CR_MRUDS
+// #define PWR_LowPowerRegulator_UnderDrive_ON           ((uint32_t)(PWR_CR_LPDS | PWR_CR_LPUDS))
+// 
+// #define IS_PWR_REGULATOR_UNDERDRIVE(REGULATOR) (((REGULATOR) == PWR_MainRegulator_UnderDrive_ON) || \
+//                                                 ((REGULATOR) == PWR_LowPowerRegulator_UnderDrive_ON))
 
 /**
   * @}

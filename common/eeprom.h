@@ -36,6 +36,7 @@ extern "C" {
 #define STM32F10X_HD
 #endif
 
+
 /* Exported constants --------------------------------------------------------*/
 /* Define the STM32F10Xxx Flash page size depending on the used STM32 device */
 #if defined (STM32F10X_LD) || defined (STM32F10X_MD)
@@ -44,6 +45,7 @@ extern "C" {
   #define PAGE_SIZE  (uint16_t)0x800  /* Page size = 2KByte */
 #endif
 
+#ifdef STM32F1
 /* EEPROM start address in Flash */
 #define EEPROM_START_ADDRESS    ((uint32_t)0x08040000) /* EEPROM emulation start address: after 124KByte of used Flash memory */
 
@@ -53,6 +55,20 @@ extern "C" {
 
 #define PAGE1_BASE_ADDRESS      ((uint32_t)(EEPROM_START_ADDRESS + PAGE_SIZE))
 #define PAGE1_END_ADDRESS       ((uint32_t)(EEPROM_START_ADDRESS + (2 * PAGE_SIZE - 1)))
+#endif
+
+#ifdef STM32F4
+#define PAGE_SIZE  (uint16_t)0x20000  /* Page size = 128KByte */
+/* EEPROM start address in Flash */
+#define EEPROM_START_ADDRESS    ((uint32_t)0x080C0000) /* EEPROM emulation start address: after 124KByte of used Flash memory */
+
+/* Pages 0 and 1 base and end addresses */
+#define PAGE0_BASE_ADDRESS      ((uint32_t)(EEPROM_START_ADDRESS + 0x000))
+#define PAGE0_END_ADDRESS       ((uint32_t)(EEPROM_START_ADDRESS + (PAGE_SIZE - 1)))
+
+#define PAGE1_BASE_ADDRESS      ((uint32_t)(EEPROM_START_ADDRESS + PAGE_SIZE))
+#define PAGE1_END_ADDRESS       ((uint32_t)(EEPROM_START_ADDRESS + (2 * PAGE_SIZE - 1)))
+#endif
 
 /* Used Flash pages for EEPROM emulation */
 #define PAGE0                   ((uint16_t)0x0000)

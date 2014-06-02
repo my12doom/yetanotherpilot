@@ -11,8 +11,14 @@ int I2C_Reset()
 	// change GPIO into Out Push-pull mode
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10 | GPIO_Pin_11; 
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;  
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+#ifdef STM32F1
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+#endif
+#ifdef STM32F4
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+#endif
 	GPIO_Init(GPIOB, &GPIO_InitStructure);       
 
 	// disable I2C2 and bit banging reset
@@ -28,7 +34,13 @@ int I2C_Reset()
 
 	// Change GPIO back and re-enable I2C2
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10 | GPIO_Pin_11; 
+#ifdef STM32F1
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_OD;
+#endif
+#ifdef STM32F4
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
+#endif
 	GPIO_Init(GPIOB, &GPIO_InitStructure);       
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_I2C2,ENABLE);
 		

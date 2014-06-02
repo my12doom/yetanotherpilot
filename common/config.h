@@ -9,8 +9,8 @@
 #define GPS_BUFFER_BLOCK 512
 #define PCB_VERSION 3
 //#define EXTERNAL_HMC5883
-#define EXTERNAL_HMC5883_2
-#define HEADFREE
+//#define EXTERNAL_HMC5883_2
+//#define HEADFREE
 
 #ifndef PCB_VERSION
 #define PCB_VERSION 1
@@ -27,7 +27,7 @@
 
 // pilot configuration
 #define QUADCOPTER 1
-#define PI 3.14159265
+#define PI 3.14159265f
 #define cycle_time (3000)
 
 #define RC_TIMEOUT 1000000				// 1 seconds
@@ -38,7 +38,7 @@
 #define hall_sensor_sensitivity	0.0666		// unit: mV / mA
 #define VOLTAGE_DIVIDER_BASE 6		// uncalibrated voltage divider ratio
 #define MAX_GYRO_BIAS_DRIFT 30
-#define THROTTLE_STOP 1110
+#define THROTTLE_STOP 1090
 #define THROTTLE_IDLE (THROTTLE_STOP+60)
 #define THROTTLE_MAX 1888
 #define THROTTLE_CRUISE 1550
@@ -47,8 +47,8 @@
 #define ACRO_PITCH_RATE (PI)			// 180 degree/s
 #define ACRO_YAW_RATE (PI/2)			// 90 degree/s
 
-#define ACCELEROMETER_THRESHOLD 0.3
-#define MAG_THRESHOLD 0.3
+#define ACCELEROMETER_THRESHOLD 0.3f
+#define MAG_THRESHOLD 0.3f
 
 #define CRUISING_SPEED 125				// 125 pascal
 #define LOG_NRF 1

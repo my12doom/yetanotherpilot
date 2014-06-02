@@ -137,14 +137,26 @@ void NRF_Init(void)
 	GPIO_InitTypeDef GPIO_InitStructure;
 	
 	//使能 GPIOB,GPIOD,复用功能时钟
+#ifdef STM32F1
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_AFIO, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
+#endif
+#ifdef STM32F4
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC, ENABLE);
+#endif
 
 	//使能 SPI1 时钟
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
 
 	//配置 SPI_NRF_SPI 的 SCK,MISO,MOSI 引脚，GPIOA^5,GPIOA^6,GPIOA^7
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+#ifdef STM32F1
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+#endif
+#ifdef STM32F4
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+#endif
 #ifdef STATION
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3 | GPIO_Pin_4 | GPIO_Pin_5;
@@ -156,22 +168,33 @@ void NRF_Init(void)
 
 	// 和  CSN 引脚: NSS GPIOA^1(PCB1.0) / GPIOA^3(PCB2.0)  / GPIOA^115(PCB3.0)
 	//配置 CE 引脚，GPIOA^2(PCB1.0)/GPIOA^15(PCB2.0)/GPIOC^15(PCB3.0) 
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+#ifdef STM32F1
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+#endif
+#ifdef STM32F4
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+#endif
 #if PCB_VERSION == 1  || defined(STATION)
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_1;
 #elif PCB_VERSION == 2
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_15 | GPIO_Pin_3;
 #elif PCB_VERSION == 3
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_15;
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 #endif
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
 	//配置 SPI_NRF_SPI 的IRQ 引脚，GPIOA^3(PCB1.0) / GPIOB^2(PCB2.0) / GPIOA^4(PCB3.0)
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU ;  //上拉输入
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+#ifdef STM32F1
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+#endif
+#ifdef STM32F4
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+#endif
 #if PCB_VERSION == 1  || defined(STATION)
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
@@ -204,7 +227,14 @@ void NRF_Init(void)
 #ifdef STATION
 	GPIO_PinRemapConfig(GPIO_Remap_SPI1, ENABLE);
 #endif
+
+#ifdef STM32F1
 	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);
+#endif
+
+#ifdef STM32F4
+	// TODO
+#endif
 
 #ifndef STATION
 	state = SPI_NRF_ReadReg(STATUS);
