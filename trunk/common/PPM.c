@@ -82,15 +82,28 @@ void EXTI15_10_IRQHandler(void)
 
 static void GPIO_Config(int enable_input) 
 {
-	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitTypeDef GPIO_InitStructure = {0};
 
 	// enable clocks: TIM3 TIM4 GPIOA GPIOB AFIO
+#ifdef STM32F1
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3 | RCC_APB1Periph_TIM4, ENABLE); 
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOB | RCC_APB2Periph_AFIO, ENABLE);
+#endif
+#ifdef STM32F4
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG,ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3 | RCC_APB1Periph_TIM4, ENABLE);
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
+#endif
 
 	// open B0 B1 B4 B5 B6 B7 B8 B9 as output
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_4 | GPIO_Pin_5 | GPIO_Pin_6 | GPIO_Pin_7 | GPIO_Pin_8 | GPIO_Pin_9;
+#ifdef STM32F1
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+#endif
+#ifdef STM32F4
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+#endif
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	
 	#if PPM_6 == 1
@@ -100,14 +113,35 @@ static void GPIO_Config(int enable_input)
 	
 	// open B10-B15 as input
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10 | GPIO_Pin_11 | GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15;
+#ifdef STM32F1
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+#endif
+#ifdef STM32F4
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+#endif
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 
+#ifdef STM32F1
 	// remap TIM3
 	GPIO_PinRemapConfig(GPIO_PartialRemap_TIM3, ENABLE);
 
 	// disable JTAG, it conflicts with TIM3, leave SW-DP enabled, 
 	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable, ENABLE);
+#endif
+
+#ifdef STM32F4
+#ifndef PPM_6
+	GPIO_PinAFConfig(GPIOB, GPIO_PinSource0, GPIO_AF_TIM3);
+	GPIO_PinAFConfig(GPIOB, GPIO_PinSource1, GPIO_AF_TIM3);
+#endif
+	GPIO_PinAFConfig(GPIOB, GPIO_PinSource4, GPIO_AF_TIM3);
+	GPIO_PinAFConfig(GPIOB, GPIO_PinSource5, GPIO_AF_TIM3);
+	GPIO_PinAFConfig(GPIOB, GPIO_PinSource6, GPIO_AF_TIM4);
+	GPIO_PinAFConfig(GPIOB, GPIO_PinSource7, GPIO_AF_TIM4);
+	GPIO_PinAFConfig(GPIOB, GPIO_PinSource8, GPIO_AF_TIM4);
+	GPIO_PinAFConfig(GPIOB, GPIO_PinSource9, GPIO_AF_TIM4);
+#endif
 }
 
 static void Timer_Config(int enable_input)
@@ -116,14 +150,21 @@ static void Timer_Config(int enable_input)
 	EXTI_InitTypeDef   EXTI_InitStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 	TIM_OCInitTypeDef  TIM_OCInitStructure;
+	int line;
+	int source;
 
 	// Time base configuration
-	#if QUADCOPTER == 1
+#if QUADCOPTER == 1
 	TIM_TimeBaseStructure.TIM_Period = 2999;
-	#else
+#else
 	TIM_TimeBaseStructure.TIM_Period = 9999;
-	#endif
+#endif
+#ifdef STM32F1
 	TIM_TimeBaseStructure.TIM_Prescaler = 71;
+#endif
+#ifdef STM32F4
+	TIM_TimeBaseStructure.TIM_Prescaler = 84;
+#endif
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 
@@ -176,42 +217,32 @@ static void Timer_Config(int enable_input)
 
 	// configure interrupts
 
-	EXTI_ClearITPendingBit(EXTI_Line10);
-	EXTI_ClearITPendingBit(EXTI_Line11);
-	EXTI_ClearITPendingBit(EXTI_Line12);
-	EXTI_ClearITPendingBit(EXTI_Line13);
-	EXTI_ClearITPendingBit(EXTI_Line14);
-	EXTI_ClearITPendingBit(EXTI_Line15);
-	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource10);
-	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource11);
-	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource12);
-	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource13);
-	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource14);
-	GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, GPIO_PinSource15);
 
 
 	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
 	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
 	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
 
-	EXTI_InitStructure.EXTI_Line = EXTI_Line10;
-	EXTI_Init(&EXTI_InitStructure);
+#ifdef STM32F1
+	for(line = EXTI_Line10, source=GPIO_PinSource10; line<=EXTI_Line15; line<<=1, source++)
+	{
+		EXTI_ClearITPendingBit(line);
+		GPIO_EXTILineConfig(GPIO_PortSourceGPIOB, source);
+		EXTI_InitStructure.EXTI_Line = line;
+		EXTI_Init(&EXTI_InitStructure);
+	}
+#endif
 
-	EXTI_InitStructure.EXTI_Line = EXTI_Line11;	
-	EXTI_Init(&EXTI_InitStructure);
+#ifdef STM32F4
 
-	EXTI_InitStructure.EXTI_Line = EXTI_Line12;
-	EXTI_Init(&EXTI_InitStructure);
-
-	EXTI_InitStructure.EXTI_Line = EXTI_Line13;
-	EXTI_Init(&EXTI_InitStructure);
-
-	EXTI_InitStructure.EXTI_Line = EXTI_Line14;
-	EXTI_Init(&EXTI_InitStructure);
-
-	EXTI_InitStructure.EXTI_Line = EXTI_Line15;
-	EXTI_Init(&EXTI_InitStructure);
-
+	for(line = EXTI_Line10, source=EXTI_PinSource10; line<=EXTI_Line15; line<<=1, source++)
+	{
+		EXTI_ClearITPendingBit(line);
+		SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOB, source);
+		EXTI_InitStructure.EXTI_Line = line;
+		EXTI_Init(&EXTI_InitStructure);
+	}
+#endif
 
 	NVIC_InitStructure.NVIC_IRQChannel = EXTI15_10_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;

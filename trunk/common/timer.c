@@ -21,7 +21,12 @@ int init_timer(void)
 	NVIC_InitTypeDef NVIC_InitStructure;
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	
+	#ifdef STM32F1
 	us_cycle_count = SystemCoreClock/1000000;
+	#endif
+	#ifdef STM32F4
+	us_cycle_count = 84;
+	#endif
 	overflow_time_us = overflow / us_cycle_count / 2;
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM5,ENABLE);
 

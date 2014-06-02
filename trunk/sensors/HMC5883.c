@@ -124,7 +124,7 @@ int init_HMC5883(void)
 	}
 	
 	for(i=0; i<3; i++)
-		gain[i]=fabs(820.0*mag_ref[i]*2.0*10.0/gain[i]);
+		gain[i]=fabs(820.0f*mag_ref[i]*2.0f*10.0f/gain[i]);
 	
 	I2C_WriteReg(HMC5883SlaveAddress ,HMC58X3_R_CONFA ,0x70 ); //Configuration Register A  -- 0 11 100 00  num samples: 8 ; output rate: 15Hz ; normal measurement mode
 	I2C_WriteReg(HMC5883SlaveAddress ,HMC58X3_R_CONFB ,0x20 ); //Configuration Register B  -- 001 00000    configuration gain 1.3Ga

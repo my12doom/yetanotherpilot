@@ -3,7 +3,12 @@
 #define MAX7456_SPI          SPI1
 
 #define MAX7456_SPICLK       RCC_APB2Periph_SPI1
+#ifdef STM32F1
 #define MAX7456_PCLK         RCC_APB2Periph_GPIOA
+#endif
+#ifdef STM32F4
+#define MAX7456_PCLK         RCC_AHB1Periph_GPIOA
+#endif
 #define MAX7456_SPI_PORT     GPIOA
 #define MAX7456_SCK          GPIO_Pin_5
 #define MAX7456_MISO         GPIO_Pin_6

@@ -54,7 +54,13 @@ void SPI_Low(void)
         /*Configure PA.4(NSS)--------------------------------------------*/
         GPIO_InitStructure.GPIO_Pin =MMC_SD_CS;
         GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-        GPIO_InitStructure.GPIO_Mode=GPIO_Mode_Out_PP;
+#ifdef STM32F1
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+#endif
+#ifdef STM32F4
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+		GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+#endif
         
         GPIO_Init(MMC_SD_CS_PORT, &GPIO_InitStructure);
 }
@@ -82,11 +88,17 @@ void SPI_High(void)
   	/* SPI1 enable */
   	SPI_Cmd(SPI1, ENABLE);
         
-        /*Configure PA.4(NSS)--------------------------------------------*/
-        GPIO_InitStructure.GPIO_Pin =MMC_SD_CS;
-        GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-        GPIO_InitStructure.GPIO_Mode=GPIO_Mode_Out_PP;
-        GPIO_Init(MMC_SD_CS_PORT, &GPIO_InitStructure);               
+    /*Configure PA.4(NSS)--------------------------------------------*/
+    GPIO_InitStructure.GPIO_Pin =MMC_SD_CS;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+#ifdef STM32F1
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+#endif
+#ifdef STM32F4
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+#endif
+	GPIO_Init(MMC_SD_CS_PORT, &GPIO_InitStructure);               
 }
 
 /* read and write one byte , full duplex */
@@ -142,21 +154,39 @@ uint8 MMC_SD_Init(void)
 	//uart_puts("ini sd\r\n");
 	
 	/* GPIO Periph clock enable */
+#ifdef STM32F1
 	RCC_APB2PeriphClockCmd(MMC_SD_GPIO_PORTS | RCC_APB2Periph_GPIOB, ENABLE);
+#endif
+#ifdef STM32F4
+	RCC_APB2PeriphClockCmd(MMC_SD_GPIO_PORTS, ENABLE);
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+#endif
 	/* SPI1 Periph clock enable */
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
 
 	/* config CS of SD */
 	GPIO_InitStructure.GPIO_Pin = MMC_SD_CS;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-	GPIO_Init(MMC_SD_CS_PORT, &GPIO_InitStructure);
+#ifdef STM32F1
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+#endif
+#ifdef STM32F4
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+		GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+#endif
+ 	GPIO_Init(MMC_SD_CS_PORT, &GPIO_InitStructure);
 
 
 	/* Configure SPI1 pins: SCK, MISO and MOSI */
 	GPIO_InitStructure.GPIO_Pin = MMC_SD_SCK | MMC_SD_MISO | MMC_SD_MOSI;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+#ifdef STM32F1
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+#endif
+#ifdef STM32F4
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+#endif
 	GPIO_Init(MMC_SD_SPI_PORT, &GPIO_InitStructure);
 
 

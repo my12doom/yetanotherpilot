@@ -1,6 +1,6 @@
 #ifndef __I2C_SW_H__
 #define __I2C_SW_H__
-#include <stm32f10x.h>
+#include "../mcu.h"
 
 #ifdef __cplusplus
 extern "C" {

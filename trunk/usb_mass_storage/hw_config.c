@@ -332,6 +332,7 @@ static void RCC_Config(void)
 *******************************************************************************/
 void GPIO_Config(void)
 {
+	/*
   GPIO_InitTypeDef GPIO_InitStructure;
 
   //pa 8 9 10
@@ -347,7 +348,7 @@ void GPIO_Config(void)
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
   GPIO_Init(GPIOF, &GPIO_InitStructure);
 
-  /* Configure PC.00 (ADC Channel10) as analog input -------------------------*/
+  // Configure PC.00 (ADC Channel10) as analog input -------------------------
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
   GPIO_Init(GPIOC, &GPIO_InitStructure);
@@ -377,10 +378,9 @@ void GPIO_Config(void)
   GPIO_Init(GPIOG, &GPIO_InitStructure);
 
    //以下几句是作为USB软中断的，但是却和写文件冲突，不知道原因//
-  /* Enable USB_DISCONNECT GPIO clock */
  // RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIO_DISCONNECT, ENABLE);
 
-  /* USB_DISCONNECT_PIN used as USB pull-up */
+  // USB_DISCONNECT_PIN used as USB pull-up
  // GPIO_InitStructure.GPIO_Pin = USB_DISCONNECT_PIN;
  // GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
  // GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;

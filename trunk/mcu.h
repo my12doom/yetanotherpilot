@@ -16,15 +16,19 @@
 #endif
 
 #ifdef STM32F4
-#include <stm32f4xx_hal.h>
-#include <stm32f4xx_hal_usart.h>
-#include <stm32f4xx_hal_dma.h>
-#include <stm32f4xx_hal_sd.h>
-#include <stm32f4xx_hal_gpio.h>
-#include <stm32f4xx_hal_rcc.h>
-#include <stm32f4xx_hal_spi.h>
-// #include <stm32f4xx_hal_exti.h>
-#include <stm32f4xx_hal_adc.h>
-#include <stm32f4xx_hal_tim.h>
-#include <stm32f4xx_hal_flash.h>
+#include <stdint.h>
+#include <stdint.h>
+#include <stm32f4xx.h>
+#include <stm32f4xx_syscfg.h>
+#include <misc.h>
+#include <stm32f4xx_usart.h>
+#include <stm32f4xx_dma.h>
+#include <stm32f4xx_sdio.h>
+#include <stm32f4xx_gpio.h>
+#include <stm32f4xx_rcc.h>
+#include <stm32f4xx_spi.h>
+#include <stm32f4xx_exti.h>
+#include <stm32f4xx_adc.h>
+#include <stm32f4xx_tim.h>
+#include <stm32f4xx_flash.h>
 #endif

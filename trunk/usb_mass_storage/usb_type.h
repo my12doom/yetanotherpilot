@@ -26,7 +26,7 @@
 #define NULL ((void *)0)
 #endif
 
-#ifndef __STM32F10x_H
+#if !defined(__STM32F10x_H) && !defined(STM32F4)
 
 typedef signed long      s32;
 typedef signed short     s16;

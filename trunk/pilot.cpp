@@ -19,7 +19,6 @@
 #include "sensors/mag_offset.h"
 #include "common/gps.h"
 #include "common/config.h"
-#include "common/eeprom.h"
 #include "common/ads1115.h"
 #include "fat/ff.h"
 #include "osd/MAX7456.h"
@@ -29,12 +28,31 @@
 extern "C"
 {
 #include "fat/diskio.h"
-#include "fat/sdcard.h"
 
 //#include "osd/osdcore.h"
-#include "usb_mass_storage/hw_config.h"
-#include "usb_mass_storage/usb_init.h"
-#include "usb_mass_storage/mass_mal.h"
+
+#ifdef STM32F1
+	#include "common/eeprom.h"
+	#include "usb_mass_storage/hw_config.h"
+	#include "usb_mass_storage/usb_init.h"
+	#include "usb_mass_storage/mass_mal.h"
+#endif
+
+#ifdef STM32F4
+	#include "common/eepromF4.h"
+	#include "usb_mass_storageF4/usbd_msc_core.h"
+	#include "usb_mass_storageF4/usbd_usr.h"
+	#include "usb_mass_storageF4/usbd_desc.h"
+	#include "usb_mass_storageF4/usb_conf.h"
+
+	#ifdef USB_OTG_HS_INTERNAL_DMA_ENABLED
+	#if defined ( __ICCARM__ ) /*!< IAR Compiler */
+	#pragma data_alignment=4
+	#endif
+	#endif /* USB_OTG_HS_INTERNAL_DMA_ENABLED */
+
+	__ALIGN_BEGIN USB_OTG_CORE_HANDLE     USB_OTG_dev  __ALIGN_END ;
+#endif
 }
 
 typedef struct
@@ -152,7 +170,7 @@ vector gyro_zero = {0};
 vector accel_avg = {0};
 vector mag_zero = {0};
 vector mag_gain = {0.7924,0.8354,0.8658};
-// double altitude = 0;
+float voltage_divider_factor = 6;
 int ms5611[2];
 int ms5611_result = -1;
 float adc_2_5_V = -1;
@@ -160,7 +178,6 @@ float VCC_3_3V = -1;
 float VCC_5V = -1;
 float VCC_motor = -1;
 float airspeed_voltage = -1;
-float voltage_divider_factor = 6;
 long last_baro_time = 0;
 int baro_counter = 0;
 char climb_rate_string[10];
@@ -326,7 +343,7 @@ float R[4] =
 
 int kalman()
 {
-	if (interval > 0.2)
+	if (interval > 0.2f)
 		return -1;
 
 	float dt = interval;
@@ -512,7 +529,7 @@ int auto_throttle(float user_climb_rate)
 		accel_error_pid[0], accel_error_pid[1], accel_error_pid[2]);
 
 	// update throttle_real_crusing if we're in near level state and no violent climbing/descending action
-	if (airborne && throttle_real>THROTTLE_IDLE && fabs(state[1]) < 0.5 && fabs(state[3] + accelz)<0.5 && fabs(roll)<5 && fabs(pitch)<5)
+	if (airborne && throttle_real>THROTTLE_IDLE && fabs(state[1]) < 0.5f && fabs(state[3] + accelz)<0.5f && fabs(roll)<5 && fabs(pitch)<5)
 	{
 		// 0.2Hz low pass filter
 		const float RC02 = 1.0f/(2*3.1415926 * 0.2f);
@@ -553,7 +570,7 @@ int altitude_estimation_inertial()
 	_position_correction += _position_error * _k1_z  * dt;
 
 	const float velocity_increase = (accelz + _accel_correction_ef) * dt;
-	_position_base += (_velocity_base + _velocity_correction + velocity_increase*0.5) * dt;
+	_position_base += (_velocity_base + _velocity_correction + velocity_increase*0.5f) * dt;
 	_velocity_base += velocity_increase;
 
 	_position = _position_base + _position_correction;
@@ -590,14 +607,14 @@ int sdcard_speed_test()
 		ERROR("SDCARD 2Mbyte read cost %dus\r\n", int(ttt));
 
 		ttt = getus();
-		for(int i=0; i<4096; i++)
-			SD_ReadBlock(((int64_t)i) << 9 ,(uint32_t*)blk, 512);
+//		for(int i=0; i<4096; i++)
+//			SD_ReadBlock(((int64_t)i) << 9 ,(uint32_t*)blk, 512);
 		ttt = getus() - ttt;
 		ERROR("SDCARD 2Mbyte raw read cost %dus\r\n", int(ttt));
 
 		ttt = getus();
-		for(int i=0; i<4096; i+=8)
-			SD_ReadMultiBlocks(((int64_t)i+8192) << 9 ,(uint32_t*)blk, 512,8);
+//		for(int i=0; i<4096; i+=8)
+//			SD_ReadMultiBlocks(((int64_t)i+8192) << 9 ,(uint32_t*)blk, 512,8);
 		ttt = getus() - ttt;
 		ERROR("SDCARD 2Mbyte raw read cost %dus\r\n", int(ttt));
 	}
@@ -607,14 +624,14 @@ int sdcard_speed_test()
 
 int sdcard_init()
 {	
-	TRACE("sdcard init...");
+	ERROR("sdcard init...");
 	FIL f;
 	res = disk_initialize(0) == RES_OK ? FR_OK : FR_DISK_ERR;
 	res = f_mount(&fs, "", 0);
 	res = f_open(&f, "test.bin", FA_CREATE_ALWAYS | FA_WRITE | FA_READ);
 	sd_ok = res == FR_OK;
 	f_close(&f);
-	TRACE("%s\r\n", sd_ok ? "OK" : "FAIL");
+	ERROR("%s\r\n", sd_ok ? "OK" : "FAIL");
 	return 0;
 }
 
@@ -688,7 +705,7 @@ int log(void *data, int size)
 	
 	if (getus() - us > 7000)
 	{
-		TRACE("log cost %d us  ", int(getus()-us));
+		ERROR("log cost %d us  ", int(getus()-us));
 		TRACE("  fat R/R:%d/%d\r\n", read_count, write_count);
 	}
 
@@ -922,7 +939,7 @@ int calculate_target()
 			TRACE("angle pos,target=%f,%f\r\n", angle_pos[2] * PI180, angle_target[2] * PI180);
 
 			// check takeoff
-			if ( (state[0] > takeoff_ground_altitude + 2.0) ||
+			if ( (state[0] > takeoff_ground_altitude + 2.0f) ||
 				(state[0] > takeoff_ground_altitude && ((g_ppm_input[5] > RC_CENTER) ? throttle_result : g_ppm_input[2]) > throttle_real_crusing) ||
 				(((g_ppm_input[5] > RC_CENTER) ? throttle_real_crusing : g_ppm_input[2]) > throttle_real_crusing + 100))
 			{
@@ -994,7 +1011,7 @@ int pid()
 
 		// sum
 		pid_result[i] = 0;
-		float p_rc = limit((g_ppm_input[5] - 1000.0) / 520.0, 0, 2);
+		float p_rc = limit((g_ppm_input[5] - 1000.0f) / 520.0f, 0, 2);
 		for(int j=0; j<3; j++)
 		{
 #if QUADCOPTER == 1
@@ -1028,12 +1045,12 @@ int output()
 
 	// RC pass through for channel 5 & 6
 	for(int i=4; i<6; i++)
-		g_ppm_output[i] = floor(g_ppm_input[i]+0.5);
+		g_ppm_output[i] = floor(g_ppm_input[i]+0.5f);
 
 	if (mode != rc_fail)
 	{
 		// throttle pass through
-		g_ppm_output[2] = floor(g_ppm_input[2]+0.5);
+		g_ppm_output[2] = floor(g_ppm_input[2]+0.5f);
 		last_rc_work = getus();
 
 #if QUADCOPTER == 0
@@ -1052,7 +1069,7 @@ int output()
 		for(int i=0; i<motor_count; i++)
 		{
 			float mix = mode != rc_fail ? g_ppm_input[2] : THROTTLE_STOP;
-			mix = (mix-THROTTLE_STOP)*0.8 + THROTTLE_STOP;
+			mix = (mix-THROTTLE_STOP)*0.8f + THROTTLE_STOP;
 
 			if (mode != rc_fail && g_ppm_input[5] > RC_CENTER)
 				mix = throttle_result;
@@ -1081,7 +1098,7 @@ int output()
 	{
 		for(int i=0; i<6; i++)
 		{
-			g_ppm_output[i] = floor(g_ppm_input[i]+0.5);
+			g_ppm_output[i] = floor(g_ppm_input[i]+0.5f);
 
 			if (i <2)
 			{
@@ -1115,7 +1132,15 @@ int save_logs()
 		return 0;
 
 	// disable USB interrupt to prevent sdcard dead lock
+#ifdef STM32F1
 	NVIC_DisableIRQ(USB_LP_CAN1_RX0_IRQn);
+#endif
+#ifdef STM32F4
+	NVIC_DisableIRQ(OTG_HS_IRQn);
+	NVIC_DisableIRQ(OTG_FS_IRQn);
+	NVIC_DisableIRQ(OTG_HS_EP1_IN_IRQn);
+	NVIC_DisableIRQ(OTG_HS_EP1_OUT_IRQn);
+#endif
 	__DSB();
 	__ISB();
 
@@ -1271,7 +1296,15 @@ int save_logs()
 	}
 	
 	// restore USB
+#ifdef STM32F1
 	NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
+#endif
+#ifdef STM32F4
+	NVIC_EnableIRQ(OTG_HS_IRQn);
+	NVIC_EnableIRQ(OTG_FS_IRQn);
+	NVIC_EnableIRQ(OTG_HS_EP1_IN_IRQn);
+	NVIC_EnableIRQ(OTG_HS_EP1_OUT_IRQn);
+#endif
 
 
 	return 0;
@@ -1363,7 +1396,7 @@ int read_sensors()
 	// calculate altitude
 	if (ms5611_result == 0)
 	{
-		TRACE("\r\npressure,temperature=%f, %f, ground pressure & temperature=%f, %f, height=%f, climb_rate=%f, time=%f\r\n", pressure, temperature, ground_pressure, ground_temperature, altitude, climb_rate, (double)getus()/1000000);
+		TRACE("\r\npressure,temperature=%f, %f, ground pressure & temperature=%f, %f, height=%f, climb_rate=%f, time=%f\r\n", pressure, temperature, ground_pressure, ground_temperature, altitude, climb_rate, (float)getus()/1000000);
 
 		a_raw_pressure = ms5611[0] / 100.0f;
 		a_raw_temperature = ms5611[1] / 100.0f;
@@ -1378,11 +1411,11 @@ int read_sensors()
 int calculate_attitude()
 {
 
-	float GYRO_SCALE = 2000.0 * PI / 180 / 32767 * interval;		// full scale: +/-2000 deg/s  +/-31767, 8ms interval
+	float GYRO_SCALE = 2000.0f * PI / 180 / 32767 * interval;		// full scale: +/-2000 deg/s  +/-31767, 8ms interval
 
-	vector gyro_zero2 = {0.681 * mpu6050_temperature - 28.075,
-		0.1063 * mpu6050_temperature +3.1409,
-		-0.3083 * mpu6050_temperature - 0.6421};
+	vector gyro_zero2 = {0.681f * mpu6050_temperature - 28.075f,
+		0.1063f * mpu6050_temperature +3.1409f,
+		-0.3083f * mpu6050_temperature - 0.6421f};
 
 	//if (mpu6050_temperature < 35)
 	//	gyro_zero2.array[0] = 1.0313*mpu6050_temperature - 14.938;
@@ -1416,7 +1449,7 @@ int calculate_attitude()
 
 	// apply CF filter for Acc if g force is acceptable
 	float acc_g = vector_length(&acc)/ accel_1g;
-	if (acc_g > 0.90 && acc_g < 1.10)
+	if (acc_g > 0.90f && acc_g < 1.10f)
 	{
 		// 0.05 low pass filter for acc reading
 		const float RC = 1.0f/(2*3.1415926 * 0.05f);
@@ -1468,7 +1501,14 @@ void inline debugpin_init()
 	// use PA-0 as cycle debugger
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_8 | GPIO_Pin_2;
+#ifdef STM32F1
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+#endif
+#ifdef STM32F4
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+#endif
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 	
@@ -1511,8 +1551,8 @@ int magnet_calibration()
 mag_load:
 	for(int i=0; i<sizeof(mag_zero); i+=2)
 		EE_ReadVariable(VirtAddVarTab[0]+i/2+EEPROM_MAG_ZERO, (uint16_t*)(((uint8_t*)&mag_zero.array)+i));
-// 	for(int i=0; i<sizeof(mag_gain); i+=2)
-// 		EE_ReadVariable(VirtAddVarTab[0]+i/2+EEPROM_MAG_GAIN, (uint16_t*)(((uint8_t*)&mag_gain.array)+i));
+	for(int i=0; i<sizeof(mag_gain); i+=2)
+		EE_ReadVariable(VirtAddVarTab[0]+i/2+EEPROM_MAG_GAIN, (uint16_t*)(((uint8_t*)&mag_gain.array)+i));
 
 	for(int i=0; i<3; i++)
 	{
@@ -1607,8 +1647,8 @@ mag_load:
 		mag_offset.get_result(mag_zero.array, &mag_radius);
 		for(int i=0; i<sizeof(mag_zero); i+=2)
 			EE_WriteVariable(VirtAddVarTab[0]+i/2+EEPROM_MAG_ZERO, *(uint16_t*)(((uint8_t*)&mag_zero.array)+i));
-// 		for(int i=0; i<sizeof(mag_gain); i+=2)
-// 			EE_WriteVariable(VirtAddVarTab[0]+i/2+EEPROM_MAG_GAIN, *(uint16_t*)(((uint8_t*)&mag_gain.array)+i));
+		for(int i=0; i<sizeof(mag_gain); i+=2)
+			EE_WriteVariable(VirtAddVarTab[0]+i/2+EEPROM_MAG_GAIN, *(uint16_t*)(((uint8_t*)&mag_gain.array)+i));
 
 		// flash all LED to signal success
 		led_all_on();
@@ -1652,7 +1692,7 @@ int sensor_calibration()
 
 
 #if PCB_VERSION == 3
-		airspeed_voltage = ads1115_airspeed*0.03 + airspeed_voltage * 0.97;
+		airspeed_voltage = ads1115_airspeed*0.03f + airspeed_voltage * 0.97f;
 #else
 
 		ADC1_SelectChannel(0);
@@ -1695,7 +1735,7 @@ int sensor_calibration()
 	VCC_motor = voltage_divider_factor * 2.5f * VCC_motor/adc_2_5_V;
 
 #if PCB_VERSION == 3
-	airspeed_voltage = 2.048 * airspeed_voltage / 32767;
+	airspeed_voltage = 2.048f * airspeed_voltage / 32767;
 #else
 	airspeed_voltage = 2.5 * airspeed_voltage / adc_2_5_V;
 #endif
@@ -1709,7 +1749,7 @@ int sensor_calibration()
 	TRACE("VCC motor = %.3fV\n\n", VCC_motor);
 	TRACE("airspeed voltage = %.4fV, bias=%.4fV\n\n", airspeed_voltage, airspeed_bias);
 
-	if (VCC_5V / VCC_motor >= 0.85 && VCC_5V / VCC_motor <= 1.15)
+	if (VCC_5V / VCC_motor >= 0.85f && VCC_5V / VCC_motor <= 1.15f)
 	{
 		voltage_divider_factor *= VCC_5V / VCC_motor;
 
@@ -1738,6 +1778,7 @@ int sensor_calibration()
 
 int usb_lock()
 {
+	#ifdef STM32F1
 	if (Mal_Accessed())
 	{
 		for(int i=0; i<sizeof(g_ppm_output)/sizeof(g_ppm_output[0]); i++)
@@ -1755,6 +1796,7 @@ int usb_lock()
 
 		}
 	}
+	#endif
 
 	return -1;
 }
@@ -1860,7 +1902,7 @@ int osd()
 	static int last_osd_pos[31] = {0};
 	for(int x = 15-5; x<= 15+5; x++)
 	{
-		int y = floor(-(x - 15)*12*tan_roll +  18 * 16 * tan_pitch + 0.5) + 18*8;
+		int y = floor(-(x - 15)*12*tan_roll +  18 * 16 * tan_pitch + 0.5f) + 18*8;
 
 		if (y<0 || y > 18*16)
 			continue;
@@ -1885,18 +1927,23 @@ int osd()
 #define DEMCR           (*((volatile unsigned long *)(0xE000EDFC)))
 #define TRCENA          0x01000000
 
+uint16_t cpuGetFlashSize(void)
+{
+   return (*(__IO u16*)(0x1FFF7A22));
+   // return (*(__IO u32*)(0x1FFF7A20))>>16;
+}
+
 int main(void)
 {
-	// Basic Initialization
+	
+	//Basic Initialization
+	init_timer();
 	SysClockInit();
-	FLASH_Unlock();
-	EE_Init();
 	ADC1_Init();
 	SysTick_Config(720);
 	PPM_init(1);
 	printf_init();
 	I2C_init(0x30);
-	init_timer();
 	if (init_MPU6050() < 0)
 		critical_errors |= error_accelerometer | error_gyro;
 	if (init_HMC5883() < 0)
@@ -1912,11 +1959,33 @@ int main(void)
 	flashlight_on();
 	sonar_init();
 
+	FLASH_Unlock();
+#ifdef STM32F4
+	FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | 
+		FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR|FLASH_FLAG_PGSERR);
+#endif
+	EE_Init();
+
+
 	// USB
+#ifdef STM32F1
 	Set_System();
 	Set_USBClock();
 	USB_Interrupts_Config();
 	USB_Init();
+#endif
+
+#ifdef STM32F4
+	USBD_Init(&USB_OTG_dev,
+	#ifdef USE_USB_OTG_HS
+            USB_OTG_HS_CORE_ID,
+	#else
+            USB_OTG_FS_CORE_ID,
+	#endif
+            &USR_desc,
+            &USBD_MSC_cb,
+            &USR_cb);
+#endif
 	
 	#if PCB_VERSION == 3
 	ads1115_init();	
@@ -1941,6 +2010,8 @@ int main(void)
 	for(int i=0; i<sizeof(voltage_divider_factor); i+=2)
 		EE_ReadVariable(VirtAddVarTab[0]+i/2+EEPROM_VOLTAGE_DIVIDER, (uint16_t*)(((uint8_t*)&voltage_divider_factor)+i));
 	
+	ERROR("voltage_divider_factor=%f\r\n", voltage_divider_factor);
+			
 	magnet_calibration();
 	sensor_calibration();
 
@@ -1965,7 +2036,7 @@ int main(void)
 
 				led_all_off();
 				flashlight_off();
-				delayms(150);
+				delayms(150);				
 			}
 
 			delayms(1500);
@@ -2044,7 +2115,7 @@ int main(void)
 		TRACE("time=%.2f,inte=%.4f,out= %d, %d, %d, %d, input=%f,%f,%f,%f\n", getus()/1000000.0f, interval, g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5]);
 		TRACE (" mag=%.2f,%.2f,%.2f  acc=%.2f,%.2f,%.2f ", estMagGyro.V.x, estMagGyro.V.y, estMagGyro.V.z, estAccGyro.V.x, estAccGyro.V.y, estAccGyro.V.z);
 		TRACE("input= %.2f, %.2f, %.2f, %.2f,%.2f,%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3], g_ppm_input[4], g_ppm_input[5]);
-		TRACE("input:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5], g_ppm_input[4], g_ppm_input[5], p->voltage/1000.0 );
+		TRACE("\rinput:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3], (float)g_ppm_output[0], (float)g_ppm_output[1], p->voltage/1000.0 );
 		
 		TRACE("\ryaw=%.2f, yt=%.2f, mag=%d,%d,%d           ", yaw_est *PI180, yaw_launch*PI180, p->mag[0], p->mag[1], p->mag[2]);
 
@@ -2156,6 +2227,7 @@ bool calculate_roll_pitch(vector *accel, vector *mag, vector *accel_target, vect
 // System Clock
 static void SysClockInit(void)
 {
+#ifdef STM32F1
 	RCC_DeInit();
 
 	RCC_HSEConfig(RCC_HSE_ON);
@@ -2180,6 +2252,7 @@ static void SysClockInit(void)
 	while(RCC_GetSYSCLKSource() != 0x08)
 	{
 	}
+#endif
 }
 
 

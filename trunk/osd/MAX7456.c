@@ -11,8 +11,6 @@
 #define MAX7456_Wait_VSYNC()	while((MAX7456_Read_Reg(STAT) & 0x10) != 0x00)
 #define MAX7456_Wait_SRAM_Ready()	while((MAX7456_Read_Reg(DMM) & 0x04) != 0x00)
 
-GPIO_InitTypeDef GPIO_InitStructure_MAX7456;
-SPI_InitTypeDef SPI_InitStructure_MAX7456;
 char screen[30*16];
 
 static unsigned char default_fonts[256][54] = 
@@ -281,23 +279,46 @@ char add[54] = {0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x41
 
 void MAX7456_PORT_Init(void) 
 { 
-	RCC_APB1PeriphClockCmd(RCC_APB2Periph_GPIOB,ENABLE);
-	RCC_APB1PeriphClockCmd(RCC_APB2Periph_AFIO,ENABLE);
+	GPIO_InitTypeDef GPIO_InitStructure;
+
+#ifdef STM32F1
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB,ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO,ENABLE);
 	RCC_APB2PeriphClockCmd(MAX7456_PCLK,ENABLE); 
-	RCC_APB1PeriphClockCmd(MAX7456_SPICLK,ENABLE); 
+	RCC_APB2PeriphClockCmd(MAX7456_SPICLK,ENABLE); 
+#endif
+
+#ifdef STM32F4
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB,ENABLE);
+	RCC_AHB1PeriphClockCmd(MAX7456_PCLK,ENABLE); 
+	RCC_APB2PeriphClockCmd(MAX7456_SPICLK,ENABLE); 
+#endif
 	// 
-	GPIO_InitStructure_MAX7456.GPIO_Pin=MAX7456_SCK|MAX7456_MOSI|MAX7456_MISO; 
-	GPIO_InitStructure_MAX7456.GPIO_Mode=GPIO_Mode_AF_PP; 
-	GPIO_InitStructure_MAX7456.GPIO_Speed=GPIO_Speed_50MHz; 
-	GPIO_Init(MAX7456_SPI_PORT,&GPIO_InitStructure_MAX7456); 
+	GPIO_InitStructure.GPIO_Pin=MAX7456_SCK|MAX7456_MOSI|MAX7456_MISO; 
+#ifdef STM32F1
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+#endif
+#ifdef STM32F4
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+#endif
+	GPIO_InitStructure.GPIO_Speed=GPIO_Speed_50MHz; 
+	GPIO_Init(MAX7456_SPI_PORT,&GPIO_InitStructure); 
 	// 
-	GPIO_InitStructure_MAX7456.GPIO_Mode=GPIO_Mode_Out_PP; 
-	GPIO_InitStructure_MAX7456.GPIO_Pin=MAX7546_CS; 
-	GPIO_Init(GPIOB,&GPIO_InitStructure_MAX7456); 
+#ifdef STM32F1
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+#endif
+#ifdef STM32F4
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+#endif
+	GPIO_InitStructure.GPIO_Pin=MAX7546_CS; 
+	GPIO_Init(GPIOB,&GPIO_InitStructure); 
 } 
 
 void MAX7456_SPI_Init(void) 
 { 
+	SPI_InitTypeDef SPI_InitStructure_MAX7456;
 	
 	MAX7456_CS_Hight(); 
 	// 
@@ -313,7 +334,7 @@ void MAX7456_SPI_Init(void)
 	SPI_Init(MAX7456_SPI, &SPI_InitStructure_MAX7456); 
 	// 
 	SPI_Cmd(MAX7456_SPI,ENABLE); 
-	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);
+//	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable,ENABLE);
 
 } 
 
