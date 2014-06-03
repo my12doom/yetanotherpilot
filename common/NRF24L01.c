@@ -462,8 +462,8 @@ void NRF_TX_Mode(void)
 	EXTI_Init(&EXTI_InitStructure);
 	
 	NVIC_InitStructure.NVIC_IRQChannel = EXTI3_IRQn;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
-	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 	*/

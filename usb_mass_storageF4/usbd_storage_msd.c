@@ -159,7 +159,7 @@ int8_t STORAGE_Init (uint8_t lun)
 #ifndef USE_STM3210C_EVAL
   NVIC_InitTypeDef NVIC_InitStructure;
   NVIC_InitStructure.NVIC_IRQChannel = SDIO_IRQn;
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority =0;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority =2;
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&NVIC_InitStructure);
