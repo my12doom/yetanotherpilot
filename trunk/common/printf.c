@@ -53,9 +53,8 @@ void printf_init(void)
 	
 
 	// NVIC config
-  	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
   	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;   /*3.4??????USART1_IRQChannel,?stm32f10x.h?*/
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;
   	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
   	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
   	NVIC_Init(&NVIC_InitStructure);

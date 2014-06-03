@@ -635,90 +635,6 @@ int sdcard_init()
 	return 0;
 }
 
-int log(void *data, int size)
-{
-	int64_t us = getus();
-	
-	// NRF
-	if (nrf_ok && size <= 32 && LOG_LEVEL & LOG_NRF)
-		NRF_Tx_Dat((uint8_t*)data);
-	
-	// USART, "\r" are escaped into "\r\r"
-	if (LOG_LEVEL & LOG_USART1)
-	{
-		const char *string = (const char*)data;
-		int i,j;
-		for(i=0,j=0; i<size; i++,j++)
-		{
-			USART_SendData(USART1, (unsigned char) string[i]);
-			while (!(USART1->SR & USART_FLAG_TXE));
-			if (string[i] == '\r')
-			{
-				USART_SendData(USART1, (unsigned char) string[i]);
-				while (!(USART1->SR & USART_FLAG_TXE));
-				j++;
-			}
-		}
-		USART_SendData(USART1, (unsigned char) '\r');
-		while (!(USART1->SR & USART_FLAG_TXE));
-		USART_SendData(USART1, (unsigned char) '\n');
-		while (!(USART1->SR & USART_FLAG_TXE));
-	}
-	
-	// fatfs
-	if (LOG_LEVEL & LOG_SDCARD)
-	{
-		if (file == NULL && sd_ok)
-		{
-			static FIL f;
-			file = &f;
-			char filename[20];
-			int done  = 0;
-			while(sd_ok)
-			{
-				sprintf(filename, "%04d.dat", done ++);
-				FRESULT res = f_open(file, filename, FA_CREATE_NEW | FA_WRITE | FA_READ);
-				if (res == FR_OK)
-				{
-					f_close(file);
-					res = f_open(file, filename, FA_OPEN_EXISTING | FA_WRITE | FA_READ);
-					break;
-				}
-			}
-		}
-	
-		if (sd_ok && file)
-		{
-			unsigned int done;
-			if (f_write(file, data, size, &done) != FR_OK)
-			{
-				ERROR("\r\nSDCARD ERROR\r\n");
-				sd_ok = false;
-			}
-			if (getus() - last_log_flush_time > 1000000)
-			{
-				last_log_flush_time = getus();
-				f_sync(file);
-			}
-		}
-	}
-	
-	if (getus() - us > 7000)
-	{
-		ERROR("log cost %d us  ", int(getus()-us));
-		TRACE("  fat R/R:%d/%d\r\n", read_count, write_count);
-	}
-
-// 	ERROR("\rfat R/R:%d/%d", read_count, write_count);
-// 	if (read_count + write_count > 1)
-// 		ERROR("\r\n");
-
-	read_count = write_count = 0;
-
-	return 0;
-}
-
-
 float errorV[2] = {0};
 float rc_d[3] = {0};
 
@@ -1126,32 +1042,104 @@ int output()
 	return 0;
 }
 
-int log_counter = 0;
+int log(void *data, int size)
+{
+	int64_t us = getus();
 
+	// NRF
+	if (nrf_ok && size <= 32 && LOG_LEVEL & LOG_NRF)
+		NRF_Tx_Dat((uint8_t*)data);
+
+	// USART, "\r" are escaped into "\r\r"
+	if (LOG_LEVEL & LOG_USART1)
+	{
+		const char *string = (const char*)data;
+		int i,j;
+		for(i=0,j=0; i<size; i++,j++)
+		{
+			USART_SendData(USART1, (unsigned char) string[i]);
+			while (!(USART1->SR & USART_FLAG_TXE));
+			if (string[i] == '\r')
+			{
+				USART_SendData(USART1, (unsigned char) string[i]);
+				while (!(USART1->SR & USART_FLAG_TXE));
+				j++;
+			}
+		}
+		USART_SendData(USART1, (unsigned char) '\r');
+		while (!(USART1->SR & USART_FLAG_TXE));
+		USART_SendData(USART1, (unsigned char) '\n');
+		while (!(USART1->SR & USART_FLAG_TXE));
+	}
+
+	// fatfs
+	if (LOG_LEVEL & LOG_SDCARD)
+	{
+		if (file == NULL && sd_ok)
+		{
+			static FIL f;
+			file = &f;
+			char filename[20];
+			int done  = 0;
+			while(sd_ok)
+			{
+				sprintf(filename, "%04d.dat", done ++);
+				FRESULT res = f_open(file, filename, FA_CREATE_NEW | FA_WRITE | FA_READ);
+				if (res == FR_OK)
+				{
+					f_close(file);
+					res = f_open(file, filename, FA_OPEN_EXISTING | FA_WRITE | FA_READ);
+					break;
+				}
+			}
+		}
+
+		if (sd_ok && file)
+		{
+			unsigned int done;
+			if (f_write(file, data, size, &done) != FR_OK)
+			{
+				ERROR("\r\nSDCARD ERROR\r\n");
+				sd_ok = false;
+			}
+			if (getus() - last_log_flush_time > 1000000)
+			{
+				last_log_flush_time = getus();
+				f_sync(file);
+			}
+		}
+	}
+
+	if (getus() - us > 7000)
+	{
+		TRACE("log cost %d us  ", int(getus()-us));
+		TRACE("  fat R/R:%d/%d\r\n", read_count, write_count);
+	}
+
+	// 	ERROR("\rfat R/R:%d/%d", read_count, write_count);
+	// 	if (read_count + write_count > 1)
+	// 		ERROR("\r\n");
+
+	read_count = write_count = 0;
+
+	return 0;
+}
+
+uint8_t log_buffer[2][512];
+volatile int log_pending = 0;
+int log_packet_count = 0;
+
+// called by main loop, only copy logs to a memory buffer, should be very fast
 int save_logs()
 {
 	if (LOG_LEVEL == LOG_SDCARD && !sd_ok)
 		return 0;
 
-	if (log_counter++ != 10)
-		return 0;
+	// if the saving task is transferring logs into 2nd buffer
+	if (log_pending !=0)
+		return -1;
 
-	log_counter = 0;
-
-
-	// disable USB interrupt to prevent sdcard dead lock
-#ifdef STM32F1
-	NVIC_DisableIRQ(USB_LP_CAN1_RX0_IRQn);
-#endif
-#ifdef STM32F4
-	NVIC_DisableIRQ(OTG_HS_IRQn);
-	NVIC_DisableIRQ(OTG_FS_IRQn);
-	NVIC_DisableIRQ(OTG_HS_EP1_IN_IRQn);
-	NVIC_DisableIRQ(OTG_HS_EP1_OUT_IRQn);
-#endif
-	__DSB();
-	__ISB();
-
+	int c = 0;
 
 	// send/store debug data
 	time = getus();
@@ -1160,12 +1148,8 @@ int save_logs()
 	to_send.data.sensor = *p;
 
 
-	int tx_result;
-	tx_result = log((uint8_t*)&to_send, 32);
-
-	static int t1 = 0, t2=0;
-	if (tx_result == TX_OK)
-		t1++;
+	memcpy(log_buffer[0]+c*32, &to_send, 32);
+	c++;
 
 	imu_data imu = 
 	{
@@ -1179,13 +1163,8 @@ int save_logs()
 	to_send.time = (time & (~TAG_MASK)) | TAG_IMU_DATA;
 	to_send.data.imu = imu;
 
-	tx_result = log((uint8_t*)&to_send, 32);
-	if (tx_result == TX_OK)
-		t2++;
-
-	extern int tx_ok;
-	extern int max_retry;
-	//TRACE("\r t1,t2,ok,timeout=%d,%d,%d,%d", t1, t2, tx_ok, max_retry);
+	memcpy(log_buffer[0]+c*32, &to_send, 32);
+	c++;
 
 	pilot_data pilot = 
 	{
@@ -1199,7 +1178,8 @@ int save_logs()
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_PILOT_DATA;
 	to_send.data.pilot = pilot;
-	tx_result = log((uint8_t*)&to_send, 32);
+	memcpy(log_buffer[0]+c*32, &to_send, 32);
+	c++;
 
 	pilot_data2 pilot2 = 
 	{
@@ -1209,7 +1189,8 @@ int save_logs()
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_PILOT_DATA2;
 	to_send.data.pilot2 = pilot2;
-	tx_result = log((uint8_t*)&to_send, 32);
+	memcpy(log_buffer[0]+c*32, &to_send, 32);
+	c++;
 
 	ppm_data ppm = 
 	{
@@ -1219,7 +1200,8 @@ int save_logs()
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_PPM_DATA;
 	to_send.data.ppm = ppm;
-	tx_result = log((uint8_t*)&to_send, 32);
+	memcpy(log_buffer[0]+c*32, &to_send, 32);
+	c++;
 
 #if QUADCOPTER == 1
 	quadcopter_data quad = 
@@ -1232,7 +1214,8 @@ int save_logs()
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA;
 	to_send.data.quadcopter = quad;
-	tx_result = log((uint8_t*)&to_send, 32);
+	memcpy(log_buffer[0]+c*32, &to_send, 32);
+	c++;
 
 	quadcopter_data2 quad2 = 
 	{
@@ -1246,7 +1229,8 @@ int save_logs()
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA2;
 	to_send.data.quadcopter2 = quad2;
-	tx_result = log((uint8_t*)&to_send, 32);
+	memcpy(log_buffer[0]+c*32, &to_send, 32);
+	c++;
 
 	quadcopter_data3 quad3 = 
 	{
@@ -1265,7 +1249,8 @@ int save_logs()
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA3;
 	to_send.data.quadcopter3 = quad3;
-	tx_result = log((uint8_t*)&to_send, 32);
+	memcpy(log_buffer[0]+c*32, &to_send, 32);
+	c++;
 #endif
 
 	// only 5 seconds magnet centering data
@@ -1280,7 +1265,8 @@ int save_logs()
 		controll.data[1] = mag_zero.array[1] * 1000;
 		controll.data[2] = mag_zero.array[2] * 1000;
 
-		tx_result = log((uint8_t*)&to_send, 32);
+		memcpy(log_buffer[0]+c*32, &to_send, 32);
+		c++;
 	}
 
 
@@ -1300,20 +1286,11 @@ int save_logs()
 
 		to_send.time = (time & (~TAG_MASK)) | TAG_GPS_DATA;
 		to_send.data.gps = gps;
-		tx_result = log((uint8_t*)&to_send, 32);
+		memcpy(log_buffer[0]+c*32, &to_send, 32);
+		c++;
 	}
 	
-	// restore USB
-#ifdef STM32F1
-	NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
-#endif
-#ifdef STM32F4
-	NVIC_EnableIRQ(OTG_HS_IRQn);
-	NVIC_EnableIRQ(OTG_FS_IRQn);
-	NVIC_EnableIRQ(OTG_HS_EP1_IN_IRQn);
-	NVIC_EnableIRQ(OTG_HS_EP1_OUT_IRQn);
-#endif
-
+	log_packet_count = c;
 
 	return 0;
 }
@@ -1521,6 +1498,12 @@ void inline debugpin_init()
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 	
 	GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_4 | GPIO_Pin_5;
+#ifdef STM32F1
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
+#endif
+#ifdef STM32F4
+	GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
+#endif
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 	
 	GPIO_ResetBits(GPIOA, GPIO_Pin_8);
@@ -1935,39 +1918,136 @@ int osd()
 #define DEMCR           (*((volatile unsigned long *)(0xE000EDFC)))
 #define TRCENA          0x01000000
 
+int real_log()
+{
+	// copy to 2nd buffer
+	log_pending = 1;
+	memcpy(log_buffer[1], log_buffer[0], 32*log_packet_count);
+	log_pending = 0;
+
+	// disable USB interrupt to prevent sdcard dead lock
+#ifdef STM32F1
+	NVIC_DisableIRQ(USB_LP_CAN1_RX0_IRQn);
+#endif
+#ifdef STM32F4
+	NVIC_DisableIRQ(OTG_HS_IRQn);
+	NVIC_DisableIRQ(OTG_FS_IRQn);
+	NVIC_DisableIRQ(OTG_HS_EP1_IN_IRQn);
+	NVIC_DisableIRQ(OTG_HS_EP1_OUT_IRQn);
+#endif
+	__DSB();
+	__ISB();
+
+	// real saving / sending
+	for(int i=0; i<log_packet_count; i++)
+		log(log_buffer[1] + 32*i, 32);
+
+	// restore USB
+#ifdef STM32F1
+	NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
+#endif
+#ifdef STM32F4
+	NVIC_EnableIRQ(OTG_HS_IRQn);
+	NVIC_EnableIRQ(OTG_FS_IRQn);
+	NVIC_EnableIRQ(OTG_HS_EP1_IN_IRQn);
+	NVIC_EnableIRQ(OTG_HS_EP1_OUT_IRQn);
+#endif
+
+	return 0;
+}
+
+int64_t tic = 0;
+int loop(void)
+{
+	// the main loop
+	int64_t round_start_tick = getus();
+	interval = (round_start_tick-last_tick)/1000000.0f;
+	last_tick = round_start_tick;
+
+	usb_lock();	// lock the system if usb transfer occurred
+
+	led_all_off();
+	if (nrf_ok && cycle_counter % 4 == 0)
+		NRF_RX_Mode();
+
+	if (getus() - tic > 1000000)
+	{
+		tic = getus();
+		ERROR("speed: %d\r\n", cycle_counter);
+		cycle_counter = 0;
+	}
+
+	cycle_counter++;
+
+	// flashlight
+	time = getus();
+	int time_mod_1500 = (time%1500000)/1000;
+	if (time_mod_1500 < 150 || (time_mod_1500 > 200 && time_mod_1500 < 350) || (time_mod_1500 > 400 && time_mod_1500 < 550 && sd_ok))
+		flashlight_on();
+	else
+		flashlight_off();
+
+	// RC modes and RC fail detection
+	check_mode();
+
+	// read sensors and update altitude if new air pressure data arrived.
+	read_sensors();
+
+	// attitude and  heading
+	calculate_attitude();
+
+	// gps		
+	if (GPS_ParseBuffer() > 0)
+		last_gps_tick = getus();
+
+
+
+	//osd();
+	calculate_position();
+	calculate_target();
+	pid();
+	output();
+	save_logs();
+
+
+
+	TRACE("\rroll,pitch,yaw/yaw2 = %f,%f,%f,%f, target roll,pitch,yaw = %f,%f,%f, error = %f,%f,%f", roll*PI180, pitch*PI180, yaw_est*PI180, yaw_gyro*PI180, target[0]*PI180, target[1]*PI180, target[2]*PI180,
+		error_pid[0][0]*PI180, error_pid[1][0]*PI180, error_pid[2][0]*PI180);
+
+	TRACE("time=%.2f,inte=%.4f,out= %d, %d, %d, %d, input=%f,%f,%f,%f\n", getus()/1000000.0f, interval, g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5]);
+	TRACE (" mag=%.2f,%.2f,%.2f  acc=%.2f,%.2f,%.2f ", estMagGyro.V.x, estMagGyro.V.y, estMagGyro.V.z, estAccGyro.V.x, estAccGyro.V.y, estAccGyro.V.z);
+	TRACE("input= %.2f, %.2f, %.2f, %.2f,%.2f,%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3], g_ppm_input[4], g_ppm_input[5]);
+	TRACE("\rinput:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3], (float)g_ppm_output[0], (float)g_ppm_output[1], p->voltage/1000.0 );
+
+	TRACE("\ryaw=%.2f, yt=%.2f, mag=%d,%d,%d           ", yaw_est *PI180, yaw_launch*PI180, p->mag[0], p->mag[1], p->mag[2]);
+
+	TRACE("\rv/a=%dmV, %dmA, %.1f mah, %.1f Wh   ", p->voltage, p->current, mah_consumed, wh_consumed);
+
+	led_all_on();
+
+	// read and process a packet
+	rf_data packet;
+	if (NRF_Rx_Dat((uint8_t*)&packet) == RX_OK)
+	{
+		TRACE("packet!!!!\r\n\r\n");
+	}
+
+	// wait for next 8ms and send all data out
+	NRF_TX_Mode();
+
+	return 0;
+}
+
 int main(void)
-{	
+{
 	//Basic Initialization
 	init_timer();
 	SysClockInit();
-	ADC1_Init();
-	SysTick_Config(720);
-	PPM_init(1);
-	printf_init();
-	I2C_init(0x30);
-	if (init_MPU6050() < 0)
-		critical_errors |= error_accelerometer | error_gyro;
-	if (init_HMC5883() < 0)
-		critical_errors |= error_magnet;	
-	if (init_MS5611() < 0)
-		critical_errors |= error_baro;
-	debugpin_init();
-	GPS_Init(115200);
-	sdcard_init();	
-	NRF_Init();
-	MAX7456_SYS_Init();
-	Max7456_Set_System(1);
-	flashlight_on();
-	sonar_init();
+	sdcard_init();
 
-	FLASH_Unlock();
-#ifdef STM32F4
-	FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | 
-		FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR|FLASH_FLAG_PGSERR);
-#endif
-	EE_Init();
-
-
+	// priority settings
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_3);
+	
 	// USB
 #ifdef STM32F1
 	Set_System();
@@ -1987,6 +2067,34 @@ int main(void)
             &USBD_MSC_cb,
             &USR_cb);
 #endif
+
+	ADC1_Init();
+	SysTick_Config(720);
+	PPM_init(1);
+	printf_init();
+	I2C_init(0x30);
+	if (init_MPU6050() < 0)
+		critical_errors |= error_accelerometer | error_gyro;
+	if (init_HMC5883() < 0)
+		critical_errors |= error_magnet;	
+	if (init_MS5611() < 0)
+		critical_errors |= error_baro;
+	debugpin_init();
+	GPS_Init(115200);
+	NRF_Init();
+	MAX7456_SYS_Init();
+	Max7456_Set_System(1);
+	flashlight_on();
+	sonar_init();
+
+	FLASH_Unlock();
+#ifdef STM32F4
+	FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | 
+		FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR|FLASH_FLAG_PGSERR);
+#endif
+	EE_Init();
+
+
 	
 	#if PCB_VERSION == 3
 	ads1115_init();	
@@ -2011,7 +2119,7 @@ int main(void)
 	for(int i=0; i<sizeof(voltage_divider_factor); i+=2)
 		EE_ReadVariable(VirtAddVarTab[0]+i/2+EEPROM_VOLTAGE_DIVIDER, (uint16_t*)(((uint8_t*)&voltage_divider_factor)+i));
 	
-	ERROR("voltage_divider_factor=%f\r\n", voltage_divider_factor);
+	TRACE("voltage_divider_factor=%f\r\n", voltage_divider_factor);
 			
 	magnet_calibration();
 	sensor_calibration();
@@ -2056,88 +2164,84 @@ int main(void)
 
 	TRACE("NRF_Check() 2 = %d\r\n", nrf_ok);
 
-	// the main loop
-	int64_t tic = getus();
+
+	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
+
+	// set timer(TIM7) for main loop
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM7,ENABLE);
+	TIM_DeInit(TIM7);
+	TIM_InternalClockConfig(TIM7);
+#ifdef STM32F1
+	TIM_TimeBaseStructure.TIM_Prescaler=71;
+#endif
+#ifdef STM32F4
+	TIM_TimeBaseStructure.TIM_Prescaler=83;
+#endif
+	TIM_TimeBaseStructure.TIM_ClockDivision=TIM_CKD_DIV1;
+	TIM_TimeBaseStructure.TIM_CounterMode=TIM_CounterMode_Up;
+	TIM_TimeBaseStructure.TIM_Period=3000-1;
+	TIM_TimeBaseInit(TIM7,&TIM_TimeBaseStructure);
+	TIM_ClearFlag(TIM7,TIM_FLAG_Update);
+	TIM_ARRPreloadConfig(TIM7,DISABLE);
+	TIM_ITConfig(TIM7,TIM_IT_Update,ENABLE);
+	TIM_Cmd(TIM7,ENABLE);
+
+	NVIC_InitStructure.NVIC_IRQChannel = TIM7_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 4;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
+
+
+	// set timer(TIM8) for log saving task
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM12,ENABLE);
+	TIM_DeInit(TIM12);
+	TIM_InternalClockConfig(TIM12);
+#ifdef STM32F1
+	TIM_TimeBaseStructure.TIM_Prescaler=71;
+#endif
+#ifdef STM32F4
+	TIM_TimeBaseStructure.TIM_Prescaler=83;
+#endif
+	TIM_TimeBaseStructure.TIM_ClockDivision=TIM_CKD_DIV1;
+	TIM_TimeBaseStructure.TIM_CounterMode=TIM_CounterMode_Up;
+	TIM_TimeBaseStructure.TIM_Period=15000-1;
+	TIM_TimeBaseInit(TIM12,&TIM_TimeBaseStructure);
+	TIM_ClearFlag(TIM12,TIM_FLAG_Update);
+	TIM_ARRPreloadConfig(TIM12,DISABLE);
+	TIM_ITConfig(TIM12,TIM_IT_Update,ENABLE);
+	TIM_Cmd(TIM12,ENABLE);
+
+	NVIC_InitStructure.NVIC_IRQChannel = TIM8_BRK_TIM12_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 6;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
 	while(1)
 	{
-		cycle_counter++;
-		int64_t round_start_tick = getus();
-		interval = (round_start_tick-last_tick)/1000000.0f;
-		last_tick = round_start_tick;
 
-		usb_lock();	// lock the system if usb transfer occurred
-		
-		led_all_off();
-		if (nrf_ok && cycle_counter % 4 == 0)
-			NRF_RX_Mode();
-
-		if (getus() - tic > 1000000)
-		{
-			tic = getus();
-			ERROR("speed: %d\r\n", cycle_counter);
-			cycle_counter = 0;
-		}
-
-		// flashlight
-		time = getus();
-		int time_mod_1500 = (time%1500000)/1000;
-		if (time_mod_1500 < 150 || (time_mod_1500 > 200 && time_mod_1500 < 350) || (time_mod_1500 > 400 && time_mod_1500 < 550 && sd_ok))
-			flashlight_on();
-		else
-			flashlight_off();
-		
-		// RC modes and RC fail detection
-		check_mode();
-
-		// read sensors and update altitude if new air pressure data arrived.
-		read_sensors();
-
-		// attitude and  heading
-		calculate_attitude();
-
-		// gps		
-		if (GPS_ParseBuffer() > 0)
-			last_gps_tick = getus();
-
-		
-		
-		//osd();
-		calculate_position();
-		calculate_target();
-		pid();
-		output();
-		save_logs();
-		
-		
-		
-		TRACE("\rroll,pitch,yaw/yaw2 = %f,%f,%f,%f, target roll,pitch,yaw = %f,%f,%f, error = %f,%f,%f", roll*PI180, pitch*PI180, yaw_est*PI180, yaw_gyro*PI180, target[0]*PI180, target[1]*PI180, target[2]*PI180,
-			error_pid[0][0]*PI180, error_pid[1][0]*PI180, error_pid[2][0]*PI180);
-		
-		TRACE("time=%.2f,inte=%.4f,out= %d, %d, %d, %d, input=%f,%f,%f,%f\n", getus()/1000000.0f, interval, g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5]);
-		TRACE (" mag=%.2f,%.2f,%.2f  acc=%.2f,%.2f,%.2f ", estMagGyro.V.x, estMagGyro.V.y, estMagGyro.V.z, estAccGyro.V.x, estAccGyro.V.y, estAccGyro.V.z);
-		TRACE("input= %.2f, %.2f, %.2f, %.2f,%.2f,%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3], g_ppm_input[4], g_ppm_input[5]);
-		TRACE("\rinput:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3], (float)g_ppm_output[0], (float)g_ppm_output[1], p->voltage/1000.0 );
-		
-		TRACE("\ryaw=%.2f, yt=%.2f, mag=%d,%d,%d           ", yaw_est *PI180, yaw_launch*PI180, p->mag[0], p->mag[1], p->mag[2]);
-
-		TRACE("\rv/a=%dmV, %dmA, %.1f mah, %.1f Wh   ", p->voltage, p->current, mah_consumed, wh_consumed);
-
-		led_all_on();
-
-		// read and process a packet
-		rf_data packet;
-		if (NRF_Rx_Dat((uint8_t*)&packet) == RX_OK)
-		{
-			TRACE("packet!!!!\r\n\r\n");
-		}
-
-		// wait for next 8ms and send all data out
-		NRF_TX_Mode();
-		while(getus()-round_start_tick < cycle_time)
-		{
-			NRF_Handle_Queue();
-		}
 	}
+
+	return -2;
+}
+
+
+extern "C"
+{
+void TIM7_IRQHandler(void)
+{
+	TIM_ClearITPendingBit(TIM7 , TIM_FLAG_Update);
+	loop();
+}
+
+void TIM8_BRK_TIM12_IRQHandler(void)
+{
+	TIM_ClearITPendingBit(TIM12 , TIM_FLAG_Update);
+	real_log();
+}
 }
 
 
