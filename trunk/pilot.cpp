@@ -337,14 +337,24 @@ float Q_ground[16] =
 
 float R[4] = 
 {
-	48000, 50,
-	50, 230,
+	480000, 0,
+	0, 230,
 };
-
+float R2[4] = 
+{
+	4800000, 0,
+	0, 230,
+};
 int kalman()
 {
 	if (interval > 0.2f)
 		return -1;
+
+	// near ground, reject ground effected baro data
+	bool invalid_baro_data = mode == quadcopter && (!airborne || (!isnan(sonar_distance) && sonar_distance < 1.0f) || fabs(state[0] - ground_altitude) < 1.0f);
+	bool bias_baro_data = invalid_baro_data;
+	invalid_baro_data = false;
+
 
 	float dt = interval;
 	float dtsq = dt*dt;
@@ -364,12 +374,12 @@ int kalman()
 		dtsq2, dt, 0, 1,
 	};
 	
-	static float H[2*4] = 
+	static float Hab[2*4] = 
 	{
 		1, 0, 0, 0,
 		0, 0, 1, 0,
 	};
-	static float HT[4*2] = 
+	static float HabT[4*2] = 
 	{
 		1, 0,
 		0, 0,
@@ -377,6 +387,26 @@ int kalman()
 		0, 0,
 	};
 
+	// accelerometer only
+	static float Ha[2*4] = 
+	{
+		0, 0, 1, 0,
+	};
+	static float HaT[4*2] = 
+	{
+		0,
+		0,
+		1,
+		0,
+	};
+
+	float zk_ab[2] = {a_raw_altitude, accelz};
+	float zk_a[2] = {accelz};
+
+	float *H = invalid_baro_data ? Ha : Hab;
+	float *HT = invalid_baro_data ? HaT : HabT;
+	float *zk = invalid_baro_data ? zk_a : zk_ab;
+	int observation_count = invalid_baro_data ? 1 : 2;
 
 	float state1[4];
 	float P1[16];
@@ -385,7 +415,6 @@ int kalman()
 	float tmp3[16];
 	float kg[8];
 
-	float zk[2] = {a_raw_altitude, accelz};
 
 	// predict
 	matrix_mul(state1, F, 4, 4, state, 4, 1);
@@ -395,31 +424,41 @@ int kalman()
 	// covariance
 	if (mode == shutdown)
 		matrix_add(P1, Q, 4, 4);
-	else if (!airborne || (!isnan(sonar_distance) && sonar_distance < 1.0f) || fabs(state[0] - ground_altitude) < 1.0f )
+	else if (invalid_baro_data)
 		matrix_add(P1, Q_ground, 4, 4);		// lower ground effect
 	else
 		matrix_add(P1, Q, 4, 4);
 
 	// controll vector
 	//state1[2] = state1[2] * 0.8f * 0.2f * (target_accel);
+// 	if (invalid_baro_data)
+// 		state1[1] *= 0.995f;
 
 	// update
 
 	// kg
-	matrix_mul(tmp, P1, 4, 4, HT, 4, 2);
-	matrix_mul(tmp2, H, 2, 4, P1, 4, 4);
-	matrix_mul(tmp3, tmp2, 2, 4, HT, 4, 2);
-	matrix_add(tmp3, R, 2, 2);
-	inverse_matrix2x2(tmp3);
-	matrix_mul(kg, tmp, 4, 2, tmp3, 2, 2);
+	matrix_mul(tmp, P1, 4, 4, HT, 4, observation_count);
+	matrix_mul(tmp2, H, observation_count, 4, P1, 4, 4);
+	matrix_mul(tmp3, tmp2, observation_count, 4, HT, 4, observation_count);
+	if (observation_count == 2)
+	{
+		matrix_add(tmp3, bias_baro_data ? R2 : R, observation_count, observation_count);
+		inverse_matrix2x2(tmp3);
+	}
+	else
+	{
+		tmp3[0] += R[3];
+		tmp3[0] = 1.0f / tmp3[0];
+	}
+	matrix_mul(kg, tmp, 4, observation_count, tmp3, observation_count, observation_count);
 
 
 	// update state
 	// residual
-	matrix_mul(tmp, H, 2, 4, state1, 4, 1);
-	matrix_sub(zk, tmp, 2, 1);
+	matrix_mul(tmp, H, observation_count, 4, state1, 4, 1);
+	matrix_sub(zk, tmp, observation_count, 1);
 
-	matrix_mul(tmp, kg, 4, 2, zk, 2, 1);
+	matrix_mul(tmp, kg, 4, observation_count, zk, observation_count, 1);
 	matrix_mov(state, state1, 4, 1);
 	matrix_add(state, tmp, 4, 1);
 
@@ -431,11 +470,11 @@ int kalman()
 		0, 0, 1, 0,
 		0, 0, 0, 1,
 	};
-	matrix_mul(tmp, kg, 4, 2, H, 2, 4);
+	matrix_mul(tmp, kg, 4, observation_count, H, observation_count, 4);
 	matrix_sub(I, tmp, 4, 4);
 	matrix_mul(P, I, 4, 4, P1, 4, 4);
 	
-	TRACE("state:%.2f,%.2f,%.2f,%.2f, ref=%.2f/%.2f   \n", state[0], state[1], state[2], state[3], _velocity, a_raw_altitude);
+	ERROR("state:%.2f,%.2f,%.2f,%.2f, ref=%.2f/%.2f/%.2f, throttle:%d   \n", state[0], state[1], state[2], state[3], _velocity, a_raw_altitude, accelz, throttle_result);
 
 	return 0;
 }
@@ -445,9 +484,6 @@ int auto_throttle(float user_climb_rate)
 	// better ground...
 // 	if (!airborne && user_climb_rate < 0)
 // 		user_climb_rate *= 1.5;
-
-	if (!airborne)
-		user_climb_rate -= 0.2f;
 
 	// new target altitude
 	if (fabs(user_climb_rate) < 0.001f && airborne)
@@ -495,9 +531,10 @@ int auto_throttle(float user_climb_rate)
 
 	// TODO: apply pid instead of P only, and add feed forward
 	// reference: get_throttle_rate()
+	float accel_factor_ground = (throttle_real_crusing-THROTTLE_IDLE)*1.2/(quadcopter_max_descend_rate)/pid_quad_accel[0];
 	climb_rate_error_pid[0] = climb_rate_error_pid[0] * (1-alpha) + alpha * climb_rate_error;
-	target_accel = climb_rate_error_pid[0] * pid_quad_alt_rate[0];
-	target_accel = limit(target_accel, airborne ? -quadcopter_max_acceleration : -2*quadcopter_max_acceleration, quadcopter_max_acceleration);
+	target_accel = climb_rate_error_pid[0] * (!airborne && climb_rate_error_pid[0]<0 ? accel_factor_ground : pid_quad_alt_rate[0]);
+	target_accel = limit(target_accel,  -quadcopter_max_acceleration, quadcopter_max_acceleration);
 
 	
 	// new accel error, +2Hz LPF
@@ -776,9 +813,9 @@ int calculate_target()
 			if (fabs(v)<0.05f)
 				user_rate = 0;
 			else if (v>= 0.05f)
-				user_rate = (v-0.1f)/0.45f * quadcopter_max_climb_rate;
+				user_rate = (v-0.05f)/0.45f * quadcopter_max_climb_rate;
 			else
-				user_rate = (v+0.1f)/0.45f * quadcopter_max_descend_rate;
+				user_rate = (v+0.05f)/0.45f * quadcopter_max_descend_rate;
 			auto_throttle(user_rate);
 
 
@@ -801,10 +838,6 @@ int calculate_target()
 			angle_target[1] = angle_target_unrotated[0] * sindiff + angle_target_unrotated[1] * cosdiff;
 #endif
 
-			//trim
-			angle_target[0] += quadcopter_trim[0];
-			angle_target[1] += quadcopter_trim[1];
-
 			// yaw:
 			//target[2] = limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[2] / RC_RANGE, -1, 1) * quadcopter_range[2] + yaw_gyro + quadcopter_trim[2];
 			if (airborne)
@@ -824,6 +857,10 @@ int calculate_target()
 					rc_d[2] = 0;
 				else
 					angle_target[2] = new_target;
+			}
+			else
+			{
+				angle_target[2] = angle_pos[2];
 			}
 
 
@@ -931,7 +968,7 @@ int pid()
 		for(int j=0; j<3; j++)
 		{
 #if QUADCOPTER == 1
-			pid_result[i] += error_pid[i][j] * pid_factor[i][j];
+			pid_result[i] += error_pid[i][j] * pid_factor[i][j] * power_factor;
 #else
 			pid_result[i] += limit(limit(error_pid[i][j],-pid_limit[i][j],+pid_limit[i][j]) / pid_limit[i][j], -1, 1) * pid_factor[i][j] * p_rc * airspeed_factor;
 
@@ -985,7 +1022,7 @@ int output()
 		for(int i=0; i<motor_count; i++)
 		{
 			float mix = mode != rc_fail ? g_ppm_input[2] : THROTTLE_STOP;
-			mix = (mix-THROTTLE_STOP)*0.8f + THROTTLE_STOP;
+			mix = (mix-THROTTLE_STOP)*0.6f + THROTTLE_STOP;
 
 			if (mode != rc_fail && g_ppm_input[5] > RC_CENTER)
 				mix = throttle_result;
@@ -1398,9 +1435,17 @@ int calculate_attitude()
 
 	float GYRO_SCALE = 2000.0f * PI / 180 / 32767 * interval;		// full scale: +/-2000 deg/s  +/-31767, 8ms interval
 
+
+	// my12doom
 	vector gyro_zero2 = {0.681f * mpu6050_temperature - 28.075f,
 		0.1063f * mpu6050_temperature +3.1409f,
 		-0.3083f * mpu6050_temperature - 0.6421f};
+
+	// zewu
+// 	vector gyro_zero2 = {0.0978f * mpu6050_temperature + 36.313f,
+// 		-1.3836f * mpu6050_temperature + 40.139f,
+// 		-0.4823f * mpu6050_temperature + 22.603f};
+
 
 	//if (mpu6050_temperature < 35)
 	//	gyro_zero2.array[0] = 1.0313*mpu6050_temperature - 14.938;
@@ -1477,6 +1522,11 @@ int calculate_attitude()
 		(estMagGyro.V.y * xxzz - (estMagGyro.V.x * estAccGyro16.V.x + estMagGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y )/G);
 	yaw_gyro = atan2(estGyro.V.z * estAccGyro16.V.x - estGyro.V.x * estAccGyro16.V.z,
 		(estGyro.V.y * xxzz - (estGyro.V.x * estAccGyro16.V.x + estGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y )/G);
+
+	roll = radian_add(roll, quadcopter_trim[0]);
+	pitch = radian_add(pitch, quadcopter_trim[1]);
+	yaw_est = radian_add(yaw_est, quadcopter_trim[2]);
+	yaw_gyro = radian_add(yaw_gyro, quadcopter_trim[2]);
 
 	return 0;
 }
@@ -2017,7 +2067,7 @@ int loop(void)
 	TRACE("time=%.2f,inte=%.4f,out= %d, %d, %d, %d, input=%f,%f,%f,%f\n", getus()/1000000.0f, interval, g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5]);
 	TRACE (" mag=%.2f,%.2f,%.2f  acc=%.2f,%.2f,%.2f ", estMagGyro.V.x, estMagGyro.V.y, estMagGyro.V.z, estAccGyro.V.x, estAccGyro.V.y, estAccGyro.V.z);
 	TRACE("input= %.2f, %.2f, %.2f, %.2f,%.2f,%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3], g_ppm_input[4], g_ppm_input[5]);
-	TRACE("\rinput:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3], (float)g_ppm_output[0], (float)g_ppm_output[1], p->voltage/1000.0 );
+	TRACE("\rinput:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", (float)g_ppm_output[0], (float)g_ppm_output[1], (float)g_ppm_output[2], (float)g_ppm_output[3], (float)g_ppm_output[0], (float)g_ppm_output[1], p->voltage/1000.0 );
 
 	TRACE("\ryaw=%.2f, yt=%.2f, mag=%d,%d,%d           ", yaw_est *PI180, yaw_launch*PI180, p->mag[0], p->mag[1], p->mag[2]);
 

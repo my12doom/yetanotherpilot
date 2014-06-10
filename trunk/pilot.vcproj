@@ -266,14 +266,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\common\matrix.cpp"
-					>
-				</File>
-				<File
-					RelativePath=".\common\matrix.h"
-					>
-				</File>
-				<File
 					RelativePath=".\common\MMC_SD.c"
 					>
 				</File>
@@ -719,6 +711,18 @@
 				</File>
 				<File
 					RelativePath=".\usb_mass_storage\usb_type.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="math"
+				>
+				<File
+					RelativePath=".\math\matrix.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\math\matrix.h"
 					>
 				</File>
 			</Filter>

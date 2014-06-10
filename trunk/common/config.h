@@ -9,8 +9,8 @@
 #define GPS_BUFFER_BLOCK 512
 #define PCB_VERSION 3
 //#define EXTERNAL_HMC5883
-#define EXTERNAL_HMC5883_2
-#define HEADFREE
+//#define EXTERNAL_HMC5883_2
+//#define HEADFREE
 
 #ifndef PCB_VERSION
 #define PCB_VERSION 1
@@ -41,7 +41,7 @@
 #define THROTTLE_STOP 1110
 #define THROTTLE_IDLE (THROTTLE_STOP+60)
 #define THROTTLE_MAX 1888
-#define THROTTLE_CRUISE 1550
+#define THROTTLE_CRUISE 1400
 
 #define ACRO_ROLL_RATE (PI*3/2)				// 270 degree/s
 #define ACRO_PITCH_RATE (PI)			// 180 degree/s
@@ -60,7 +60,6 @@ extern int LOG_LEVEL;
 extern float pid_limit[3][3]; 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]
 extern float pid_factor[3][3];			// pid_factor[roll,pitch,yaw][p,i,d]
 extern float pid_factor2[3][4];			// another pid factor
-extern float stablize_Kp;
 extern float quadcopter_trim[3];
 static float quadcopter_range[3] = 
 {
@@ -68,6 +67,7 @@ static float quadcopter_range[3] =
 	PI/8,			// pitch
 	PI/8,			// yaw
 };
+static float power_factor = 1.0f;	
 
 static int quadcopter_mixing_matrix[4][3] = // the motor mixing matrix, [motor number] [roll, pitch, yaw]
 {
