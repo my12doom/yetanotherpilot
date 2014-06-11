@@ -179,6 +179,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\math\matrix.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\math\matrix.h"
+				>
+			</File>
+			<File
 				RelativePath="..\RFData.h"
 				>
 			</File>

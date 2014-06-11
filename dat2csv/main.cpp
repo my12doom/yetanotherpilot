@@ -7,6 +7,7 @@ typedef __int64 int64_t;
 #include "..\RFData.h"
 #include "..\common\vector.h"
 #include "..\common\common.h"
+#include "..\math\matrix.h"
 
 int max(int a, int b)
 {
@@ -83,6 +84,15 @@ int matrix_mul(float *out, const float *m1, int row1, int column1, const float *
 
 int main(int argc, char **argv)
 {
+	matrix test = 
+	{
+		3,3
+		{
+			1,0,0,
+			0,1,0,
+			0,0,1,
+		}
+	};
 	vector test = {0,0,1};
 	vector gyro = {0,PI/20000,0};
 	
@@ -232,13 +242,13 @@ int main(int argc, char **argv)
 		if (yaw_est<0)
 			yaw_est += 2*PI;
 
-//  		if (n++ %140 == 0)
-		if (time > 200000000 && time < 225000000)
+ 		if (n++ %140 == 0)
+// 		if (time > 350000000 && time < 370000000)
  		fprintf(fo, "%.4f,%.2f,%.2f,%2f,%.2f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d,%d\r\n",
-				float(time/1000000.0f), sensor.voltage/1000.0f, sensor.current/1000.0f, pilot.mah_consumed/1.0f, altitude,
- 				sensor.mag[0], sensor.mag[1], sensor.mag[2], sensor.gyro[0], sensor.gyro[1], sensor.gyro[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[0], pilot2.D[0],
+				float(mpu6050_temperature), sensor.voltage/1000.0f, sensor.current/1000.0f, pilot.mah_consumed/1.0f, altitude,
+ 				sensor.accel[0], sensor.accel[1], sensor.accel[2], sensor.gyro[0], sensor.gyro[1], sensor.gyro[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[0], pilot2.D[0],
 				roll*180/PI, pitch*180/PI, yaw_gyro*180/PI, pilot.target[0]/100.0, pilot.target[1]/100.0, pilot.target[2]/100.0, 
 				(ppm.in[2]-1113)/50, pilot.fly_mode == acrobatic ? 5000 : -5000,
 				ppm.in[0], ppm.in[1], ppm.in[2], ppm.in[3], ppm.out[0], ppm.out[1], ppm.out[2], ppm.out[3],
@@ -254,13 +264,15 @@ int main(int argc, char **argv)
 
 		if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA || (rf.time & TAG_MASK) ==  TAG_GPS_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA2)
 		{
-			if (m++ %5 == 0 && pilot.fly_mode == quadcopter && ppm.in[2] > 1300)
-// 			if (time > 200000000 && time < 225000000)
+// 			if (m++ %4 == 0
+// 				//&& pilot.fly_mode == quadcopter && ppm.in[2] > 1300
+// 				)
+// 			if (time > 350000000 && time < 370000000)
 // 			if (m++ %3 == 0 && quad3.ultrasonic != 0xffff)
 			{
 				fprintf(gpso, "%.4f", float(time/1000000.0f));
 				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[1],quad.angle_target[1],quad.speed[1],quad.speed_target[1]);
-				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d,", pilot2.I[1],quad.angle_target[2],quad.speed[2],quad.speed_target[2], quad3.altitude_target, quad3.climb, quad3.climb_target);
+				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d,", pilot2.I[1],quad.angle_target[0],quad.speed[0],quad.speed_target[0], quad3.altitude_target, quad3.climb, quad3.climb_target);
 				fprintf(gpso, "%d,%d,%d", int(quad3.altitude), int(quad3.ultrasonic/10), quad2.airborne ? 500 : 0);
 				fprintf(gpso, "\r\n");
 			}
