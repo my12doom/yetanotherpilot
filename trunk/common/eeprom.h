@@ -47,7 +47,11 @@ extern "C" {
 
 #ifdef STM32F1
 /* EEPROM start address in Flash */
+#ifndef LITE
 #define EEPROM_START_ADDRESS    ((uint32_t)0x08040000) /* EEPROM emulation start address: after 124KByte of used Flash memory */
+#else
+#define EEPROM_START_ADDRESS    ((uint32_t)0x0800F800) /* EEPROM emulation start address: after 62KByte of used Flash memory */
+#endif
 
 /* Pages 0 and 1 base and end addresses */
 #define PAGE0_BASE_ADDRESS      ((uint32_t)(EEPROM_START_ADDRESS + 0x000))

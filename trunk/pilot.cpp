@@ -3,12 +3,12 @@
 #include <math.h>
 #include <string.h>
 
+#define LITE
 
 #include "RFData.h"
 #include "common/adc.h"
 #include "common/printf.h"
 #include "common/I2C.h"
-#include "common/NRF24L01.h"
 #include "common/PPM.h"
 #include "common/common.h"
 #include "common/vector.h"
@@ -17,13 +17,17 @@
 #include "sensors/MPU6050.h"
 #include "sensors/MS5611.h"
 #include "sensors/mag_offset.h"
-#include "common/gps.h"
 #include "common/config.h"
+#include "common/matrix.h"
+
+#ifndef LITE
+#include "common/gps.h"
 #include "common/ads1115.h"
+#include "sensors/sonar.h"
+#include "common/NRF24L01.h"
 #include "fat/ff.h"
 #include "osd/MAX7456.h"
-#include "common/matrix.h"
-#include "sensors/sonar.h"
+#endif'
 
 extern "C"
 {
@@ -35,7 +39,9 @@ extern "C"
 	#include "common/eeprom.h"
 	#include "usb_mass_storage/hw_config.h"
 	#include "usb_mass_storage/usb_init.h"
+#ifndef LITE
 	#include "usb_mass_storage/mass_mal.h"
+#endif
 #endif
 
 #ifdef STM32F4
@@ -55,6 +61,7 @@ extern "C"
 #endif
 }
 
+#ifndef LITE
 typedef struct
 {
 	ads1115_speed speed;
@@ -66,6 +73,9 @@ typedef struct
 int ads1115_work_pos = 0;
 int ads1115_work_count = 0;
 ads1115_work ads1115_works[MAX_ADS1115_WORKS];
+int ads1115_new_work(ads1115_speed speed, ads1115_channel channel, ads1115_gain gain, int16_t *out);
+int ads1115_go_on();
+#endif
 
 enum
 {
@@ -79,8 +89,6 @@ enum
 
 int critical_errors = 0;
 
-int ads1115_new_work(ads1115_speed speed, ads1115_channel channel, ads1115_gain gain, int16_t *out);
-int ads1115_go_on();
 
 #if PCB_VERSION == 2
 #define CURRENT_PIN 2
@@ -128,11 +136,13 @@ bool calculate_roll_pitch(vector *accel, vector *mag, vector *accel_target, vect
 
 
 // states
+#ifndef LITE
 bool sd_ok = false;
 bool nrf_ok = false;
 FIL *file = NULL;
 FRESULT res;
 FATFS fs;
+#endif
 uint64_t last_log_flush_time = 0;
 bool launched = false;
 float mpu6050_temperature;
@@ -157,7 +167,7 @@ bool airborne = false;
 bool nearground = false;
 float takeoff_ground_altitude = 0;
 int mode = initializing;
-uint8_t data[TX_PLOAD_WIDTH];
+uint8_t data[32];
 static sensor_data *p = (sensor_data*)data;
 vector estAccGyro = {0};			// for roll & pitch
 vector estMagGyro = {0};			// for yaw
@@ -474,7 +484,7 @@ int kalman()
 	matrix_sub(I, tmp, 4, 4);
 	matrix_mul(P, I, 4, 4, P1, 4, 4);
 	
-	ERROR("state:%.2f,%.2f,%.2f,%.2f, ref=%.2f/%.2f/%.2f, throttle:%d   \n", state[0], state[1], state[2], state[3], _velocity, a_raw_altitude, accelz, throttle_result);
+	TRACE("time=%.3f,state:%.2f,%.2f,%.2f,%.2f, ref=%.2f/%.2f/%.2f, throttle:%d   \n", getus()/1000000.0f, state[0], state[1], state[2], state[3], _velocity, a_raw_altitude, accelz, throttle_result);
 
 	return 0;
 }
@@ -572,7 +582,7 @@ int auto_throttle(float user_climb_rate)
 		const float RC02 = 1.0f/(2*3.1415926 * 0.2f);
 		float alpha02 = interval / (interval + RC02);
 
-		//throttle_real_crusing = throttle_real_crusing * (1-alpha02) + alpha02 * throttle_real;
+		throttle_real_crusing = throttle_real_crusing * (1-alpha02) + alpha02 * throttle_real;
 	}
 
 	return 0;
@@ -622,6 +632,7 @@ int altitude_estimation_inertial()
 	return 0;
 }
 
+#ifndef LITE
 int sdcard_speed_test()
 {
 	FIL f;
@@ -671,6 +682,7 @@ int sdcard_init()
 	ERROR("%s\r\n", sd_ok ? "OK" : "FAIL");
 	return 0;
 }
+#endif
 
 float errorV[2] = {0};
 float rc_d[3] = {0};
@@ -1083,10 +1095,12 @@ int log(void *data, int size)
 {
 	int64_t us = getus();
 
+#ifndef LITE
 	// NRF
 	if (nrf_ok && size <= 32 && LOG_LEVEL & LOG_NRF)
 		NRF_Tx_Dat((uint8_t*)data);
-
+#endif
+	
 	// USART, "\r" are escaped into "\r\r"
 	if (LOG_LEVEL & LOG_USART1)
 	{
@@ -1110,6 +1124,7 @@ int log(void *data, int size)
 	}
 
 	// fatfs
+	#ifndef LITE
 	if (LOG_LEVEL & LOG_SDCARD)
 	{
 		if (file == NULL && sd_ok)
@@ -1146,18 +1161,19 @@ int log(void *data, int size)
 			}
 		}
 	}
-
 	if (getus() - us > 7000)
 	{
 		TRACE("log cost %d us  ", int(getus()-us));
 		TRACE("  fat R/R:%d/%d\r\n", read_count, write_count);
 	}
-
 	// 	ERROR("\rfat R/R:%d/%d", read_count, write_count);
 	// 	if (read_count + write_count > 1)
 	// 		ERROR("\r\n");
-
 	read_count = write_count = 0;
+	#endif
+
+
+
 
 	return 0;
 }
@@ -1169,7 +1185,11 @@ int log_packet_count = 0;
 // called by main loop, only copy logs to a memory buffer, should be very fast
 int save_logs()
 {
-	if (LOG_LEVEL == LOG_SDCARD && !sd_ok)
+	if (LOG_LEVEL == LOG_SDCARD 
+		#ifndef LITE
+		&& !sd_ok
+		#endif
+	)
 		return 0;
 
 	// if the saving task is transferring logs into 2nd buffer
@@ -1281,7 +1301,11 @@ int save_logs()
 		yaw_launch * 18000 / PI,
 		yaw_est * 18000 / PI,
 		throttle_real_crusing,
+		#ifndef LITE
 		sonar_result(),
+		#else
+		0xffff,
+		#endif
 	};
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA3;
@@ -1307,7 +1331,7 @@ int save_logs()
 	}
 
 
-
+#ifndef LITE
 	if (last_gps_tick > getus() - 2000000)
 	{
 		nmeaINFO &info = *GPS_GetInfo();
@@ -1326,6 +1350,7 @@ int save_logs()
 		memcpy(log_buffer[0]+c*32, &to_send, 32);
 		c++;
 	}
+#endif
 	
 	log_packet_count = c;
 
@@ -1335,6 +1360,7 @@ int save_logs()
 
 int read_sensors()
 {
+	#ifndef LITE
 	// read external adc
 	ads1115_go_on();
 
@@ -1344,13 +1370,17 @@ int read_sensors()
 		last_sonar_time = getus();
 		TRACE("\rdis=%.2f", sonar_distance);
 	}
+	#endif
 
 	if (getus()-last_sonar_time > 200000)		//200ms
 		sonar_distance = NAN;
 
 	// always read sensors and calculate attitude
-	read_MPU6050(&p->accel[0]);		
-	read_HMC5883(&p->mag[0]);
+	if (read_MPU6050(&p->accel[0]) < 0 && read_MPU6050(&p->accel[0]) < 0)
+		ERROR("MPU6050 Error\n");
+	if (read_HMC5883(&p->mag[0]) < 0 && read_HMC5883(&p->mag[0]) < 0);
+		TRACE("HMC5883 Error\n");
+
 	for(int i=0; i<3; i++)
 		p->mag[i] *= mag_gain.array[i];
 
@@ -1713,7 +1743,9 @@ int sensor_calibration()
 		long us = getus();
 
 		TRACE("\r%d/300", i);
+		#ifndef LITE
 		ads1115_go_on();
+		#endif
 		read_MPU6050(p->accel);
 		read_HMC5883(p->mag);
 		if (read_MS5611(ms5611) == 0)
@@ -1816,6 +1848,14 @@ int sensor_calibration()
 	TRACE("base value measured\r\n");
 	return 0;
 }
+
+#ifndef LITE
+#else
+int Mal_Accessed()
+{
+	return 0;
+}
+#endif
 
 int usb_lock()
 {
@@ -1931,6 +1971,7 @@ int check_mode()
 
 int osd()
 {
+	#ifndef LITE
 	// artificial horizon
 	//while((MAX7456_Read_Reg(STAT) & 0x10) != 0x00); // wait for vsync
 	float roll_constrain = limit(roll, -30*PI/180, +30*PI/180);
@@ -1959,6 +2000,7 @@ int osd()
 	sprintf(climb_rate_string, "%c%.1f", state[1] >0 ? '+' : '-', fabs(state[1]));
 	MAX7456_PrintDigitString(climb_rate_string, 0, 9);
 
+	#endif
 	return 0;
 }
 
@@ -2017,9 +2059,11 @@ int loop(void)
 	usb_lock();	// lock the system if usb transfer occurred
 
 	led_all_off();
+	#ifndef LITE
 	if (nrf_ok && cycle_counter % 4 == 0)
 		NRF_RX_Mode();
-
+	#endif
+	
 	if (getus() - tic > 1000000)
 	{
 		tic = getus();
@@ -2030,12 +2074,14 @@ int loop(void)
 	cycle_counter++;
 
 	// flashlight
+	#ifndef LITE
 	time = getus();
 	int time_mod_1500 = (time%1500000)/1000;
 	if (time_mod_1500 < 150 || (time_mod_1500 > 200 && time_mod_1500 < 350) || (time_mod_1500 > 400 && time_mod_1500 < 550 && sd_ok))
 		flashlight_on();
 	else
 		flashlight_off();
+	#endif
 
 	// RC modes and RC fail detection
 	check_mode();
@@ -2047,9 +2093,10 @@ int loop(void)
 	calculate_attitude();
 
 	// gps		
+	#ifndef LITE
 	if (GPS_ParseBuffer() > 0)
 		last_gps_tick = getus();
-
+	#endif
 
 
 	//osd();
@@ -2076,14 +2123,18 @@ int loop(void)
 	led_all_on();
 
 	// read and process a packet
+	#ifndef LITE
 	rf_data packet;
 	if (NRF_Rx_Dat((uint8_t*)&packet) == RX_OK)
 	{
 		TRACE("packet!!!!\r\n\r\n");
 	}
-
+	#endif
+	
 	// wait for next 8ms and send all data out
+	#ifndef LITE
 	NRF_TX_Mode();
+	#endif
 
 	return 0;
 }
@@ -2093,13 +2144,15 @@ int main(void)
 	//Basic Initialization
 	init_timer();
 	SysClockInit();
+	#ifndef LITE
 	sdcard_init();
+	#endif
 
 	// priority settings
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_3);
 	
 	// USB
-#ifdef STM32F1
+#if defined(STM32F1) && !defined(LITE)
 	Set_System();
 	Set_USBClock();
 	USB_Interrupts_Config();
@@ -2123,19 +2176,21 @@ int main(void)
 	PPM_init(1);
 	printf_init();
 	I2C_init(0x30);
+	debugpin_init();
 	if (init_MPU6050() < 0)
 		critical_errors |= error_accelerometer | error_gyro;
-	if (init_HMC5883() < 0)
-		critical_errors |= error_magnet;	
 	if (init_MS5611() < 0)
 		critical_errors |= error_baro;
-	debugpin_init();
+	#ifndef LITE
+	if (init_HMC5883() < 0)
+		critical_errors |= error_magnet;	
 	GPS_Init(115200);
 	NRF_Init();
 	MAX7456_SYS_Init();
 	Max7456_Set_System(1);
-	flashlight_on();
 	sonar_init();
+	#endif
+	flashlight_on();
 
 	FLASH_Unlock();
 #ifdef STM32F4
@@ -2146,7 +2201,7 @@ int main(void)
 
 
 	
-	#if PCB_VERSION == 3
+	#if PCB_VERSION == 3 && !defined(LITE)
 	ads1115_init();	
 	ads1115_new_work(ads1115_speed_250sps, ads1115_channnel_AIN0, ads1115_gain_4V, &ads1115_voltage);
 	ads1115_new_work(ads1115_speed_250sps, ads1115_channnel_AIN1_AIN3, ads1115_gain_4V, &ads1115_current);
@@ -2156,11 +2211,13 @@ int main(void)
 	
 	delayms(100);
 	
+	#ifndef LITE
 	NRF_Init();
 	nrf_ok = 0 == NRF_Check();
 	TRACE("NRF_Check() = %d\r\n", nrf_ok);
 	if (nrf_ok)
 		NRF_TX_Mode();
+	#endif
 	
 	p->voltage = -32768;
 	p->current = -32768;
@@ -2204,6 +2261,7 @@ int main(void)
 
 
 	
+	#ifndef LITE
 	// check NRF again
 	if (!nrf_ok)
 		nrf_ok = 0 == NRF_Check();
@@ -2213,31 +2271,38 @@ int main(void)
 		NRF_TX_Mode();
 
 	TRACE("NRF_Check() 2 = %d\r\n", nrf_ok);
+	#endif
 
 
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
 
-	// set timer(TIM7) for main loop
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM7,ENABLE);
-	TIM_DeInit(TIM7);
-	TIM_InternalClockConfig(TIM7);
+	// set timer(TIM1) for main loop
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1,ENABLE);
+	TIM_DeInit(TIM1);
+	TIM_InternalClockConfig(TIM1);
 #ifdef STM32F1
 	TIM_TimeBaseStructure.TIM_Prescaler=71;
 #endif
 #ifdef STM32F4
-	TIM_TimeBaseStructure.TIM_Prescaler=83;
+	TIM_TimeBaseStructure.TIM_Prescaler=167;
 #endif
 	TIM_TimeBaseStructure.TIM_ClockDivision=TIM_CKD_DIV1;
 	TIM_TimeBaseStructure.TIM_CounterMode=TIM_CounterMode_Up;
 	TIM_TimeBaseStructure.TIM_Period=3000-1;
-	TIM_TimeBaseInit(TIM7,&TIM_TimeBaseStructure);
-	TIM_ClearFlag(TIM7,TIM_FLAG_Update);
-	TIM_ARRPreloadConfig(TIM7,DISABLE);
-	TIM_ITConfig(TIM7,TIM_IT_Update,ENABLE);
-	TIM_Cmd(TIM7,ENABLE);
+	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0x0;
+	TIM_TimeBaseInit(TIM1,&TIM_TimeBaseStructure);
+	TIM_ClearFlag(TIM1,TIM_FLAG_Update);
+	TIM_ARRPreloadConfig(TIM1,DISABLE);
+	TIM_ITConfig(TIM1,TIM_IT_Update,ENABLE);
+	TIM_Cmd(TIM1,ENABLE);
 
-	NVIC_InitStructure.NVIC_IRQChannel = TIM7_IRQn;
+#ifdef STM32F1
+	NVIC_InitStructure.NVIC_IRQChannel = TIM1_UP_IRQn;
+#endif
+#ifdef STM32F4
+	NVIC_InitStructure.NVIC_IRQChannel = TIM1_UP_TIM10_IRQn;
+#endif
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 4;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
@@ -2245,7 +2310,8 @@ int main(void)
 
 
 
-	// set timer(TIM8) for log saving task
+#if !defined(LITE) && !defined(STM32F1)
+	// set timer(TIM12) for log saving task
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM12,ENABLE);
 	TIM_DeInit(TIM12);
 	TIM_InternalClockConfig(TIM12);
@@ -2264,11 +2330,12 @@ int main(void)
 	TIM_ITConfig(TIM12,TIM_IT_Update,ENABLE);
 	TIM_Cmd(TIM12,ENABLE);
 
-	NVIC_InitStructure.NVIC_IRQChannel = TIM8_BRK_TIM12_IRQn;
+ 	NVIC_InitStructure.NVIC_IRQChannel = TIM8_BRK_TIM12_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 6;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
+#endif
 
 	while(1)
 	{
@@ -2281,9 +2348,14 @@ int main(void)
 
 extern "C"
 {
-void TIM7_IRQHandler(void)
+#ifdef STM32F1
+void TIM1_UP_IRQHandler(void)
+#endif
+#ifdef STM32F4
+void TIM1_UP_TIM10_IRQHandler(void)
+#endif
 {
-	TIM_ClearITPendingBit(TIM7 , TIM_FLAG_Update);
+	TIM_ClearITPendingBit(TIM1 , TIM_FLAG_Update);
 	loop();
 }
 
@@ -2293,7 +2365,6 @@ void TIM8_BRK_TIM12_IRQHandler(void)
 	real_log();
 }
 }
-
 
 // assume all vector are normalized
 // return true if reliable roll pitch target is calculated, false if unreliable
@@ -2410,6 +2481,7 @@ static void SysClockInit(void)
 #endif
 }
 
+#ifndef LITE
 
 int ads1115_new_work(ads1115_speed speed, ads1115_channel channel, ads1115_gain gain, int16_t *out)
 {
@@ -2448,3 +2520,4 @@ int ads1115_go_on()
 
 	return 1;
 }
+#endif
