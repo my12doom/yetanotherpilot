@@ -66,16 +66,22 @@ void vector_multiply(vector *a, float b)	// a = a*b
 }
 void vector_rotate(vector *v, float *delta)
 {
-vector v_tmp = *v;
-v->V.z -= delta[0]  * v_tmp.V.x + delta[1] * v_tmp.V.y;
-v->V.x += delta[0]  * v_tmp.V.z - delta[2]   * v_tmp.V.y;
-v->V.y += delta[1] * v_tmp.V.z + delta[2]   * v_tmp.V.x;
+// vector v_tmp = *v;
+// v->V.z -= delta[0]  * v_tmp.V.x + delta[1] * v_tmp.V.y;
+// v->V.x += delta[0]  * v_tmp.V.z - delta[2]   * v_tmp.V.y;
+// v->V.y += delta[1] * v_tmp.V.z + delta[2]   * v_tmp.V.x;
+// 
+// vector_multiply(v, vector_length(&v_tmp) / vector_length(v));
 
-vector_multiply(v, vector_length(&v_tmp) / vector_length(v));
-
-// 	vector_rotate_roll(v, delta[0]);
-// 	vector_rotate_pitch(v, delta[1]);
-// 	vector_rotate_yaw(v, delta[2]);
+	vector_rotate_roll(v, delta[0]);
+	vector_rotate_pitch(v, delta[1]);
+	vector_rotate_yaw(v, delta[2]);
+}
+void vector_rotate2(vector *v, float *delta)
+{
+	vector_rotate_yaw(v, -delta[2]);
+	vector_rotate_pitch(v, -delta[1]);
+	vector_rotate_roll(v, -delta[0]);
 }
 
 void vector_normalize(vector *v)

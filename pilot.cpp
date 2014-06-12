@@ -3,8 +3,6 @@
 #include <math.h>
 #include <string.h>
 
-#define LITE
-
 #include "RFData.h"
 #include "common/adc.h"
 #include "common/printf.h"
@@ -901,7 +899,7 @@ int calculate_target()
 				// max target rate: 180 degree/second
 				target[i] = limit(target[i], -PI, PI);
 			}
-			TRACE("angle pos,target=%f,%f\r\n", angle_pos[2] * PI180, angle_target[2] * PI180);
+			ERROR("angle pos,target=%f,%f, air=%s\r\n", angle_pos[2] * PI180, angle_target[2] * PI180, airborne ? "true" : "false");
 
 			// check takeoff
 			if ( (state[0] > takeoff_ground_altitude + 2.0f) ||
@@ -1558,6 +1556,13 @@ int calculate_attitude()
 	yaw_est = radian_add(yaw_est, quadcopter_trim[2]);
 	yaw_gyro = radian_add(yaw_gyro, quadcopter_trim[2]);
 
+#ifndef LITE
+	vector accel_earth_frame = acc;
+	float attitude[3] = {roll, pitch, 0};
+	vector_rotate2(&accel_earth_frame, attitude);
+
+	TRACE("\raccel_ef:%.1f, %.1f, %.1f, heading:%.2f", accel_earth_frame.V.x, accel_earth_frame.V.y, accel_earth_frame.V.z, yaw_est * PI180);
+#endif
 	return 0;
 }
 
@@ -1882,27 +1887,61 @@ int usb_lock()
 	return -1;
 }
 
+
+int last_ch4 = 1000;
+int64_t arm_start_tick = 0;
 int check_mode()
 {
 
 	if (g_ppm_input_update[4] > getus() - RC_TIMEOUT)
 	{
-		if (g_ppm_input[4] < 1333)
 #if QUADCOPTER == 1
+		if (mode == initializing)
 			mode = shutdown;
+
+		// emergency switch
+		if ((g_ppm_input[4] < 1333 && last_ch4 > 1666 ) 
+			|| (g_ppm_input[4] > 1666 && last_ch4 < 1333))
+		{
+			mode = shutdown;
+			last_ch4 = g_ppm_input[4];
+			ERROR("shutdown!\n");
+		}
+
+		// arm action check: throttle minimum, rudder max or min, aileron & elevator near netrual, for 0.5second
+		bool arm_action = g_ppm_input[2] < THROTTLE_IDLE && abs(g_ppm_input[0] - RC_CENTER) < 150 && abs(g_ppm_input[1] - RC_CENTER) < 150
+			&& (g_ppm_input[3] > rudder_max || g_ppm_input[3] < rudder_min);
+		if (!arm_action)
+		{
+			arm_start_tick = 0;
+			ERROR("\rrudder=%2f.", g_ppm_input[3]);
+		}
+		else
+		{
+			if (arm_start_tick > 0)
+			{
+				if (getus() - arm_start_tick > 500000)
+				{
+					mode = quadcopter;
+					ERROR("armed!\n");
+				}
+			}
+			else
+			{
+				arm_start_tick = getus();
+			}
+		}
+
 #else
+		if (g_ppm_input[4] < 1333)
 			mode = manual;
-#endif
 		else if (g_ppm_input[4] > 1666)
-#if QUADCOPTER == 1
-			mode = quadcopter;
-#else
 			mode = acrobatic;
-#endif
 		else
 		{
 			mode = rc_fail;
 		}
+#endif
 	}
 	else
 	{
@@ -1912,6 +1951,7 @@ int check_mode()
 
 	// quadcopter startup protection
 	// if not startup in shutdown mode, we flash the light and refuse to work
+/*
 #if QUADCOPTER == 1
 	if (last_mode == initializing && mode != shutdown)
 	{
@@ -1924,6 +1964,7 @@ int check_mode()
 		}
 	}
 #endif
+*/
 
 	// mode changed?
 	if (mode != last_mode)
@@ -1962,7 +2003,7 @@ int check_mode()
 		vector_normalize(&targetVM);
 
 		for(int i=0; i<6; i++)
-			rc_zero[i] = g_ppm_input[i];
+			rc_zero[i] = RC_CENTER;
 	}
 
 
@@ -2048,6 +2089,31 @@ int real_log()
 	return 0;
 }
 
+
+int64_t land_detect_us = 0;
+int land_detector()
+{
+	if (g_ppm_input[2] < THROTTLE_IDLE		// low throttle
+		&& fabs(state[1]) < 0.2f			// low climb rate
+		&& fabs(state[2] + state[3]) < 0.2f	// low acceleration
+	)
+	{
+		land_detect_us = land_detect_us == 0 ? getus() : land_detect_us;
+
+		if (getus() - land_detect_us > (airborne ? 1000000 : 3000000))		// 2 seconds for before take off, 1 senconds for landing
+		{
+			mode = shutdown;
+			ERROR("landing detected");
+		}
+	}
+	else
+	{
+		land_detect_us = 0;
+	}
+	
+	return 0;
+}
+
 int64_t tic = 0;
 int loop(void)
 {
@@ -2105,6 +2171,11 @@ int loop(void)
 	pid();
 	output();
 	save_logs();
+
+	if (mode == quadcopter)
+		land_detector();
+	else
+		land_detect_us = 0;
 
 
 

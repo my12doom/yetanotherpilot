@@ -78,6 +78,12 @@ static int quadcopter_mixing_matrix[4][3] = // the motor mixing matrix, [motor n
 };
 
 #if QUADCOPTER == 1
+extern int aileron_min;
+extern int aileron_max;
+extern int elevator_min;
+extern int elevator_max;
+extern int rudder_min;
+extern int rudder_max;
 #define ACRO_MANUAL_FACTOR (0.0)
 
 #else
