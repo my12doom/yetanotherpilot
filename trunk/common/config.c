@@ -37,8 +37,8 @@ float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I limit, 
 };
 float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
 {
-	{0.50, 0.45, 0.08,},
-	{0.50, 0.45, 0.08,},
+	{0.50, 0.45, 0.06,},
+	{0.50, 0.45, 0.06,},
 	{1.75, 0.25, 0,},
 };
 float pid_factor2[3][4] = 			// pid_factor2[roll,pitch,yaw][p,i,d,i_limit]
@@ -56,6 +56,13 @@ float quadcopter_trim[3]
 	0 * PI / 180,			// pitch
 	0,							// yaw
 };
+
+int aileron_min;
+int aileron_max;
+int elevator_min;
+int elevator_max;
+int rudder_min = 1150;
+int rudder_max = 1850;
 
 #else
 
