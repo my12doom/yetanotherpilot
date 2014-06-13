@@ -23,7 +23,7 @@ float pid_quad_accel[4]=			// P, I, D, IMAX
 	75,
 	150,
 	0,
-	0.05,
+	1,
 };
 
 

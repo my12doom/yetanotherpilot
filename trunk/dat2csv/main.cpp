@@ -7,7 +7,7 @@ typedef __int64 int64_t;
 #include "..\RFData.h"
 #include "..\common\vector.h"
 #include "..\common\common.h"
-#include "..\math\matrix.h"
+// #include "..\math\matrix.h"
 
 int max(int a, int b)
 {
@@ -84,15 +84,15 @@ int matrix_mul(float *out, const float *m1, int row1, int column1, const float *
 
 int main(int argc, char **argv)
 {
-	matrix test = 
-	{
-		3,3
-		{
-			1,0,0,
-			0,1,0,
-			0,0,1,
-		}
-	};
+// 	matrix test = 
+// 	{
+// 		3,3
+// 		{
+// 			1,0,0,
+// 			0,1,0,
+// 			0,0,1,
+// 		}
+// 	};
 	vector test = {0,0,1};
 	vector gyro = {0,PI/20000,0};
 	
@@ -264,16 +264,16 @@ int main(int argc, char **argv)
 
 		if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA || (rf.time & TAG_MASK) ==  TAG_GPS_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA2)
 		{
-// 			if (m++ %4 == 0
-// 				//&& pilot.fly_mode == quadcopter && ppm.in[2] > 1300
-// 				)
+			if (m++ %2 == 0
+				//&& pilot.fly_mode == quadcopter && ppm.in[2] > 1300
+				)
 // 			if (time > 350000000 && time < 370000000)
 // 			if (m++ %3 == 0 && quad3.ultrasonic != 0xffff)
 			{
 				fprintf(gpso, "%.4f", float(time/1000000.0f));
 				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[1],quad.angle_target[1],quad.speed[1],quad.speed_target[1]);
-				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d,", pilot2.I[1],quad.angle_target[0],quad.speed[0],quad.speed_target[0], quad3.altitude_target, quad3.climb, quad3.climb_target);
-				fprintf(gpso, "%d,%d,%d", int(quad3.altitude), int(quad3.ultrasonic/10), quad2.airborne ? 500 : 0);
+				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d,", pilot2.I[1],quad.angle_target[0],quad.speed[0],quad.speed_target[0], quad3.altitude_target, quad3.accel_I, quad3.accel_target);
+				fprintf(gpso, "%d,%d,%d", int(quad3.altitude), int(quad3.accel), quad2.airborne ? 555 : 0);
 				fprintf(gpso, "\r\n");
 			}
 		}

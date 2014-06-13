@@ -41,7 +41,7 @@
 #define THROTTLE_STOP 1110
 #define THROTTLE_IDLE (THROTTLE_STOP+60)
 #define THROTTLE_MAX 1888
-#define THROTTLE_CRUISE 1400
+#define THROTTLE_CRUISE 1500
 
 #define ACRO_ROLL_RATE (PI*3/2)				// 270 degree/s
 #define ACRO_PITCH_RATE (PI)			// 180 degree/s
