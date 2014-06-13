@@ -574,13 +574,15 @@ int auto_throttle(float user_climb_rate)
 		accel_error_pid[0], accel_error_pid[1], accel_error_pid[2]);
 
 	// update throttle_real_crusing if we're in near level state and no violent climbing/descending action
-	if (airborne && throttle_real>THROTTLE_IDLE && fabs(state[1]) < 0.5f && fabs(state[3] + accelz)<0.5f && fabs(roll)<5 && fabs(pitch)<5)
+	if (airborne && throttle_real>THROTTLE_IDLE && fabs(state[1]) < 0.5f && fabs(state[3] + accelz)<0.5f && fabs(roll)<5*PI/180 && fabs(pitch)<5*PI/180
+		&& fabs(user_climb_rate) < 0.001f)
 	{
 		// 0.2Hz low pass filter
 		const float RC02 = 1.0f/(2*3.1415926 * 0.2f);
 		float alpha02 = interval / (interval + RC02);
 
-		throttle_real_crusing = throttle_real_crusing * (1-alpha02) + alpha02 * throttle_real;
+		//throttle_real_crusing = throttle_real_crusing * (1-alpha02) + alpha02 * throttle_real;
+		// TODO: estimate throttle cursing correctly
 	}
 
 	return 0;
@@ -902,7 +904,7 @@ int calculate_target()
 			ERROR("angle pos,target=%f,%f, air=%s\r\n", angle_pos[2] * PI180, angle_target[2] * PI180, airborne ? "true" : "false");
 
 			// check takeoff
-			if ( (state[0] > takeoff_ground_altitude + 2.0f) ||
+			if ( (state[0] > takeoff_ground_altitude + 1.0f) ||
 				(state[0] > takeoff_ground_altitude && ((g_ppm_input[5] > RC_CENTER) ? throttle_result : g_ppm_input[2]) > throttle_real_crusing) ||
 				(((g_ppm_input[5] > RC_CENTER) ? throttle_real_crusing : g_ppm_input[2]) > throttle_real_crusing + 100))
 			{
@@ -1304,6 +1306,7 @@ int save_logs()
 		#else
 		0xffff,
 		#endif
+		accel_error_pid[1]*1000,
 	};
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA3;
@@ -1980,7 +1983,7 @@ int check_mode()
 		target_climb_rate = -quadcopter_max_descend_rate;
 		target_accel = -quadcopter_max_acceleration*2;
 		accel_error_pid[0] = target_accel;
-		accel_error_pid[1] = 0;
+// 		accel_error_pid[1] = 0;
 		accel_error_pid[2] = 0;
 		yaw_launch = yaw_est;
 
@@ -2072,6 +2075,8 @@ int real_log()
 	__ISB();
 
 	// real saving / sending
+	if (log_packet_count == 0)
+		return 0;
 	for(int i=0; i<log_packet_count; i++)
 		log(log_buffer[1] + 32*i, 32);
 
@@ -2093,9 +2098,9 @@ int real_log()
 int64_t land_detect_us = 0;
 int land_detector()
 {
-	if (g_ppm_input[2] < THROTTLE_IDLE		// low throttle
-		&& fabs(state[1]) < 0.2f			// low climb rate
-		&& fabs(state[2] + state[3]) < 0.2f	// low acceleration
+	if (g_ppm_input[2] < THROTTLE_IDLE				// low throttle
+		&& fabs(state[1]) < (quadcopter_max_descend_rate/4.0f)			// low climb rate : 25% of max descend rate should be reached in such low throttle, or ground was touched
+		&& fabs(state[2] + state[3]) < 0.5f			// low acceleration
 	)
 	{
 		land_detect_us = land_detect_us == 0 ? getus() : land_detect_us;
