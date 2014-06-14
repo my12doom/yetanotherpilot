@@ -501,6 +501,11 @@
               <FileType>8</FileType>
               <FilePath>.\common\matrix.cpp</FilePath>
             </File>
+            <File>
+              <FileName>param.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\param.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

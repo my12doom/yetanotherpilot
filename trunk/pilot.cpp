@@ -2218,6 +2218,8 @@ int loop(void)
 	return 0;
 }
 
+param test[2] = {param("test", 1.1f), param("tes3", 1.1f)};
+
 int main(void)
 {
 	//Basic Initialization
@@ -2272,7 +2274,7 @@ int main(void)
 	flashlight_on();
 
 
-	ERROR("test=%.2f, test3=%.2f\n", float(test), float(test3));
+	ERROR("test=%.2f, test3=%.2f\n", float(test[0]), float(test[1]));
 
 	
 	#if PCB_VERSION == 3 && !defined(LITE)
