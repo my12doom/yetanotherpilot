@@ -41,7 +41,7 @@
 #define THROTTLE_STOP 1110
 #define THROTTLE_IDLE (THROTTLE_STOP+60)
 #define THROTTLE_MAX 1888
-#define THROTTLE_CRUISE 1500
+#define THROTTLE_CRUISE 1450
 
 #define ACRO_ROLL_RATE (PI*3/2)				// 270 degree/s
 #define ACRO_PITCH_RATE (PI)			// 180 degree/s
@@ -147,6 +147,7 @@ extern float pid_quad_accel[4];		// P, I, D, IMAX
 #define EEPROM_MAG_ZERO 0 			// start 0 size 12
 #define EEPROM_VOLTAGE_DIVIDER 12 	// start 12 size 4
 #define EEPROM_MAG_ZERO2 16 		// start 16 size 12
-#define EEPROM_MAG_GAIN 28 		// start 16 size 12
+#define EEPROM_MAG_GAIN 28 		// start 28 size 12
+#define EEPROM_CONFIG 40		// start 40 size 128*8
 
 #endif
