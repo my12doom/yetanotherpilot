@@ -3,12 +3,15 @@
 #include <string.h>
 #include "config.h"
 
+extern "C"
+{
 #ifdef STM32F1
 #include "eeprom.h"
 #endif
 #ifdef STM32F4
 #include "eepromF4.h"
 #endif
+}
 
 #define PARAM_ENDL "\0\0\0\0"
 
