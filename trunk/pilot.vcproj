@@ -282,6 +282,14 @@
 					>
 				</File>
 				<File
+					RelativePath=".\common\param.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\common\param.h"
+					>
+				</File>
+				<File
 					RelativePath=".\common\PPM.c"
 					>
 				</File>
@@ -295,14 +303,6 @@
 				</File>
 				<File
 					RelativePath=".\common\printf.h"
-					>
-				</File>
-				<File
-					RelativePath=".\common\settings.c"
-					>
-				</File>
-				<File
-					RelativePath=".\common\settings.h"
 					>
 				</File>
 				<File

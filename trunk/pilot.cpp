@@ -17,6 +17,7 @@
 #include "sensors/mag_offset.h"
 #include "common/config.h"
 #include "common/matrix.h"
+#include "common/param.h"
 
 #ifndef LITE
 #include "common/gps.h"
@@ -852,7 +853,7 @@ int calculate_target()
 
 			// yaw:
 			//target[2] = limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[2] / RC_RANGE, -1, 1) * quadcopter_range[2] + yaw_gyro + quadcopter_trim[2];
-			if (airborne)
+			if (airborne || g_ppm_input[2] > THROTTLE_IDLE)	// airborne or armed and throttle up
 			{
 				float rc = g_ppm_input[3] - rc_zero[3];
 				if (abs(rc) < RC_DEAD_ZONE)
@@ -1865,9 +1866,12 @@ int Mal_Accessed()
 }
 #endif
 
+#ifdef STM32F4
+extern "C" int Mal_Accessed(void);
+#endif
+
 int usb_lock()
 {
-	#ifdef STM32F1
 	if (Mal_Accessed())
 	{
 		for(int i=0; i<sizeof(g_ppm_output)/sizeof(g_ppm_output[0]); i++)
@@ -1885,7 +1889,6 @@ int usb_lock()
 
 		}
 	}
-	#endif
 
 	return -1;
 }
@@ -2268,13 +2271,8 @@ int main(void)
 	#endif
 	flashlight_on();
 
-	FLASH_Unlock();
-#ifdef STM32F4
-	FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | 
-		FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR|FLASH_FLAG_PGSERR);
-#endif
-	EE_Init();
 
+	ERROR("test=%.2f, test3=%.2f\n", float(test), float(test3));
 
 	
 	#if PCB_VERSION == 3 && !defined(LITE)

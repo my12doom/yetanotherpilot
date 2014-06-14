@@ -33,6 +33,12 @@
 #include "usbd_msc_mem.h"
 #include "usb_conf.h"
 
+int _Mal_Accessed = 0;
+int Mal_Accessed(void)
+{
+	return _Mal_Accessed;
+} 
+
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
   * @{
   */
@@ -182,6 +188,7 @@ int8_t STORAGE_Init (uint8_t lun)
   */
 int8_t STORAGE_GetCapacity (uint8_t lun, uint32_t *block_num, uint32_t *block_size)
 {
+	_Mal_Accessed = 1;
 #ifdef USE_STM3210C_EVAL
   SD_CardInfo SDCardInfo;
 
@@ -209,10 +216,11 @@ int8_t STORAGE_GetCapacity (uint8_t lun, uint32_t *block_num, uint32_t *block_si
   */
 int8_t  STORAGE_IsReady (uint8_t lun)
 {
-
+	
 #ifndef USE_STM3210C_EVAL
 
   static int8_t last_status = 0;
+	_Mal_Accessed = 1;
 
   if(last_status  < 0)
   {
@@ -226,6 +234,7 @@ int8_t  STORAGE_IsReady (uint8_t lun)
     return (-1);
   }
 #else
+	_Mal_Accessed = 1;
   if( SD_Init() != 0)
   {
     return (-1);
@@ -257,7 +266,8 @@ int8_t STORAGE_Read (uint8_t lun,
                  uint32_t blk_addr,
                  uint32_t blk_len) // needs to be 32-bit to avoid unnecessary casting
 {
-
+	_Mal_Accessed = 1;
+	
   if( SD_ReadMultiBlocks2 (buf,
                           blk_addr,
                           512,
@@ -284,6 +294,7 @@ int8_t STORAGE_Write (uint8_t lun,
                   uint32_t blk_addr,
                   uint32_t blk_len) // needs to be 32-bit to avoid unnecessary casting
 {
+	_Mal_Accessed = 1;
 
   if( SD_WriteMultiBlocks2 (buf,
                            blk_addr,
@@ -307,6 +318,8 @@ return (0);
 
 int8_t STORAGE_GetMaxLun (void)
 {
+	_Mal_Accessed = 1;
+	
   return (STORAGE_LUN_NBR - 1);
 }
 /**
