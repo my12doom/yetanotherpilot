@@ -50,7 +50,7 @@
           <CreateHexFile>0</CreateHexFile>
           <DebugInformation>1</DebugInformation>
           <BrowseInformation>1</BrowseInformation>
-          <ListingPath>.\STM32F429_439xx\</ListingPath>
+          <ListingPath>.\output\pilotF4\</ListingPath>
           <HexFormatSelection>1</HexFormatSelection>
           <Merge32K>0</Merge32K>
           <CreateBatchFile>0</CreateBatchFile>
@@ -166,7 +166,7 @@
             <DriverSelection>4099</DriverSelection>
           </Flash1>
           <Flash2>Segger\JL2CM3.dll</Flash2>
-          <Flash3>"" ()</Flash3>
+          <Flash3></Flash3>
           <Flash4></Flash4>
         </Utilities>
         <TargetArmAds>
@@ -207,7 +207,7 @@
             <hadIRAM>1</hadIRAM>
             <hadXRAM>0</hadXRAM>
             <uocXRam>0</uocXRam>
-            <RvdsVP>1</RvdsVP>
+            <RvdsVP>2</RvdsVP>
             <hadIRAM2>1</hadIRAM2>
             <hadIROM2>0</hadIROM2>
             <StupSel>8</StupSel>
@@ -900,6 +900,11 @@
               <FileName>eepromF4.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\common\eepromF4.h</FilePath>
+            </File>
+            <File>
+              <FileName>param.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\param.cpp</FilePath>
             </File>
           </Files>
         </Group>
@@ -2200,6 +2205,11 @@
               <FileType>5</FileType>
               <FilePath>.\common\eepromF4.h</FilePath>
             </File>
+            <File>
+              <FileName>param.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\param.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -3499,6 +3509,11 @@
               <FileType>5</FileType>
               <FilePath>.\common\eepromF4.h</FilePath>
             </File>
+            <File>
+              <FileName>param.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\param.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -4797,6 +4812,11 @@
               <FileName>eepromF4.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\common\eepromF4.h</FilePath>
+            </File>
+            <File>
+              <FileName>param.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\param.cpp</FilePath>
             </File>
           </Files>
         </Group>
