@@ -4,11 +4,14 @@
 #include "../mcu.h"
 
 #define PPM_6 1
+#define OC 12
 
 uint32_t g_ppm_input_start[6];
 float g_ppm_input[6];
 int64_t g_ppm_input_update[6] = {0};
 #if QUADCOPTER == 0
+#undef OC 1
+#define OC 1
 uint16_t g_ppm_output[8] = {1520, 1520, THROTTLE_STOP, 1520, 1520, 1520, 1520, 1520};
 #else
 uint16_t g_ppm_output[8] = {THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP};
@@ -61,10 +64,10 @@ static void PPM_EXTI_Handler(void)
 		{
 			uint32_t now = TIM_GetCounter(TIM4);
 			if (now > g_ppm_input_start[channel])
-				g_ppm_input[channel]= now - g_ppm_input_start[channel];
+				g_ppm_input[channel]= (now - g_ppm_input_start[channel])/(float)OC;
 			else
 #if QUADCOPTER == 1
-				g_ppm_input[channel]= now + 3000 - g_ppm_input_start[channel];
+				g_ppm_input[channel]= (now + 3000*OC - g_ppm_input_start[channel])/(float)OC;
 #else
 				g_ppm_input[channel]= now + 10000 - g_ppm_input_start[channel];
 #endif			
@@ -155,15 +158,15 @@ static void Timer_Config(int enable_input)
 
 	// Time base configuration
 #if QUADCOPTER == 1
-	TIM_TimeBaseStructure.TIM_Period = 2999;
+	TIM_TimeBaseStructure.TIM_Period = 3000*OC-1;
 #else
-	TIM_TimeBaseStructure.TIM_Period = 9999;
+	TIM_TimeBaseStructure.TIM_Period = 10000-1;
 #endif
 #ifdef STM32F1
-	TIM_TimeBaseStructure.TIM_Prescaler = 71;
+	TIM_TimeBaseStructure.TIM_Prescaler = 72/OC-1;
 #endif
 #ifdef STM32F4
-	TIM_TimeBaseStructure.TIM_Prescaler = 83;
+	TIM_TimeBaseStructure.TIM_Prescaler = 84/OC-1;
 #endif
 	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
@@ -255,55 +258,55 @@ void PPM_update_output_channel(int channel_to_update)
 {
 #if PCB_VERSION == 1
 	if (channel_to_update & PPM_OUTPUT_CHANNEL0)
-		TIM_SetCompare3(TIM3, g_ppm_output[0]);		// PB0
+		TIM_SetCompare3(TIM3, g_ppm_output[0]*OC);		// PB0
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL1)
-		TIM_SetCompare4(TIM3, g_ppm_output[1]);		// PB1
+		TIM_SetCompare4(TIM3, g_ppm_output[1]*OC);		// PB1
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL2)
-		TIM_SetCompare4(TIM4, g_ppm_output[2]);		// PB9
+		TIM_SetCompare4(TIM4, g_ppm_output[2]*OC);		// PB9
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL3)
-		TIM_SetCompare3(TIM4, g_ppm_output[3]);		// PB8
+		TIM_SetCompare3(TIM4, g_ppm_output[3]*OC);		// PB8
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL4)
-		TIM_SetCompare2(TIM4, g_ppm_output[4]);		// PB7
+		TIM_SetCompare2(TIM4, g_ppm_output[4]*OC);		// PB7
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL5)
-		TIM_SetCompare1(TIM4, g_ppm_output[5]);		// PB6
+		TIM_SetCompare1(TIM4, g_ppm_output[5]*OC);		// PB6
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL6)
-		TIM_SetCompare2(TIM3, g_ppm_output[6]);		// PB5
+		TIM_SetCompare2(TIM3, g_ppm_output[6]*OC);		// PB5
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL7)
-		TIM_SetCompare1(TIM3, g_ppm_output[7]);		// PB4
+		TIM_SetCompare1(TIM3, g_ppm_output[7]*OC);		// PB4
 
 #elif PCB_VERSION == 2 ||  PCB_VERSION == 3
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL0)
-		TIM_SetCompare1(TIM3, g_ppm_output[0]);		// PB4
+		TIM_SetCompare1(TIM3, g_ppm_output[0]*OC);		// PB4
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL1)
-		TIM_SetCompare2(TIM3, g_ppm_output[1]);		// PB5
+		TIM_SetCompare2(TIM3, g_ppm_output[1]*OC);		// PB5
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL2)
-		TIM_SetCompare1(TIM4, g_ppm_output[2]);		// PB6
+		TIM_SetCompare1(TIM4, g_ppm_output[2]*OC);		// PB6
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL3)
-		TIM_SetCompare2(TIM4, g_ppm_output[3]);		// PB7
+		TIM_SetCompare2(TIM4, g_ppm_output[3]*OC);		// PB7
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL4)
-		TIM_SetCompare3(TIM4, g_ppm_output[4]);		// PB8
+		TIM_SetCompare3(TIM4, g_ppm_output[4]*OC);		// PB8
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL5)
-		TIM_SetCompare4(TIM4, g_ppm_output[5]);		// PB9
+		TIM_SetCompare4(TIM4, g_ppm_output[5]*OC);		// PB9
 
 	#if PPM_6 == 0
 	if (channel_to_update & PPM_OUTPUT_CHANNEL6)
-		TIM_SetCompare4(TIM3, g_ppm_output[6]);		// PB1
+		TIM_SetCompare4(TIM3, g_ppm_output[6]*OC);		// PB1
 
 	if (channel_to_update & PPM_OUTPUT_CHANNEL7)
-		TIM_SetCompare3(TIM3, g_ppm_output[7]);		// PB0
+		TIM_SetCompare3(TIM3, g_ppm_output[7]*OC);		// PB0
 	#endif
 #endif
 }

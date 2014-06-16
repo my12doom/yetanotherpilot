@@ -14,7 +14,8 @@ public:
 	float& operator= (float in);		// ram operation only
 	void save();						// save to eeprom
 
-	static param *find_param(const char *fourcc);
+	static float *find_param(const char *fourcc);
+	static float *enum_params(int pos);
 protected:
 
 	float* volatile pv;
