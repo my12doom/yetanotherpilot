@@ -23,7 +23,7 @@
 #ifndef __EEPROM_H
 #define __EEPROM_H
 
-#include "config.h"
+#include "build.h"
 
 #ifdef __cplusplus
 extern "C" {

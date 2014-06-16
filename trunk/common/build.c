@@ -1,4 +1,4 @@
-#include "config.h"
+#include "build.h"
 
 int LOG_LEVEL = LOG_SDCARD;
 

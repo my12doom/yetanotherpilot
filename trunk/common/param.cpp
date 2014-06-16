@@ -1,7 +1,7 @@
 #include "param.h"
 #include "../mcu.h"
 #include <string.h>
-#include "config.h"
+#include "build.h"
 
 extern "C"
 {

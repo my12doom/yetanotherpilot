@@ -1,6 +1,6 @@
 #include "PPM.h"
 #include "timer.h"
-#include "config.h"
+#include "build.h"
 #include "../mcu.h"
 
 #define PPM_6 1

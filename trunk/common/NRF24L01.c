@@ -2,7 +2,7 @@
 #include "../mcu.h"
 
 #include <string.h>
-#include "..\common\config.h"
+#include "..\common\build.h"
 #include "..\common\timer.h"
 
 

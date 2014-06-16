@@ -777,16 +777,6 @@
               <FilePath>.\common\common.h</FilePath>
             </File>
             <File>
-              <FileName>config.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\common\config.c</FilePath>
-            </File>
-            <File>
-              <FileName>config.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\common\config.h</FilePath>
-            </File>
-            <File>
               <FileName>gps.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\common\gps.c</FilePath>
@@ -905,6 +895,11 @@
               <FileName>param.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\common\param.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>build.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\common\build.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -2081,16 +2076,6 @@
               <FilePath>.\common\common.h</FilePath>
             </File>
             <File>
-              <FileName>config.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\common\config.c</FilePath>
-            </File>
-            <File>
-              <FileName>config.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\common\config.h</FilePath>
-            </File>
-            <File>
               <FileName>gps.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\common\gps.c</FilePath>
@@ -2209,6 +2194,11 @@
               <FileName>param.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\common\param.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>build.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\common\build.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -3385,16 +3375,6 @@
               <FilePath>.\common\common.h</FilePath>
             </File>
             <File>
-              <FileName>config.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\common\config.c</FilePath>
-            </File>
-            <File>
-              <FileName>config.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\common\config.h</FilePath>
-            </File>
-            <File>
               <FileName>gps.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\common\gps.c</FilePath>
@@ -3513,6 +3493,11 @@
               <FileName>param.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\common\param.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>build.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\common\build.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -4689,16 +4674,6 @@
               <FilePath>.\common\common.h</FilePath>
             </File>
             <File>
-              <FileName>config.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\common\config.c</FilePath>
-            </File>
-            <File>
-              <FileName>config.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\common\config.h</FilePath>
-            </File>
-            <File>
               <FileName>gps.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\common\gps.c</FilePath>
@@ -4817,6 +4792,11 @@
               <FileName>param.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\common\param.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>build.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\common\build.c</FilePath>
             </File>
           </Files>
         </Group>

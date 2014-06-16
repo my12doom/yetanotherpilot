@@ -1,5 +1,5 @@
 #include "gps.h"
-#include "config.h"
+#include "build.h"
 #include <string.h>
 #include <stdio.h>
 #include "../mcu.h"

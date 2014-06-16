@@ -492,11 +492,6 @@
               <FilePath>.\common\eeprom.c</FilePath>
             </File>
             <File>
-              <FileName>config.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\common\config.c</FilePath>
-            </File>
-            <File>
               <FileName>matrix.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\common\matrix.cpp</FilePath>
@@ -505,6 +500,11 @@
               <FileName>param.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\common\param.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>build.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\common\build.c</FilePath>
             </File>
           </Files>
         </Group>
