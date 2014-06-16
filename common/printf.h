@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include "common.h"
-#include "config.h"
+#include "build.h"
 
 #ifndef WIN32
 #include "../mcu.h"

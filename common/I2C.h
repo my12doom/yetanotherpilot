@@ -2,7 +2,7 @@
 #define __I2C_H__
 
 #include "../mcu.h"
-#include "config.h"
+#include "build.h"
 
 #ifdef __cplusplus
 extern "C" {

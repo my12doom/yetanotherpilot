@@ -1,5 +1,5 @@
 #include "printf.h"
-#include "config.h"
+#include "build.h"
 #include <stdarg.h>
 #include <stdio.h>
 #if __GNUC__ > 0

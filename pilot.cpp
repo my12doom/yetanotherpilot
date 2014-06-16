@@ -10,12 +10,11 @@
 #include "common/PPM.h"
 #include "common/common.h"
 #include "common/vector.h"
-#include "common/config.h"
+#include "common/build.h"
 #include "sensors/HMC5883.h"
 #include "sensors/MPU6050.h"
 #include "sensors/MS5611.h"
 #include "sensors/mag_offset.h"
-#include "common/config.h"
 #include "common/matrix.h"
 #include "common/param.h"
 
@@ -2374,7 +2373,7 @@ int main(void)
 	TIM_Cmd(TIM1,ENABLE);
 
 #ifdef STM32F1
-	#ifndef TIM1_UP_IRQn
+	#ifdef __GCC__
 	#define TIM1_UP_IRQn TIM1_UP_TIM10_IRQn
 	#endif
 	NVIC_InitStructure.NVIC_IRQChannel = TIM1_UP_IRQn;

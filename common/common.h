@@ -9,7 +9,7 @@
 #else
 typedef unsigned char uint8_t;
 #endif
-#include "config.h"
+#include "build.h"
 
 enum fly_mode
 {

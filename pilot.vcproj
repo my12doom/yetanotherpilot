@@ -218,15 +218,15 @@
 					>
 				</File>
 				<File
+					RelativePath=".\common\build.c"
+					>
+				</File>
+				<File
+					RelativePath=".\common\build.h"
+					>
+				</File>
+				<File
 					RelativePath=".\common\common.h"
-					>
-				</File>
-				<File
-					RelativePath=".\common\config.c"
-					>
-				</File>
-				<File
-					RelativePath=".\common\config.h"
 					>
 				</File>
 				<File
