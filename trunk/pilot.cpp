@@ -26,7 +26,7 @@
 #include "common/NRF24L01.h"
 #include "fat/ff.h"
 #include "osd/MAX7456.h"
-#endif'
+#endif
 
 extern "C"
 {
@@ -1483,7 +1483,7 @@ int calculate_attitude()
 	//	gyro_zero2.array[0] = 1.0313*mpu6050_temperature - 14.938;
 
 	vector gyro = {-p->gyro[0], -p->gyro[1], -p->gyro[2]};
-	vector acc = {-p->accel[1], p->accel[0], p->accel[2]};
+	vector acc = {-p->accel[1], p->accel[0], p->accel[2]+125};
 	vector mag = {(p->mag[2]-mag_zero.array[2]), -(p->mag[0]-mag_zero.array[0]), -(p->mag[1]-mag_zero.array[1])};
 	vector_sub(&gyro, &gyro_zero2);
 	for(int i=0; i<3; i++)
@@ -1565,7 +1565,7 @@ int calculate_attitude()
 	float attitude[3] = {roll, pitch, 0};
 	vector_rotate2(&accel_earth_frame, attitude);
 
-	TRACE("\raccel_ef:%.1f, %.1f, %.1f, heading:%.2f", accel_earth_frame.V.x, accel_earth_frame.V.y, accel_earth_frame.V.z, yaw_est * PI180);
+	ERROR("\raccel_ef:%.1f, %.1f, %.1f, heading:%.2f", accel_earth_frame.V.x, accel_earth_frame.V.y, accel_earth_frame.V.z, yaw_est * PI180);
 #endif
 	return 0;
 }
@@ -1765,7 +1765,7 @@ int sensor_calibration()
 		}
 
 		vector gyro = {-p->gyro[0], -p->gyro[1], -p->gyro[2]};
-		vector acc = {-p->accel[1], p->accel[0], p->accel[2]};
+		vector acc = {-p->accel[1], p->accel[0], p->accel[2]+125};
 		vector mag = {(p->mag[2]-mag_zero.array[2]), -(p->mag[0]-mag_zero.array[0]), -(p->mag[1]-mag_zero.array[1])};
 		vector_add(&gyro_zero, &gyro);
 		vector_add(&accel_avg, &acc);
@@ -1920,7 +1920,6 @@ int check_mode()
 		if (!arm_action)
 		{
 			arm_start_tick = 0;
-			ERROR("\rrudder=%2f.", g_ppm_input[3]);
 		}
 		else
 		{
@@ -2191,7 +2190,8 @@ int loop(void)
 		error_pid[0][0]*PI180, error_pid[1][0]*PI180, error_pid[2][0]*PI180);
 
 	TRACE("time=%.2f,inte=%.4f,out= %d, %d, %d, %d, input=%f,%f,%f,%f\n", getus()/1000000.0f, interval, g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5]);
-	TRACE (" mag=%.2f,%.2f,%.2f  acc=%.2f,%.2f,%.2f ", estMagGyro.V.x, estMagGyro.V.y, estMagGyro.V.z, estAccGyro.V.x, estAccGyro.V.y, estAccGyro.V.z);
+	TRACE ("\r mag=%.2f,%.2f,%.2f  acc=%.2f,%.2f,%.2f ", estMagGyro.V.x, estMagGyro.V.y, estMagGyro.V.z, estAccGyro.V.x, estAccGyro.V.y, estAccGyro.V.z);
+	TRACE ("\racc=%d,%d,%d ", p->accel[0], p->accel[1], p->accel[2]);
 	TRACE("input= %.2f, %.2f, %.2f, %.2f,%.2f,%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3], g_ppm_input[4], g_ppm_input[5]);
 	TRACE("\rinput:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", (float)g_ppm_output[0], (float)g_ppm_output[1], (float)g_ppm_output[2], (float)g_ppm_output[3], (float)g_ppm_output[0], (float)g_ppm_output[1], p->voltage/1000.0 );
 
@@ -2374,6 +2374,9 @@ int main(void)
 	TIM_Cmd(TIM1,ENABLE);
 
 #ifdef STM32F1
+	#ifndef TIM1_UP_IRQn
+	#define TIM1_UP_IRQn TIM1_UP_TIM10_IRQn
+	#endif
 	NVIC_InitStructure.NVIC_IRQChannel = TIM1_UP_IRQn;
 #endif
 #ifdef STM32F4
