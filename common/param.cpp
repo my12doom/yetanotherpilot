@@ -112,3 +112,17 @@ void param::init_all()
 		all_param_count++;
 	}
 }
+
+static float *find_param(const char *fourcc)
+{
+	for(int i=0; i<all_param_count; i++)
+		if (memcmp(fourcc, all_params[i].fourcc, 4) == 0)
+			return &all_params[i].v;
+	return NULL;
+}
+static float *enum_params(int pos)
+{
+	if (pos < 0 || pos >= all_param_count)
+		return NULL;
+	return &all_params[pos].v;
+}
