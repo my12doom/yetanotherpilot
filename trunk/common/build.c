@@ -29,24 +29,6 @@ float pid_quad_accel[4]=			// P, I, D, IMAX
 
 #if QUADCOPTER == 1
 
-float pid_limit[3][3] = 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]
-{
-	{PI, PI, 1},
-	{PI, PI, 1},
-	{PI/2, PI/3.6f, 1},
-};
-float pid_factor[3][3] = 			// pid_factor[roll,pitch,yaw][p,i,d]
-{
-	{0.50, 0.45, 0.06,},
-	{0.50, 0.45, 0.06,},
-	{1.75, 0.25, 0,},
-};
-float pid_factor2[3][4] = 			// pid_factor2[roll,pitch,yaw][p,i,d,i_limit]
-{
-	{6, 0, 0.12,PI/45},
-	{6, 0, 0.12,PI/45},
-	{8, 0, 0.23,PI/45},
-};
 float quadcopter_trim[3]
 = 
 {

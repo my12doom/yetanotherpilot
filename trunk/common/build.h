@@ -8,8 +8,8 @@
 #define SW_I2C
 #define GPS_BUFFER_BLOCK 512
 #define PCB_VERSION 3
-//#define EXTERNAL_HMC5883
-//#define EXTERNAL_HMC5883_2
+//#define EXTERNAL_HMC5883			// different I2C pins
+#define EXTERNAL_HMC5883_2			// same I2C pins
 //#define HEADFREE
 
 #ifndef PCB_VERSION
@@ -57,9 +57,9 @@
 #define LOG_USART2 8
 extern int LOG_LEVEL;
 
-extern float pid_limit[3][3]; 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]
-extern float pid_factor[3][3];			// pid_factor[roll,pitch,yaw][p,i,d]
-extern float pid_factor2[3][4];			// another pid factor
+// extern float pid_limit[3][3]; 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]
+// extern float pid_factor[3][3];			// pid_factor[roll,pitch,yaw][p,i,d]
+// extern float pid_factor2[3][4];			// another pid factor
 extern float quadcopter_trim[3];
 static float quadcopter_range[3] = 
 {
@@ -84,6 +84,8 @@ extern int elevator_min;
 extern int elevator_max;
 extern int rudder_min;
 extern int rudder_max;
+extern int rc_throttle_max;
+extern int rc_throttle_min;
 #define ACRO_MANUAL_FACTOR (0.0)
 
 #else

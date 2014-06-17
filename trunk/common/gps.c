@@ -106,36 +106,36 @@ static int parse_command_line(const char * line)
 	if (strstr(line, "pid3") == line && sscanf(line, "pid3 %f %f %f", &p, &i, &d) == 3)
 	{
 		printf("new pid2 roll & pitch :%f,%f,%f\r\n", p, i, d);
-		pid_factor2[0][0] = p;
-		pid_factor2[0][1] = i;
-		pid_factor2[0][2] = d;
-		pid_factor2[1][0] = p;
-		pid_factor2[1][1] = i;
-		pid_factor2[1][2] = d;
+// 		pid_factor2[0][0] = p;
+// 		pid_factor2[0][1] = i;
+// 		pid_factor2[0][2] = d;
+// 		pid_factor2[1][0] = p;
+// 		pid_factor2[1][1] = i;
+// 		pid_factor2[1][2] = d;
 	}
 	else if (strstr(line, "pid4") == line && sscanf(line, "pid4 %f %f %f", &p, &i, &d) == 3)
 	{
 		printf("new pid2 yaw :%f,%f,%f\r\n", p, i, d);
-		pid_factor2[2][0] = p;
-		pid_factor2[2][1] = i;
-		pid_factor2[2][2] = d;
+// 		pid_factor2[2][0] = p;
+// 		pid_factor2[2][1] = i;
+// 		pid_factor2[2][2] = d;
 	}
 	else if (strstr(line, "pid2") == line && sscanf(line, "pid2 %f %f %f", &p, &i, &d) == 3)
 	{
 		printf("new pid yaw:%f,%f,%f\r\n", p, i, d);
-		pid_factor[2][0] = p;
-		pid_factor[2][1] = i;
-		pid_factor[2][2] = d;
+// 		pid_factor[2][0] = p;
+// 		pid_factor[2][1] = i;
+// 		pid_factor[2][2] = d;
 	}
 	else if (strstr(line, "pid") == line && sscanf(line, "pid %f %f %f", &p, &i, &d) == 3)
 	{
 		printf("new pid roll&pitch:%f,%f,%f\r\n", p, i, d);
-		pid_factor[0][0] = p;
-		pid_factor[0][1] = i;
-		pid_factor[0][2] = d;
-		pid_factor[1][0] = p;
-		pid_factor[1][1] = i;
-		pid_factor[1][2] = d;
+// 		pid_factor[0][0] = p;
+// 		pid_factor[0][1] = i;
+// 		pid_factor[0][2] = d;
+// 		pid_factor[1][0] = p;
+// 		pid_factor[1][1] = i;
+// 		pid_factor[1][2] = d;
 	}
 	else if (strstr(line, "trim") == line && sscanf(line, "trim %f %f %f", &roll, &pitch, &yaw) == 3)
 	{
