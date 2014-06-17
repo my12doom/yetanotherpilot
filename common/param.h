@@ -9,9 +9,19 @@ public:
 	param(const char *fourcc, float default_value);
 	~param();
 	void init(const char *fourcc, float default_value);
-	operator float();
-	float* operator& ();
-	float& operator= (float in);		// ram operation only
+
+	operator float()
+	{
+		return *pv;
+	}
+	float* operator& ()
+	{
+		return pv;
+	}
+	float& operator= (float in)		// ram operation only
+	{
+		return *pv = in;
+	}
 	void save();						// save to eeprom
 
 	static float *find_param(const char *fourcc);

@@ -266,14 +266,14 @@ int main(int argc, char **argv)
 		{
 			if (
 				//&& pilot.fly_mode == quadcopter && ppm.in[2] > 1300
-				gps.fix>1
+				gps.fix>1 && gps.longitude > 0 && gps.latitude > 0
 				)
 // 			if (time > 350000000 && time < 370000000)
 // 			if (m++ %3 == 0 && quad3.ultrasonic != 0xffff)
-// 			if (m++ %5 == 0)
+ 			if (m++ %5 == 0)
 			{
 				fprintf(gpso, "%.4f", float(time/1000000.0f));
-				fprintf(gpso, ",%d,%d,%d,%d", gps.longitude,gps.latitude,quad.speed[1],quad.speed_target[1]);
+				fprintf(gpso, ",%f,%f,%d,%d", gps.longitude,gps.latitude,gps.satelite_in_use,gps.speed);
 				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d,", pilot2.I[1],quad.angle_target[0],quad.speed[0],quad.speed_target[0], quad3.altitude_target, quad3.accel_I, quad3.accel_target);
 				fprintf(gpso, "%d,%d,%d", int(quad3.altitude), int(quad3.accel), quad2.airborne ? 555 : 0);
 				fprintf(gpso, "\r\n");

@@ -27,6 +27,19 @@
 #include "osd/MAX7456.h"
 #endif
 
+static param pid_factor[3][4] = 			// pid_factor[roll,pitch,yaw][p,i,d,i_limit]
+{
+	{param("rP1",0.50), param("rI1",0.45), param("rD1",0.06),param("rM1",PI)},
+	{param("rP2",0.50), param("rI2",0.45), param("rD2",0.06),param("rM2",PI)},
+	{param("rP3",1.75), param("rI3",0.25), param("rD3",0),param("rM3",PI/3.6f)},
+};
+static param pid_factor2[3][4] = 			// pid_factor2[roll,pitch,yaw][p,i,d,i_limit]
+{
+	{param("sP1", 6), param("sI1", 0), param("sD1", 0.12),param("sM1", PI/45)},
+	{param("sP2", 6), param("sI2", 0), param("sD2", 0.12),param("sM2", PI/45)},
+	{param("sP3", 8), param("sI3", 0), param("sD3", 0.23),param("sM3", PI/45)},
+};
+
 extern "C"
 {
 #include "fat/diskio.h"
@@ -178,6 +191,7 @@ vector gyro_zero = {0};
 vector accel_avg = {0};
 vector mag_zero = {0};
 vector mag_gain = {0.7924,0.8354,0.8658};
+vector accel_earth_frame;
 float voltage_divider_factor = 6;
 int ms5611[2];
 int ms5611_result = -1;
@@ -961,7 +975,7 @@ int pid()
 		if (airborne)		// only integrate after takeoff
 #endif
 		error_pid[i][1] += new_p * interval;
-		error_pid[i][1] = limit(error_pid[i][1], -pid_limit[i][1], pid_limit[i][1]);
+		error_pid[i][1] = limit(error_pid[i][1], -pid_factor[i][3], pid_factor[i][3]);
 
 		// D, with 30hz low pass filter
 		static const float lpf_RC = 1.0f/(2*PI * 30.0f);
@@ -1559,13 +1573,17 @@ int calculate_attitude()
 	yaw_est = radian_add(yaw_est, quadcopter_trim[2]);
 	yaw_gyro = radian_add(yaw_gyro, quadcopter_trim[2]);
 
-#ifndef LITE
-	vector accel_earth_frame = acc;
+	accel_earth_frame = acc;
+	vector mag_ef = estMagGyro;
 	float attitude[3] = {roll, pitch, 0};
+	vector_rotate2(&mag_ef, attitude);
+
+	attitude[2] = yaw_est;
 	vector_rotate2(&accel_earth_frame, attitude);
 
-	ERROR("\raccel_ef:%.1f, %.1f, %.1f, heading:%.2f", accel_earth_frame.V.x, accel_earth_frame.V.y, accel_earth_frame.V.z, yaw_est * PI180);
-#endif
+	float yaw_mag = atan2(mag_ef.V.x, mag_ef.V.y);
+
+	ERROR("\raccel_ef:%.1f, %.1f, %.1f, accelz:%.2f/%.2f, yaw=%.2f/%.2f", accel_earth_frame.V.x, accel_earth_frame.V.y, accel_earth_frame.V.z, accelz, (accel_earth_frame.V.z+2085)/2085*9.80, yaw_est*180/PI, yaw_mag*180/PI);
 	return 0;
 }
 
@@ -2373,7 +2391,7 @@ int main(void)
 	TIM_Cmd(TIM1,ENABLE);
 
 #ifdef STM32F1
-	#ifdef __GCC__
+	#ifdef __GNUC__
 	#define TIM1_UP_IRQn TIM1_UP_TIM10_IRQn
 	#endif
 	NVIC_InitStructure.NVIC_IRQChannel = TIM1_UP_IRQn;

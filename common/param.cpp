@@ -62,18 +62,7 @@ param::~param()
 
 }
 
-param::operator float()
-{
-	return *pv;
-}
-float* param::operator& ()
-{
-	return pv;
-}
-float& param::operator= (float in)		// ram operation only
-{
-	return *pv = in;
-}
+
 void param::save()						// save to eeprom
 {
 	for(int i=0; i<sizeof(all_params[0]); i+=2)
