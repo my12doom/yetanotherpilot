@@ -702,26 +702,6 @@
               <FilePath>.\usb_mass_storage\memory.c</FilePath>
             </File>
             <File>
-              <FileName>otgd_fs_cal.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storage\otgd_fs_cal.c</FilePath>
-            </File>
-            <File>
-              <FileName>otgd_fs_dev.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storage\otgd_fs_dev.c</FilePath>
-            </File>
-            <File>
-              <FileName>otgd_fs_int.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storage\otgd_fs_int.c</FilePath>
-            </File>
-            <File>
-              <FileName>otgd_fs_pcd.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storage\otgd_fs_pcd.c</FilePath>
-            </File>
-            <File>
               <FileName>scsi_data.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\usb_mass_storage\scsi_data.c</FilePath>
@@ -730,11 +710,6 @@
               <FileName>usb_bot.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\usb_mass_storage\usb_bot.c</FilePath>
-            </File>
-            <File>
-              <FileName>usb_core.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storage\usb_core.c</FilePath>
             </File>
             <File>
               <FileName>usb_desc.c</FileName>
@@ -747,26 +722,6 @@
               <FilePath>.\usb_mass_storage\usb_endp.c</FilePath>
             </File>
             <File>
-              <FileName>usb_init.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storage\usb_init.c</FilePath>
-            </File>
-            <File>
-              <FileName>usb_int.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storage\usb_int.c</FilePath>
-            </File>
-            <File>
-              <FileName>usb_istr.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storage\usb_istr.c</FilePath>
-            </File>
-            <File>
-              <FileName>usb_mem.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storage\usb_mem.c</FilePath>
-            </File>
-            <File>
               <FileName>usb_prop.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\usb_mass_storage\usb_prop.c</FilePath>
@@ -777,19 +732,69 @@
               <FilePath>.\usb_mass_storage\usb_pwr.c</FilePath>
             </File>
             <File>
-              <FileName>usb_regs.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storage\usb_regs.c</FilePath>
-            </File>
-            <File>
               <FileName>usb_scsi.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\usb_mass_storage\usb_scsi.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>usb_library</GroupName>
+          <Files>
+            <File>
+              <FileName>usb_int.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\usb_int.c</FilePath>
             </File>
             <File>
               <FileName>usb_sil.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\usb_mass_storage\usb_sil.c</FilePath>
+            </File>
+            <File>
+              <FileName>otgd_fs_int.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\otgd_fs_int.c</FilePath>
+            </File>
+            <File>
+              <FileName>otgd_fs_pcd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\otgd_fs_pcd.c</FilePath>
+            </File>
+            <File>
+              <FileName>otgd_fs_dev.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\otgd_fs_dev.c</FilePath>
+            </File>
+            <File>
+              <FileName>otgd_fs_cal.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\otgd_fs_cal.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_regs.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\usb_regs.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_mem.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\usb_mem.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_istr.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\usb_istr.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_init.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\usb_init.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_core.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_mass_storage\usb_core.c</FilePath>
             </File>
           </Files>
         </Group>

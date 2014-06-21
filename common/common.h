@@ -23,12 +23,6 @@ enum fly_mode
 	acrobaticV,
 };
 
-#ifndef WIN32
-static int abs(int x)
-{
-	return x>0 ? x : -x;
-}
-#endif
 
 static void swap(void *p, int size)
 {

@@ -10,7 +10,7 @@ public:
 	~param();
 	void init(const char *fourcc, float default_value);
 
-	operator float()
+	inline operator float()
 	{
 		return *pv;
 	}
@@ -18,7 +18,7 @@ public:
 	{
 		return pv;
 	}
-	float& operator= (float in)		// ram operation only
+	inline float& operator= (float in)		// ram operation only
 	{
 		return *pv = in;
 	}
