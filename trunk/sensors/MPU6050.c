@@ -5,7 +5,7 @@
 #include "../common/printf.h"
 #include "../common/timer.h"
 
-#define MPU6050SlaveAddress 0xD0
+int MPU6050SlaveAddress = 0xD2;
 #define MPU6050_REG_WHO_AM_I 0x75
 
 // Gyro and accelerator registers
@@ -31,10 +31,15 @@
 #define	PWR_MGMT_1		0x6B	//????,???:0x00(????)
 #define	WHO_AM_I		0x75	//IIC?????(????0x68,??)
 
+static int res;
 // call initI2C before this
 int init_MPU6050(void)
 {
 	uint8_t who_am_i = 0;
+	
+	res = I2C_ReadReg(MPU6050SlaveAddress, WHO_AM_I, &who_am_i, 1);
+	if (who_am_i != 0x68)
+		MPU6050SlaveAddress = 0xD0;
 
 	TRACE("start MPU6050\r\n");
 	delayms(10);
@@ -48,8 +53,8 @@ int init_MPU6050(void)
 	I2C_WriteReg(MPU6050SlaveAddress, GYRO_CONFIG, 0x18);			// full scale : +/-8192; +/- 2000 degree/s
 	I2C_WriteReg(MPU6050SlaveAddress, ACCEL_CONFIG, 0x18);
 	
-	I2C_ReadReg(MPU6050SlaveAddress, WHO_AM_I, &who_am_i, 1);
-	ERROR("MPU6050 initialized, WHO_AM_I=%x\r\n", who_am_i);
+	res = I2C_ReadReg(MPU6050SlaveAddress, WHO_AM_I, &who_am_i, 1);
+	ERROR("MPU6050 initialized, WHO_AM_I=%x, address = %x\r\n", who_am_i, MPU6050SlaveAddress);
 	
 	// enable I2C bypass for AUX I2C and initialize HMC5883 into continues mode
 #ifndef EXTERNAL_HMC5883_2
@@ -57,7 +62,7 @@ int init_MPU6050(void)
 #endif
 	delayms(10);
 
-	if (who_am_i<<1 != MPU6050SlaveAddress)
+	if (who_am_i != 0x68)
 		return -1;
 	
 	return 0;

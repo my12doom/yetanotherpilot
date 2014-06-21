@@ -93,6 +93,13 @@ int main(int argc, char **argv)
 // 			0,0,1,
 // 		}
 // 	};
+	double a_raw_altitude;
+	{
+		double scaling = (double)1014.001 / 1014;
+		float temp = ((float)25) + 273.15f;
+		a_raw_altitude = 153.8462f * temp * (1.0f - exp(0.190259f * log(scaling)));
+
+	}
 	vector test = {0,0,1};
 	vector gyro = {0,PI/20000,0};
 	
@@ -242,12 +249,12 @@ int main(int argc, char **argv)
 		if (yaw_est<0)
 			yaw_est += 2*PI;
 
- 		if (n++ %140 == 0)
+ 		if (n++ %14 == 0)
 // 		if (time > 350000000 && time < 370000000)
  		fprintf(fo, "%.4f,%.2f,%.2f,%2f,%.2f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d,%d\r\n",
-				float(mpu6050_temperature), sensor.voltage/1000.0f, sensor.current/1000.0f, pilot.mah_consumed/1.0f, altitude,
+				float(time/1000000.0f), sensor.voltage/1000.0f, sensor.current/1000.0f, pilot.mah_consumed/1.0f, altitude,
  				sensor.accel[0], sensor.accel[1], sensor.accel[2], sensor.gyro[0], sensor.gyro[1], sensor.gyro[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[0], pilot2.D[0],
 				roll*180/PI, pitch*180/PI, yaw_gyro*180/PI, pilot.target[0]/100.0, pilot.target[1]/100.0, pilot.target[2]/100.0, 
 				(ppm.in[2]-1113)/50, pilot.fly_mode == acrobatic ? 5000 : -5000,
@@ -265,16 +272,16 @@ int main(int argc, char **argv)
 		if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA || (rf.time & TAG_MASK) ==  TAG_GPS_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA2)
 		{
 			if (
-				//&& pilot.fly_mode == quadcopter && ppm.in[2] > 1300
-				gps.fix>1 && gps.longitude > 0 && gps.latitude > 0
+				pilot.fly_mode == quadcopter && ppm.in[2] > 1300
+// 				gps.fix>1 && gps.longitude > 0 && gps.latitude > 0
 				)
 // 			if (time > 350000000 && time < 370000000)
 // 			if (m++ %3 == 0 && quad3.ultrasonic != 0xffff)
  			if (m++ %5 == 0)
 			{
 				fprintf(gpso, "%.4f", float(time/1000000.0f));
-				fprintf(gpso, ",%f,%f,%d,%d", gps.longitude,gps.latitude,gps.satelite_in_use,gps.speed);
-				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d,", pilot2.I[1],quad.angle_target[0],quad.speed[0],quad.speed_target[0], quad3.altitude_target, quad3.accel_I, quad3.accel_target);
+				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[2], quad.angle_target[2], quad.speed[2], quad.speed_target[2]);
+				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d,", quad.angle_pos[1],quad.angle_target[1],quad.speed[1],quad.speed_target[1], quad3.altitude_target, quad3.accel_I, quad3.accel_target);
 				fprintf(gpso, "%d,%d,%d", int(quad3.altitude), int(quad3.accel), quad2.airborne ? 555 : 0);
 				fprintf(gpso, "\r\n");
 			}

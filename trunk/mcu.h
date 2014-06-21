@@ -1,6 +1,10 @@
 #pragma once
 
 #ifdef STM32F1
+#ifndef __cplusplus
+typedef enum {FALSE = 0, TRUE = !FALSE} bool;
+#endif
+
 #include <misc.h>
 #include <stm32f10x.h>
 #include <stm32f10x_usart.h>

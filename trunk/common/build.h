@@ -9,7 +9,7 @@
 #define GPS_BUFFER_BLOCK 512
 #define PCB_VERSION 3
 //#define EXTERNAL_HMC5883			// different I2C pins
-#define EXTERNAL_HMC5883_2			// same I2C pins
+//#define EXTERNAL_HMC5883_2			// same I2C pins
 //#define HEADFREE
 
 #ifndef PCB_VERSION
@@ -32,14 +32,14 @@
 
 #define RC_TIMEOUT 1000000				// 1 seconds
 #define RC_RANGE 400
-#define RC_DEAD_ZONE 5
+#define RC_DEAD_ZONE 15
 #define RC_CENTER 1520
 #define BARO_OSS 50
 #define hall_sensor_sensitivity	0.0666		// unit: mV / mA
 #define VOLTAGE_DIVIDER_BASE 6		// uncalibrated voltage divider ratio
 #define MAX_GYRO_BIAS_DRIFT 30
 #define THROTTLE_STOP 1110
-#define THROTTLE_IDLE (THROTTLE_STOP+60)
+#define THROTTLE_IDLE (THROTTLE_STOP+90)
 #define THROTTLE_MAX 1888
 #define THROTTLE_CRUISE 1450
 
@@ -57,17 +57,7 @@
 #define LOG_USART2 8
 extern int LOG_LEVEL;
 
-// extern float pid_limit[3][3]; 				// pid_limit[roll,pitch,yaw][p max offset, I limit, d dummy]
-// extern float pid_factor[3][3];			// pid_factor[roll,pitch,yaw][p,i,d]
-// extern float pid_factor2[3][4];			// another pid factor
-extern float quadcopter_trim[3];
-static float quadcopter_range[3] = 
-{
-	PI/8,			// roll target on RC full deflection
-	PI/8,			// pitch
-	PI/8,			// yaw
-};
-static float power_factor = 1.0f;	
+
 
 static int quadcopter_mixing_matrix[4][3] = // the motor mixing matrix, [motor number] [roll, pitch, yaw]
 {
@@ -78,14 +68,6 @@ static int quadcopter_mixing_matrix[4][3] = // the motor mixing matrix, [motor n
 };
 
 #if QUADCOPTER == 1
-extern int aileron_min;
-extern int aileron_max;
-extern int elevator_min;
-extern int elevator_max;
-extern int rudder_min;
-extern int rudder_max;
-extern int rc_throttle_max;
-extern int rc_throttle_min;
 #define ACRO_MANUAL_FACTOR (0.0)
 
 #else
@@ -129,19 +111,7 @@ static int sensor_reverse[3] = 						// -1 = reverse, 1 = normal, 0 = disable, w
 	-1,			// yaw
 };
 
-extern float pid_quad_altitude[4];	// P, I, D, IMAX, 
-									// unit: 1/second, 1/seconds^2, 1, meter*second
-									// convert altitude error(meter) to target climb rate(meter/second)
-extern float pid_quad_alt_rate[4];	// P, I, D, IMAX
-									// unit: 1/second, 1/seconds^2, 1, meter*second
-									// convert climb rate error(meter/second) to target acceleration(meter/second^2)
-extern float pid_quad_accel[4];		// P, I, D, IMAX
-									// unit:
-									// convert acceleration error(meter/second^2) to motor output
 
-#define quadcopter_max_climb_rate 5
-#define quadcopter_max_descend_rate 2
-#define quadcopter_max_acceleration 4.5
 
 // station configuration
 
