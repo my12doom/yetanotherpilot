@@ -140,7 +140,7 @@ static param pid_quad_accel[4] =		// P, I, D, IMAX
 	param("accP", 75.0f),
 	param("accI", 150.0f),
 	param("accD", 0.0f),
-	param("accM", 1.0f),
+	param("accM", 2.0f),
 };
 
 static param quadcopter_trim[3] = 
@@ -610,10 +610,6 @@ int kalman()
 
 int auto_throttle(float user_climb_rate)
 {
-	// better ground...
-// 	if (!airborne && user_climb_rate < 0)
-// 		user_climb_rate *= 1.5;
-
 	// new target altitude
 	if (fabs(user_climb_rate) < 0.001f && airborne)
 	{
@@ -660,10 +656,10 @@ int auto_throttle(float user_climb_rate)
 
 	// TODO: apply pid instead of P only, and add feed forward
 	// reference: get_throttle_rate()
-	float accel_factor_ground = (throttle_real_crusing-THROTTLE_IDLE)*1.2/(quadcopter_max_descend_rate)/pid_quad_accel[0];
+	float accel_factor_ground = (throttle_real_crusing -THROTTLE_IDLE + accel_error_pid[1]* pid_quad_accel[1]/500.0f * (THROTTLE_MAX - throttle_real_crusing))*1.1/(quadcopter_max_descend_rate)/pid_quad_accel[0];
 	climb_rate_error_pid[0] = climb_rate_error_pid[0] * (1-alpha) + alpha * climb_rate_error;
 	target_accel = climb_rate_error_pid[0] * (!airborne && climb_rate_error_pid[0]<0 ? accel_factor_ground : pid_quad_alt_rate[0]);
-	target_accel = limit(target_accel,  -quadcopter_max_acceleration, quadcopter_max_acceleration);
+	target_accel = limit(target_accel,  airborne ? -quadcopter_max_acceleration : -2 * quadcopter_max_acceleration, quadcopter_max_acceleration);
 
 	
 	// new accel error, +2Hz LPF
@@ -956,8 +952,8 @@ int calculate_target()
 			// roll & pitch, RC trim is accepted.
 			for(int i=0; i<2; i++)
 			{
-				float limit_l = angle_target_unrotated[i] - 2 * PI * interval;
-				float limit_r = angle_target_unrotated[i] + 2 * PI * interval;
+				float limit_l = angle_target_unrotated[i] - PI * interval;
+				float limit_r = angle_target_unrotated[i] + PI * interval;
 				angle_target_unrotated[i] = limit(-(g_ppm_input[i] - RC_CENTER) * rc_reverse[i] / RC_RANGE, -1, 1) * quadcopter_range[i];
 				angle_target_unrotated[i] = limit(angle_target_unrotated[i], limit_l, limit_r);
 				angle_target[i] = angle_target_unrotated[i];
@@ -1619,9 +1615,9 @@ int calculate_attitude()
 #endif
 	vector mag = {(p->mag[2]-mag_zero.array[2]), -(p->mag[0]-mag_zero.array[0]), -(p->mag[1]-mag_zero.array[1])};
 	vector_sub(&gyro, &gyro_zero2);
-	for(int i=0; i<3; i++)
-		if (abs(gyro.array[i])<4)
-			gyro.array[i] = 0;
+// 	for(int i=0; i<3; i++)
+// 		if (abs(gyro.array[i])<4)
+// 			gyro.array[i] = 0;
 	vector_multiply(&gyro, GYRO_SCALE);
 
 	vector_rotate(&estGyro, gyro.array);
@@ -2019,7 +2015,6 @@ int sensor_calibration()
 	*/
 
 
-	/*
 	// my12doom
 	gyro_bias[0][0] = 25.880f;
 	gyro_bias[0][1] = 14.993f;
@@ -2029,7 +2024,6 @@ int sensor_calibration()
 	gyro_bias[1][1] = -3.490f;
 	gyro_bias[1][2] = -17.723f;
 	gyro_bias[1][3] = 18.823f;
-	*/
 
 	// zewu
 	/*
@@ -2411,18 +2405,19 @@ int loop(void)
 
 
 
-	ERROR("\rroll,pitch,yaw/yaw2 = %f,%f,%f,%f, target roll,pitch,yaw = %f,%f,%f, error = %f,%f,%f", roll*PI180, pitch*PI180, yaw_est*PI180, yaw_gyro*PI180, target[0]*PI180, target[1]*PI180, target[2]*PI180,
+	TRACE("\rroll,pitch,yaw/yaw2 = %f,%f,%f,%f, target roll,pitch,yaw = %f,%f,%f, error = %f,%f,%f", roll*PI180, pitch*PI180, yaw_est*PI180, yaw_gyro*PI180, target[0]*PI180, target[1]*PI180, target[2]*PI180,
 		error_pid[0][0]*PI180, error_pid[1][0]*PI180, error_pid[2][0]*PI180);
 
 	TRACE("time=%.2f,inte=%.4f,out= %d, %d, %d, %d, input=%f,%f,%f,%f\n", getus()/1000000.0f, interval, g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5]);
 	TRACE ("\r mag=%.2f,%.2f,%.2f  acc=%.2f,%.2f,%.2f ", estMagGyro.V.x, estMagGyro.V.y, estMagGyro.V.z, estAccGyro.V.x, estAccGyro.V.y, estAccGyro.V.z);
-	ERROR ("\racc=%d,%d,%d ", p->accel[0], p->accel[1], p->accel[2]);
+	TRACE ("\racc=%d,%d,%d ", p->accel[0], p->accel[1], p->accel[2]);
 	TRACE("\rinput= %.2f, %.2f, %.2f, %.2f,%.2f,%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3], g_ppm_input[4], g_ppm_input[5]);
 	TRACE("\rinput:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", (float)g_ppm_output[0], (float)g_ppm_output[1], (float)g_ppm_output[2], (float)g_ppm_output[3], (float)g_ppm_output[0], (float)g_ppm_output[1], p->voltage/1000.0 );
 
 	TRACE("\ryaw=%.2f, yt=%.2f, mag=%d,%d,%d           ", yaw_est *PI180, yaw_launch*PI180, p->mag[0], p->mag[1], p->mag[2]);
 
 	TRACE("\rv/a=%dmV, %dmA, %.1f mah, %.1f Wh   ", p->voltage, p->current, mah_consumed, wh_consumed);
+	TRACE("\rgyroI=%.2f", yaw_est * PI180);
 
 	led_all_on();
 
@@ -2530,6 +2525,8 @@ int main(void)
 	p->current = -32768;
 
 	power_factor = 0.65f;
+	pid_factor2[0][1] = 0.18f;
+	pid_factor2[0][2] = 0.18f;
 
 	// load voltage divider factor
 	for(int i=0; i<sizeof(voltage_divider_factor); i+=2)
