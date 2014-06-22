@@ -83,10 +83,10 @@ int ADC1_SelectChannel(uint16_t ADC_Channel)
 	GPIO_Init(ADC_Channel>8?GPIOB:GPIOA, &GPIO_InitStructure);
 
 #ifdef STM32F1
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_4, 1, ADC_SampleTime_239Cycles5);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel, 1, ADC_SampleTime_239Cycles5);
 #endif
 #ifdef STM32F4
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_4, 1, ADC_SampleTime_480Cycles);
+	ADC_RegularChannelConfig(ADC1, ADC_Channel, 1, ADC_SampleTime_480Cycles);
 #endif		
 
 	return 1;
