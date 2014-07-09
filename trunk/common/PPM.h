@@ -8,6 +8,7 @@
 extern float g_ppm_input[6];
 extern int64_t g_ppm_input_update[6];
 extern uint16_t g_ppm_output[8];
+extern float ppm_static[8][2];
 
 enum PPM_OUTPUT_CHANNEL
 {
@@ -36,6 +37,10 @@ void PPM_init(int enable_input);
 
 // update the specified output channel
 void PPM_update_output_channel(int channel_to_update);
+	
+
+// reset ppm input statics, for RC range calibration usage
+void PPM_reset_static(void);
 
 #ifdef __cplusplus
 }

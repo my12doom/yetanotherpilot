@@ -297,14 +297,17 @@ int space_resort()
 {
 	printf("--- resorting ---\n");
 
-	char buf[page_size];
+	char buf[1024];
 
 	// copy first page to last page
-	if (space_raw_read(0, buf, page_size) < 0)
-		return -1;
 	space_raw_erase((page_count-1)*page_size);
-	if (space_raw_write((page_count-1)*page_size, buf, page_size) < 0)
-		return -2;
+	for(int i=0; i<page_size/sizeof(buf); i++)
+	{
+		if (space_raw_read(i*sizeof(buf), buf, sizeof(buf)) < 0)
+			return -1;
+		if (space_raw_write((page_count-1)*page_size + i*sizeof(buf), buf, sizeof(buf)) < 0)
+			return -2;
+	}
 
 	// enable resorting mode, which map last page to first page
 	resorting = 1;

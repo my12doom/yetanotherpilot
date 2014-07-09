@@ -2,12 +2,14 @@
 #include "timer.h"
 #include "build.h"
 #include "../mcu.h"
+#include <math.h>
 
 #define PPM_6 1
 #define OC 12
 
 uint32_t g_ppm_input_start[6];
 float g_ppm_input[6];
+float ppm_static[8][2];
 int64_t g_ppm_input_update[6] = {0};
 #if QUADCOPTER == 0
 #undef OC 1
@@ -17,14 +19,21 @@ uint16_t g_ppm_output[8] = {1520, 1520, THROTTLE_STOP, 1520, 1520, 1520, 1520, 1
 uint16_t g_ppm_output[8] = {THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP};
 #endif
 
-
+static float f_min(float a, float b)
+{
+	return a > b ? b : a;
+}
+static float f_max(float a, float b)
+{
+	return a > b ? a : b;
+}
 // PPM input handler
 static void PPM_EXTI_Handler(void)
 {
 	while(1)
 	{
 		int channel = -1;
-#if defined(LITE)
+#if defined(LITE) && 0
 		static int pin_tbl[6] = {GPIO_Pin_12, GPIO_Pin_13, GPIO_Pin_14, GPIO_Pin_15, GPIO_Pin_10, GPIO_Pin_11};
 		static int line_tbl[6] = {EXTI_Line12, EXTI_Line13, EXTI_Line14, EXTI_Line15, EXTI_Line10, EXTI_Line11};
 		if (EXTI_GetITStatus(EXTI_Line12) != RESET)
@@ -87,6 +96,8 @@ static void PPM_EXTI_Handler(void)
 				g_ppm_input[channel]= now + 10000 - g_ppm_input_start[channel];
 #endif			
 			g_ppm_input_update[channel] = getus();
+			ppm_static[channel][0] = f_min(ppm_static[channel][0], g_ppm_input[channel]);
+			ppm_static[channel][1] = f_max(ppm_static[channel][1], g_ppm_input[channel]);
 		}
 		
 		EXTI_ClearITPendingBit(line_tbl[channel]);
@@ -326,9 +337,19 @@ void PPM_update_output_channel(int channel_to_update)
 #endif
 }
 
+void PPM_reset_static()
+{
+	int i;
+	for(i=0; i<8; i++)
+	{
+		ppm_static[i][0] = 99999;		// min
+		ppm_static[i][1] = 0;				// max
+	}
+}
 
 void PPM_init(int enable_input)
-{	
+{
+	PPM_reset_static();
 	GPIO_Config(enable_input);
 	Timer_Config(enable_input);
 	PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
