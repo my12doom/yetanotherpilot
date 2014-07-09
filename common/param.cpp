@@ -4,6 +4,8 @@
 #include "build.h"
 #include <string.h>
 #include "printf.h"
+#include "PPM.h"
+#include "vector.h"
 
 extern "C"
 {
@@ -125,12 +127,17 @@ float *param::enum_params(int pos)
 }
 
 
+extern volatile vector imu_statics[2][4];		//	[accel, gyro][min, current, max, avg]
+extern volatile int avg_count;
+extern float mpu6050_temperature;
+
 extern "C" int parse_command_line(const char *line, char *out)
 {
 
 	float roll,  pitch, yaw;
-	float p,i,d;
+	//float p,i,d;
 	int log_level;
+	int i,j,k;
 
 	if (line[0] == NULL)
 		return 0;
@@ -154,8 +161,84 @@ extern "C" int parse_command_line(const char *line, char *out)
 		{
 			*v = atof(p);
 			param(line, 0).save();
+			strcpy(out, "ok\n");
+			return 3;
 		}
-		
+		else
+		{
+			strcpy(out, "fail\n");
+			return 5;
+		}
+	}
+	else if (strstr(line, "rcstates") == line)
+	{
+		int count = 0;
+		count += sprintf(out, "rc:");
+		for(i=0; i<6; i++)
+		{
+			volatile float p0 = ppm_static[i][0];
+			volatile float p1 = g_ppm_input[i];
+			volatile float p2 = ppm_static[i][1];
+			count += sprintf(out+count, "%d,%d,%d,", (int)p0, (int)p1, (int)p2);
+			if (count > 256)
+				return count;
+		}
+
+		out[count++] = '\n';
+
+		return count;
+	}
+	else if (strstr(line, "rcreset") == line)
+	{
+		PPM_reset_static();
+		strcpy(out, "ok\n");
+		return 3;
+	}
+	else if (strstr(line, "hello") == line)
+	{
+		strcpy(out, "yap1.0.0\n");
+		return strlen(out);
+	}
+	else if (strstr(line, "imureset") == line)
+	{
+		avg_count = 0;
+		for(i=0; i<2; i++)
+		{
+			for(j=0; j<3; j++)
+			{
+				imu_statics[i][0].array[j] = 99999;
+				imu_statics[i][2].array[j] = -99999;
+				imu_statics[i][3].array[j] = 0;
+			}
+		}
+		strcpy(out, "ok\n");
+		return 3;
+	}
+	else if (strstr(line, "imustates") == line)
+	{
+// 		printf("test:");
+// 		printf("%.3f,%d,", mpu6050_temperature, avg_count);
+
+		int count = 0;
+		count += sprintf(out, "imu:");
+		for(i=0; i<2; i++)
+		{
+			for(j=0; j<4; j++)
+			{
+				for(k=0; k<3; k++)
+				{
+					volatile int t = imu_statics[i][j].array[k] * 1000.0f / (j==3?avg_count:1);
+					count += sprintf(out+count, "%d.%03d,",  t/1000,  t%1000);
+					//if (count > 256)
+					//	return count;
+				}
+			}
+		}
+
+		count += sprintf(out+count, "%d.%d,%d,", (int)mpu6050_temperature, ((int)(mpu6050_temperature*1000))%1000, avg_count);
+		out[count++] = '\n';
+
+		return count;
 	}
 
 
@@ -163,61 +246,3 @@ extern "C" int parse_command_line(const char *line, char *out)
 
 	return 0;
 }
-
-
-/*
-
-	if (strstr(line, "pid3") == line && sscanf(line, "pid3 %f %f %f", &p, &i, &d) == 3)
-	{
-		printf("new pid2 roll & pitch :%f,%f,%f\r\n", p, i, d);
-		// 		pid_factor2[0][0] = p;
-		// 		pid_factor2[0][1] = i;
-		// 		pid_factor2[0][2] = d;
-		// 		pid_factor2[1][0] = p;
-		// 		pid_factor2[1][1] = i;
-		// 		pid_factor2[1][2] = d;
-	}
-	else if (strstr(line, "pid4") == line && sscanf(line, "pid4 %f %f %f", &p, &i, &d) == 3)
-	{
-		printf("new pid2 yaw :%f,%f,%f\r\n", p, i, d);
-		// 		pid_factor2[2][0] = p;
-		// 		pid_factor2[2][1] = i;
-		// 		pid_factor2[2][2] = d;
-	}
-	else if (strstr(line, "pid2") == line && sscanf(line, "pid2 %f %f %f", &p, &i, &d) == 3)
-	{
-		printf("new pid yaw:%f,%f,%f\r\n", p, i, d);
-		// 		pid_factor[2][0] = p;
-		// 		pid_factor[2][1] = i;
-		// 		pid_factor[2][2] = d;
-	}
-	else if (strstr(line, "pid") == line && sscanf(line, "pid %f %f %f", &p, &i, &d) == 3)
-	{
-		printf("new pid roll&pitch:%f,%f,%f\r\n", p, i, d);
-		// 		pid_factor[0][0] = p;
-		// 		pid_factor[0][1] = i;
-		// 		pid_factor[0][2] = d;
-		// 		pid_factor[1][0] = p;
-		// 		pid_factor[1][1] = i;
-		// 		pid_factor[1][2] = d;
-	}
-	else if (strstr(line, "trim") == line && sscanf(line, "trim %f %f %f", &roll, &pitch, &yaw) == 3)
-	{
-		printf("new trim:%f,%f,%f\r\n", roll, pitch, yaw);
-#if QUADCOPTER == 1
-		// 		quadcopter_trim[0] = roll;
-		// 		quadcopter_trim[1] = pitch;
-		// 		quadcopter_trim[2] = yaw;
-#endif
-	}
-	else if (strstr(line, "log") == line && sscanf(line, "log %d", &log_level) == 1)
-	{
-		printf("new log level: 0x%x\r\n", log_level);
-		LOG_LEVEL = log_level;
-	}
-	else
-	{
-		ERROR("unknown/invalid command: %s\r\n", line);
-		return -1;
-	}
-*/
