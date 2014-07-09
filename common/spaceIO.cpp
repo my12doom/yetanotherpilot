@@ -44,8 +44,6 @@ int space_raw_init()
 
 #include "../mcu.h"
 
-#define START_ADDRESS 0x08030000
-
 int space_raw_read(int address, void *data, int size)
 {
 	int count = min(size, buffer_size - address);
@@ -69,13 +67,26 @@ int space_raw_write(int address, const void *data, int size)
 		FLASH_ProgramWord(START_ADDRESS+address+count/4*4, pending);
 	}
 
-	FLASH_WaitForLastOperation(100);
+	#ifdef STM32F1
+		FLASH_WaitForLastOperation(100);
+	#endif
+	
+	#ifdef STM32F4
+		FLASH_WaitForLastOperation();
+	#endif
+	
 	return count;
 }
 
 int space_raw_erase(int address)
 {
+	#ifdef STM32F1
 	FLASH_ErasePage(START_ADDRESS + address);
+	#endif
+	
+	#ifdef STM32F4
+		FLASH_EraseSector(address >= 0x080C4000 ? FLASH_Sector_11 : FLASH_Sector_10, VoltageRange_3);
+	#endif
 
 	return 0;
 }

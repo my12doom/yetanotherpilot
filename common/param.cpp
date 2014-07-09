@@ -6,6 +6,7 @@
 #include "printf.h"
 #include "PPM.h"
 #include "vector.h"
+#include "space.h"
 
 extern "C"
 {
@@ -25,6 +26,14 @@ struct
 	char fourcc[4];
 	float v;
 }all_params[MAX_PARAM_COUNT];
+
+static int fourcclen(const char *p)
+{
+	for(int i=0; i<4; i++)
+		if (p[i] == NULL)
+			return i;
+	return 4;
+}
 
 param::param()
 {
@@ -52,7 +61,10 @@ void param::init(const char *fourcc, float default_value)
 	pv = &all_params[all_param_count].v;
 	strncpy(all_params[all_param_count].fourcc, fourcc, 4);
 	all_params[all_param_count].v = default_value;
+	space_read(fourcc, fourcclen(fourcc), &all_params[all_param_count].v, 4, NULL);
 	all_param_count++;
+
+	
 	save();
 }
 
@@ -66,50 +78,18 @@ param::~param()
 
 }
 
-
 void param::save()						// save to eeprom
 {
-	for(int i=0; i<sizeof(all_params[0]); i+=2)
-		EE_WriteVariable(VirtAddVarTab[0]+ i/2 + EEPROM_CONFIG + pos* sizeof(all_params[0]), *(uint16_t*)(((uint8_t*)&all_params[pos])+i));
+	int res;
+	float v;
+	res = space_read(all_params[pos].fourcc, fourcclen(all_params[pos].fourcc), &v, 4, NULL);
 
-	if (pos == all_param_count-1)
-	{
-		strncpy(all_params[all_param_count].fourcc, PARAM_ENDL, 4);
-		for(int i=0; i<sizeof(all_params[0]); i+=2)
-			EE_WriteVariable(VirtAddVarTab[0]+ i/2 + EEPROM_CONFIG + all_param_count* sizeof(all_params[0]), *(uint16_t*)(((uint8_t*)&all_params[all_param_count])+i));
-	}
+	if (v != all_params[pos].v || res < 0)
+		res = space_write(all_params[pos].fourcc, fourcclen(all_params[pos].fourcc), &all_params[pos].v, 4, NULL);
 }
 void param::init_all()
 {
-	printf_init();
-	FLASH_Unlock();
-#ifdef STM32F4
-	FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | 
-		FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR|FLASH_FLAG_PGSERR);
-#endif
-	EE_Init();
-
-	ERROR("all_param_count=%d\n", all_param_count);
-
-	all_param_count = 0;
-	int pos = EEPROM_CONFIG;
-	while (all_param_count<MAX_PARAM_COUNT)
-	{
-		for(int i=0; i<sizeof(all_params[0]); i+=2)
-		{
-			if (0 != EE_ReadVariable(VirtAddVarTab[0]+i/2+pos, (uint16_t*)(((uint8_t*)&all_params[all_param_count])+i)))
-				goto finish;
-		}
-
-		if (strncmp(all_params[all_param_count].fourcc, PARAM_ENDL, 4) == 0)
-			break;
-
-		pos += 8;
-		all_param_count++;
-	}
-	
-finish:
-	ERROR("all_param_count=%d\n", all_param_count);
+	space_init();
 }
 
 float *param::find_param(const char *fourcc)

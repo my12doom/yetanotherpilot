@@ -114,7 +114,7 @@ int ads1256_init(void)
 #endif
 #ifdef STM32F4
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_None;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 #endif
 #if PCB_VERSION == 1  || defined(STATION)
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;

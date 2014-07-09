@@ -1,8 +1,23 @@
 #include <stdio.h>
 
 // implement these
+
+#ifdef STM32F1
+#ifdef LITE
+#define START_ADDRESS 0x0800F000
+#define page_size 1024
+#else
+#define START_ADDRESS 0x08030000
 #define page_size 2048
-#define buffer_size 8196
+#endif
+#define buffer_size 4096
+#endif
+
+#ifdef STM32F4
+#define START_ADDRESS 0x08030000
+#define page_size 0x20000
+#define buffer_size 0x40000
+#endif
 int space_raw_write(int address, const void *data, int size);
 int space_raw_read(int address, void *data, int size);
 int space_raw_erase(int address);
