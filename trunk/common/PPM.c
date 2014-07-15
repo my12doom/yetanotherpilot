@@ -33,7 +33,7 @@ static void PPM_EXTI_Handler(void)
 	while(1)
 	{
 		int channel = -1;
-#if defined(LITE) && 0
+#if defined(LITE)
 		static int pin_tbl[6] = {GPIO_Pin_12, GPIO_Pin_13, GPIO_Pin_14, GPIO_Pin_15, GPIO_Pin_10, GPIO_Pin_11};
 		static int line_tbl[6] = {EXTI_Line12, EXTI_Line13, EXTI_Line14, EXTI_Line15, EXTI_Line10, EXTI_Line11};
 		if (EXTI_GetITStatus(EXTI_Line12) != RESET)

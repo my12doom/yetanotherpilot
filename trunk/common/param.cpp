@@ -90,6 +90,7 @@ void param::save()						// save to eeprom
 void param::init_all()
 {
 	space_init();
+	all_param_count = 0;
 }
 
 float *param::find_param(const char *fourcc)

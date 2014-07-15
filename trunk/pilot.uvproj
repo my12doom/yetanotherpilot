@@ -335,7 +335,7 @@
           <Cads>
             <interw>1</interw>
             <Optim>4</Optim>
-            <oTime>0</oTime>
+            <oTime>1</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
             <Strict>0</Strict>
@@ -436,6 +436,11 @@
               <FileType>1</FileType>
               <FilePath>.\sensors\sonar.c</FilePath>
             </File>
+            <File>
+              <FileName>hp203b.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\sensors\hp203b.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -505,6 +510,26 @@
               <FileName>build.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\common\build.c</FilePath>
+            </File>
+            <File>
+              <FileName>ads1256.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\common\ads1256.c</FilePath>
+            </File>
+            <File>
+              <FileName>space.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\space.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>space.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\common\space.h</FilePath>
+            </File>
+            <File>
+              <FileName>spaceIO.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\spaceIO.cpp</FilePath>
             </File>
           </Files>
         </Group>

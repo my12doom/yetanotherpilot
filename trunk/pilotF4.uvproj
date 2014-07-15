@@ -882,16 +882,6 @@
               <FilePath>.\common\vector.h</FilePath>
             </File>
             <File>
-              <FileName>eepromF4.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\common\eepromF4.c</FilePath>
-            </File>
-            <File>
-              <FileName>eepromF4.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\common\eepromF4.h</FilePath>
-            </File>
-            <File>
               <FileName>param.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\common\param.cpp</FilePath>
@@ -900,6 +890,21 @@
               <FileName>build.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\common\build.c</FilePath>
+            </File>
+            <File>
+              <FileName>space.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\space.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>space.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\common\space.h</FilePath>
+            </File>
+            <File>
+              <FileName>spaceIO.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\spaceIO.cpp</FilePath>
             </File>
           </Files>
         </Group>
@@ -2181,16 +2186,6 @@
               <FilePath>.\common\vector.h</FilePath>
             </File>
             <File>
-              <FileName>eepromF4.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\common\eepromF4.c</FilePath>
-            </File>
-            <File>
-              <FileName>eepromF4.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\common\eepromF4.h</FilePath>
-            </File>
-            <File>
               <FileName>param.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\common\param.cpp</FilePath>
@@ -2199,6 +2194,21 @@
               <FileName>build.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\common\build.c</FilePath>
+            </File>
+            <File>
+              <FileName>space.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\space.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>space.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\common\space.h</FilePath>
+            </File>
+            <File>
+              <FileName>spaceIO.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\spaceIO.cpp</FilePath>
             </File>
           </Files>
         </Group>
@@ -3480,16 +3490,6 @@
               <FilePath>.\common\vector.h</FilePath>
             </File>
             <File>
-              <FileName>eepromF4.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\common\eepromF4.c</FilePath>
-            </File>
-            <File>
-              <FileName>eepromF4.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\common\eepromF4.h</FilePath>
-            </File>
-            <File>
               <FileName>param.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\common\param.cpp</FilePath>
@@ -3498,6 +3498,21 @@
               <FileName>build.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\common\build.c</FilePath>
+            </File>
+            <File>
+              <FileName>space.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\space.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>space.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\common\space.h</FilePath>
+            </File>
+            <File>
+              <FileName>spaceIO.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\spaceIO.cpp</FilePath>
             </File>
           </Files>
         </Group>
@@ -4779,16 +4794,6 @@
               <FilePath>.\common\vector.h</FilePath>
             </File>
             <File>
-              <FileName>eepromF4.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\common\eepromF4.c</FilePath>
-            </File>
-            <File>
-              <FileName>eepromF4.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\common\eepromF4.h</FilePath>
-            </File>
-            <File>
               <FileName>param.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\common\param.cpp</FilePath>
@@ -4797,6 +4802,21 @@
               <FileName>build.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\common\build.c</FilePath>
+            </File>
+            <File>
+              <FileName>space.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\space.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>space.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\common\space.h</FilePath>
+            </File>
+            <File>
+              <FileName>spaceIO.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\spaceIO.cpp</FilePath>
             </File>
           </Files>
         </Group>
