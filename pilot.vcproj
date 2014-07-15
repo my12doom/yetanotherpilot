@@ -218,6 +218,14 @@
 					>
 				</File>
 				<File
+					RelativePath=".\common\ads1256.c"
+					>
+				</File>
+				<File
+					RelativePath=".\common\ads1256.h"
+					>
+				</File>
+				<File
 					RelativePath=".\common\build.c"
 					>
 				</File>
@@ -306,6 +314,18 @@
 					>
 				</File>
 				<File
+					RelativePath=".\common\space.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\common\space.h"
+					>
+				</File>
+				<File
+					RelativePath=".\common\spaceIO.cpp"
+					>
+				</File>
+				<File
 					RelativePath=".\common\timer.c"
 					>
 				</File>
@@ -375,6 +395,14 @@
 				</File>
 				<File
 					RelativePath=".\sensors\HMC5883.h"
+					>
+				</File>
+				<File
+					RelativePath=".\sensors\hp203b.c"
+					>
+				</File>
+				<File
+					RelativePath=".\sensors\hp203b.h"
 					>
 				</File>
 				<File

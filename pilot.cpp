@@ -17,15 +17,18 @@
 #include "sensors/mag_offset.h"
 #include "common/matrix.h"
 #include "common/param.h"
+#include "common/space.h"
 
 #ifndef LITE
 #include "common/gps.h"
 #include "common/ads1115.h"
+#include "common/ads1256.h"
 #include "sensors/sonar.h"
 #include "common/NRF24L01.h"
 #include "fat/ff.h"
 #include "osd/MAX7456.h"
 #include "sensors/MS5611.h"
+#include "sensors/hp203b.h"
 #else
 #include "sensors/BMP085.h"
 #endif
@@ -38,7 +41,6 @@ extern "C"
 //#include "osd/osdcore.h"
 
 #ifdef STM32F1
-	#include "common/eeprom.h"
 #ifndef LITE
 	#include "usb_mass_storage/hw_config.h"
 	#include "usb_mass_storage/usb_init.h"
@@ -81,7 +83,6 @@ ads1115_work ads1115_works[MAX_ADS1115_WORKS];
 int ads1115_new_work(ads1115_speed speed, ads1115_channel channel, ads1115_gain gain, int16_t *out);
 int ads1115_go_on();
 #endif
-int handle_com();
 
 enum
 {
@@ -98,9 +99,9 @@ int critical_errors = 0;
 
 static param pid_factor[3][4] = 			// pid_factor[roll,pitch,yaw][p,i,d,i_limit]
 {
-	{param("rP1",0.50), param("rI1",0.45), param("rD1",0.06),param("rM1",PI)},
-	{param("rP2",0.50), param("rI2",0.45), param("rD2",0.06),param("rM2",PI)},
-	{param("rP3",1.75), param("rI3",0.25), param("rD3",0),param("rM3",PI)},
+	{param("rP1",0.50), param("rI1",0.45), param("rD1",0.03),param("rM1",PI)},
+	{param("rP2",0.50), param("rI2",0.45), param("rD2",0.03),param("rM2",PI)},
+	{param("rP3",1.75), param("rI3",0.25), param("rD3",0.01),param("rM3",PI)},
 };
 static param pid_factor2[3][4] = 			// pid_factor2[roll,pitch,yaw][p,i,d,i_limit]
 {
@@ -135,10 +136,11 @@ static param pid_quad_accel[4] =		// P, I, D, IMAX
 										// unit:
 										// convert acceleration error(meter/second^2) to motor output
 										// In ardupilot, default P = 0.75 converts 1 cm/s^2 into 0.75 * 0.1% of full throttle
+										// In yetanotherpilot implementation, default P=0.075 converts 1 m/s^2 into 0.075 of full throttle
 										// the max accel error in default value is around +- 6.66 m/s^2, but should not use that much
 {
-	param("accP", 75.0f),
-	param("accI", 150.0f),
+	param("accP", 0.075f),
+	param("accI", 0.150f),
 	param("accD", 0.0f),
 	param("accM", 2.0f),
 };
@@ -166,20 +168,39 @@ static param gyro_bias[2][4] =	//[p1,p2][temperature,g0,g1,g2]
 
 static param power_factor("pfac", 1.0f);
 
-static param aileron_reverse("aerR", 0);
-static param aileron_center("aerC", 1520);
-static param aileron_min("aerm", 1000);
-static param aileron_max("aerM", 2000);
-static param elevator_reverse("eleR", 0);
-static param elevator_center("eleC", 1520);
-static param elevator_min("elem", 1000);
-static param elevator_max("eleM", 2000);
-static param rudder_reverse("rudR", 0);
-static param rudder_center("rudC", 1520);
-static param rudder_min("rudm", 1000);
-static param rudder_max("rudM", 2000);
+static param rc_setting[8][4] = 
+{
+	{param("rc00", 1000), param("rc01", 1520), param("rc02", 2000), param("rc03", 0),},
+	{param("rc10", 1000), param("rc11", 1520), param("rc12", 2000), param("rc13", 0),},
+	{param("rc20", 1000), param("rc21", 1520), param("rc22", 2000), param("rc23", 0),},
+	{param("rc30", 1000), param("rc31", 1520), param("rc32", 2000), param("rc33", 0),},
+	{param("rc40", 1000), param("rc41", 1520), param("rc42", 2000), param("rc43", 0),},
+	{param("rc50", 1000), param("rc51", 1520), param("rc52", 2000), param("rc53", 0),},
+	{param("rc60", 1000), param("rc61", 1520), param("rc62", 2000), param("rc63", 0),},
+	{param("rc70", 1000), param("rc71", 1520), param("rc72", 2000), param("rc73", 0),},
+};
 
+static param motor_matrix("mat", 0);
+static param THROTTLE_IDLE("idle", 1200);
+#define MAX_MOTOR_COUNT 8
+static int quadcopter_mixing_matrix[2][MAX_MOTOR_COUNT][3] = // the motor mixing matrix, [motor number] [roll, pitch, yaw]
+{
+	{							// + mode
+		{0, +1, -1},			// rear, CCW
+		{-1, 0, +1},			// right, CW
+		{0, -1, -1},			// front, CCW
+		{+1, 0, +1},			// left, CW
+	},
+	{							// X mode
+		{-1,+1,-1},				//REAR_R, CCW
+		{-1,-1,+1},				//FRONT_R, CW
+		{+1,-1,-1},				//FRONT_L, CCW
+		{+1,+1,+1},				//REAR_L, CW
+	}
+};
 
+/*
+*/
 #if PCB_VERSION == 2
 #define CURRENT_PIN 2
 #define VOLTAGE_PIN 4
@@ -209,22 +230,14 @@ static int16_t max(int16_t a, int16_t b)
 {
 	return a<b?b:a;
 }
-class pilot
+static float f_min(float a, float b)
 {
-public:
-	// funcs
-	int device_init();
-	int state_init();
-	int read_sensors();
-	int ahrs();
-	int target();
-	int pid();
-	int output();
-	int main();
-	
-	// state
-};
-
+	return a > b ? b : a;
+}
+static float f_max(float a, float b)
+{
+	return a > b ? a : b;
+}
 
 // a helper
 bool calculate_roll_pitch(vector *accel, vector *mag, vector *accel_target, vector *mag_target, float *roll_pitch);
@@ -254,6 +267,7 @@ float target[3] = {0};		// target [roll, pitch, yaw] (pid controller target, can
 int cycle_counter = 0;
 float ground_pressure = 0;
 float ground_temperature = 0;
+float rc[8] = {0};			// ailerron : full left -1, elevator : full down -1, throttle: full down 0, rudder, full left -1
 // float climb_rate = 0;
 // float climb_rate_lowpass = 0;
 // float climb_rate_filter[7] = {0};			// 7 point Derivative Filter(copied from ArduPilot), see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/#noiserobust_2
@@ -277,7 +291,7 @@ vector accel_avg = {0};
 vector mag_zero = {0};
 vector mag_gain = {0.7924,0.8354,0.8658};
 vector accel_earth_frame;
-float voltage_divider_factor = 6;
+param voltage_divider_factor("vfac",6);
 int ms5611[2];
 int ms5611_result = -1;
 float adc_2_5_V = -1;
@@ -344,9 +358,9 @@ float target_accel = 0;
 float altitude_error_pid[3] = {0};
 float climb_rate_error_pid[3] = {0};
 float accel_error_pid[3] = {0};
-int throttle_result = 0;
-int throttle_real = 0;
-int throttle_real_crusing = THROTTLE_CRUISE;
+float throttle_result = 0;
+float throttle_real = 0;
+float throttle_real_crusing = THROTTLE_CRUISE;
 
 int16_t ads1115_2_5V = 0;
 int16_t ads1115_airspeed = 0;
@@ -362,6 +376,7 @@ bool has_5th_channel = true;
 
 vector gyro_temp_k = {0};		// gyro temperature compensating curve (linear)
 vector gyro_temp_a = {0};
+float temperature0 = 0;
 
 void matrix_error(const char*msg)
 {
@@ -656,9 +671,11 @@ int auto_throttle(float user_climb_rate)
 
 	// TODO: apply pid instead of P only, and add feed forward
 	// reference: get_throttle_rate()
-	float accel_factor_ground = (throttle_real_crusing -THROTTLE_IDLE + accel_error_pid[1]* pid_quad_accel[1]/500.0f * (THROTTLE_MAX - throttle_real_crusing))*1.1/(quadcopter_max_descend_rate)/pid_quad_accel[0];
+	bool ground_ops = !airborne && climb_rate_error_pid[0]<0;
+	float accel_factor_ground = throttle_real_crusing*1.1/(quadcopter_max_descend_rate)/pid_quad_accel[0];
+
 	climb_rate_error_pid[0] = climb_rate_error_pid[0] * (1-alpha) + alpha * climb_rate_error;
-	target_accel = climb_rate_error_pid[0] * (!airborne && climb_rate_error_pid[0]<0 ? accel_factor_ground : pid_quad_alt_rate[0]);
+	target_accel = climb_rate_error_pid[0] * (ground_ops ? accel_factor_ground : pid_quad_alt_rate[0]);
 	target_accel = limit(target_accel,  airborne ? -quadcopter_max_acceleration : -2 * quadcopter_max_acceleration, quadcopter_max_acceleration);
 
 	
@@ -681,17 +698,17 @@ int auto_throttle(float user_climb_rate)
 	output += accel_error_pid[1] * pid_quad_accel[1];
 	output += accel_error_pid[2] * pid_quad_accel[2];
 
-	throttle_result  = output/500.0f * (THROTTLE_MAX - throttle_real_crusing) + throttle_real_crusing;
+	throttle_result  = output + throttle_real_crusing;
 	float angle_boost_factor = limit(1/ cos(pitch) / cos(roll), 1.0f, 1.5f);
-	throttle_result = (throttle_result - THROTTLE_IDLE) * angle_boost_factor + THROTTLE_IDLE;
+	throttle_result = throttle_result * angle_boost_factor;
 	
-	throttle_result = limit(throttle_result, THROTTLE_IDLE + (airborne ? QUADCOPTER_MAX_DELTA : 0), THROTTLE_MAX - QUADCOPTER_MAX_DELTA);
+	throttle_result = limit(throttle_result, airborne ? QUADCOPTER_THROTTLE_RESERVE : 0, 1 - QUADCOPTER_THROTTLE_RESERVE);
 
-	TRACE("\rthrottle=%d, altitude = %.2f/%.2f, pid=%.2f,%.2f,%.2f", throttle_result, state[0], target_altitude,
+	ERROR("\rthrottle=%.3f, altitude = %.2f/%.2f, pid=%.2f,%.2f,%.2f", throttle_result, state[0], target_altitude,
 		accel_error_pid[0], accel_error_pid[1], accel_error_pid[2]);
 
 	// update throttle_real_crusing if we're in near level state and no violent climbing/descending action
-	if (airborne && throttle_real>THROTTLE_IDLE && fabs(state[1]) < 0.5f && fabs(state[3] + accelz)<0.5f && fabs(roll)<5*PI/180 && fabs(pitch)<5*PI/180
+	if (airborne && throttle_real>0 && fabs(state[1]) < 0.5f && fabs(state[3] + accelz)<0.5f && fabs(roll)<5*PI/180 && fabs(pitch)<5*PI/180
 		&& fabs(user_climb_rate) < 0.001f)
 	{
 		// 0.2Hz low pass filter
@@ -936,8 +953,7 @@ int calculate_target()
 	case quadcopter:
 		{
 			// auto throttle
-			float v = (g_ppm_input[2] - THROTTLE_STOP) / (THROTTLE_MAX - THROTTLE_STOP) - 0.5f;
-			v = limit(v, -0.5f, 0.5f);
+			float v = rc[2] - 0.5;
 			float user_rate;
 			if (fabs(v)<0.05f)
 				user_rate = 0;
@@ -954,7 +970,7 @@ int calculate_target()
 			{
 				float limit_l = angle_target_unrotated[i] - PI * interval;
 				float limit_r = angle_target_unrotated[i] + PI * interval;
-				angle_target_unrotated[i] = limit(-(g_ppm_input[i] - RC_CENTER) * rc_reverse[i] / RC_RANGE, -1, 1) * quadcopter_range[i];
+				angle_target_unrotated[i] = rc[i] * quadcopter_range[i] * (i==1?-1:1);	// pitch stick and coordinate are reversed 
 				angle_target_unrotated[i] = limit(angle_target_unrotated[i], limit_l, limit_r);
 				angle_target[i] = angle_target_unrotated[i];
 			}
@@ -969,20 +985,14 @@ int calculate_target()
 
 			// yaw:
 			//target[2] = limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[2] / RC_RANGE, -1, 1) * quadcopter_range[2] + yaw_gyro + quadcopter_trim[2];
-			if (airborne || g_ppm_input[2] > THROTTLE_IDLE)	// airborne or armed and throttle up
+			if (airborne || rc[2] > 0.2f)	// airborne or armed and throttle up
 			{
-				float rc = g_ppm_input[3] - rc_zero[3];
-				if (abs(rc) < RC_DEAD_ZONE)
-					rc = 0;
-				else
-					rc *= QUADCOPTER_ACRO_YAW_RATE * interval / RC_RANGE;
-
-				rc_d[2] = rc * rc_reverse[2] * sensor_reverse[2];
+				rc_d[2] = ((fabs(rc[3]) < (float)RC_DEAD_ZONE/RC_RANGE) ? 0 : -rc[3]) * interval * QUADCOPTER_ACRO_YAW_RATE;
 
 				float trimmed_pos = radian_add(angle_pos[2], quadcopter_trim[2]);
 				float new_target = radian_add(angle_target[2], rc_d[2]);
 				float new_error = abs(radian_sub(trimmed_pos, new_target));
-				if (new_error > QUADCOPTER_MAX_YAW_OFFSET && new_error > abs(angle_error[2]))
+				if (new_error > (airborne?QUADCOPTER_MAX_YAW_OFFSET:(QUADCOPTER_MAX_YAW_OFFSET/5)) && new_error > abs(angle_error[2]))
 					rc_d[2] = 0;
 				else
 					angle_target[2] = new_target;
@@ -1001,7 +1011,7 @@ int calculate_target()
 
 
 				// 5hz low pass filter for D, you won't be that crazy, right?
-				static const float lpf_RC = 1.0f/(2*PI * 5.0f);
+				static const float lpf_RC = 1.0f/(2*PI * 20.0f);
 				float alpha = interval / (interval + lpf_RC);
 
 				if (airborne)
@@ -1018,12 +1028,13 @@ int calculate_target()
 				// max target rate: 180 degree/second
 				target[i] = limit(target[i], -PI, PI);
 			}
-			TRACE("angle pos,target=%f,%f, air=%s\r\n", angle_pos[2] * PI180, angle_target[2] * PI180, airborne ? "true" : "false");
+			ERROR("angle pos,target=%f,%f, air=%s\r\n", angle_pos[2] * PI180, angle_target[2] * PI180, airborne ? "true" : "false");
 
 			// check takeoff
+			float active_throttle = (g_ppm_input[5] > RC_CENTER) ? throttle_result : rc[2];
 			if ( (state[0] > takeoff_ground_altitude + 1.0f) ||
-				(state[0] > takeoff_ground_altitude && ((g_ppm_input[5] > RC_CENTER) ? throttle_result : g_ppm_input[2]) > throttle_real_crusing) ||
-				(((g_ppm_input[5] > RC_CENTER) ? throttle_real_crusing : g_ppm_input[2]) > throttle_real_crusing + 100))
+				(state[0] > takeoff_ground_altitude && active_throttle > throttle_real_crusing) ||
+				(active_throttle > throttle_real_crusing + QUADCOPTER_THROTTLE_RESERVE))
 			{
 				airborne = true;
 			}
@@ -1093,7 +1104,7 @@ int pid()
 
 		// sum
 		pid_result[i] = 0;
-		float p_rc = limit((g_ppm_input[5] - 1000.0f) / 520.0f, 0, 2);
+		float p_rc = limit(rc[5]+1, 0, 2);
 		for(int j=0; j<3; j++)
 		{
 #if QUADCOPTER == 1
@@ -1146,25 +1157,38 @@ int output()
 	if (mode == quadcopter || (mode == rc_fail) )
 	{
 		//pid[2] = -pid[2];
-		int motor_count = sizeof(quadcopter_mixing_matrix) / sizeof(quadcopter_mixing_matrix[0]);
 		throttle_real = 0;
-		for(int i=0; i<motor_count; i++)
-		{
-			float mix = mode != rc_fail ? g_ppm_input[2] : THROTTLE_STOP;
-			mix = (mix-THROTTLE_STOP)*0.7f + THROTTLE_STOP;
+		int matrix = (float)motor_matrix;
 
-			if (mode != rc_fail && g_ppm_input[5] > RC_CENTER)
-				mix = throttle_result;
-			for(int j=0; j<3; j++)
-				mix += quadcopter_mixing_matrix[i][j] * pid_result[j] * QUADCOPTER_MAX_DELTA;
+		int motor_count = MAX_MOTOR_COUNT;
+
+		ERROR("OUT-");
+		for(int i=0; i<MAX_MOTOR_COUNT; i++)
+		{
+			if (quadcopter_mixing_matrix[matrix][i][0] == quadcopter_mixing_matrix[matrix][i][1] && 
+				quadcopter_mixing_matrix[matrix][i][1] == quadcopter_mixing_matrix[matrix][i][2] && 
+				fabs((float)quadcopter_mixing_matrix[matrix][i][2]) < 0.01f)
+			{
+				motor_count = i;
+				break;
+			}
 
 			if (mode == rc_fail)
+			{
 				g_ppm_output[i] = THROTTLE_STOP;
+			}
 			else
-				g_ppm_output[i] = limit(mix, THROTTLE_IDLE, THROTTLE_MAX);
+			{
+				float mix = g_ppm_input[5] > RC_CENTER ? throttle_result : (rc[2] * 0.7f);
 
-			TRACE("\rpid[x] = %f, %f, %f", pid[0], pid[1], pid[2]);
-			throttle_real += g_ppm_output[i];
+				for(int j=0; j<3; j++)
+					mix += quadcopter_mixing_matrix[matrix][i][j] * pid_result[j] * QUADCOPTER_THROTTLE_RESERVE;
+
+				g_ppm_output[i] = limit(THROTTLE_IDLE + mix*(THROTTLE_MAX-THROTTLE_IDLE), THROTTLE_IDLE, THROTTLE_MAX);
+
+				TRACE("\rpid[x] = %f, %f, %f", pid[0], pid[1], pid[2]);
+				throttle_real += mix;
+			}
 		}
 		throttle_real /= motor_count;
 	}
@@ -1475,6 +1499,8 @@ int save_logs()
 	return 0;
 }
 
+volatile vector imu_statics[2][4] = {0};		//	[accel, gyro][min, current, max, avg]
+int avg_count = 0;
 
 int read_sensors()
 {
@@ -1494,10 +1520,55 @@ int read_sensors()
 		sonar_distance = NAN;
 
 	// always read sensors and calculate attitude
+	bool imu_error = false;
 	if (read_MPU6050(&p->accel[0]) < 0 && read_MPU6050(&p->accel[0]) < 0)
+	{
 		ERROR("MPU6050 Error\n");
-	if (read_HMC5883(&p->mag[0]) < 0 && read_HMC5883(&p->mag[0]) < 0);
+		imu_error = true;
+	}
+	if (read_HMC5883(&p->mag[0]) < 0 && read_HMC5883(&p->mag[0]) < 0)
+	{
 		TRACE("HMC5883 Error\n");
+	}
+
+	// update imu statics
+// #ifdef STM32F1
+// 	NVIC_DisableIRQ(USB_LP_CAN1_RX0_IRQn);
+// #endif
+// #ifdef STM32F4
+// 	NVIC_DisableIRQ(OTG_HS_IRQn);
+// 	NVIC_DisableIRQ(OTG_FS_IRQn);
+// 	NVIC_DisableIRQ(OTG_HS_EP1_IN_IRQn);
+// 	NVIC_DisableIRQ(OTG_HS_EP1_OUT_IRQn);
+// #endif
+// 	__DSB();
+// 	__ISB();
+// 	delayus(30);
+	if (!imu_error)
+	{
+		for(int i=0; i<3; i++)
+		{
+			imu_statics[0][0].array[i] = f_min(p->accel[i], imu_statics[0][0].array[i]);
+			imu_statics[0][1].array[i] = p->accel[i];
+			imu_statics[0][2].array[i] = f_max(p->accel[i], imu_statics[0][2].array[i]);
+			imu_statics[0][3].array[i] = p->accel[i] + imu_statics[0][3].array[i];
+
+			imu_statics[1][0].array[i] = f_min(p->gyro[i], imu_statics[1][0].array[i]);
+			imu_statics[1][1].array[i] = p->gyro[i];
+			imu_statics[1][2].array[i] = f_max(p->gyro[i], imu_statics[1][2].array[i]);
+			imu_statics[1][3].array[i] = p->gyro[i] + imu_statics[1][3].array[i];
+		}
+		avg_count ++;
+	}
+// #ifdef STM32F1
+// 	NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
+// #endif
+// #ifdef STM32F4
+// 	NVIC_EnableIRQ(OTG_HS_IRQn);
+// 	NVIC_EnableIRQ(OTG_FS_IRQn);
+// 	NVIC_EnableIRQ(OTG_HS_EP1_IN_IRQn);
+// 	NVIC_EnableIRQ(OTG_HS_EP1_OUT_IRQn);
+// #endif
 
 	for(int i=0; i<3; i++)
 		p->mag[i] *= mag_gain.array[i];
@@ -1596,7 +1667,7 @@ int calculate_attitude()
 
 
 	// universal
-	float dt = mpu6050_temperature - gyro_bias[0][0];
+	float dt = mpu6050_temperature - temperature0;
 	vector gyro_zero_raw = 
 	{
 		dt * gyro_temp_k.array[0] + gyro_temp_a.array[0],
@@ -1766,10 +1837,9 @@ int magnet_calibration()
 
 	// load magnetemeter cneter
 mag_load:
-	for(int i=0; i<sizeof(mag_zero); i+=2)
-		EE_ReadVariable(VirtAddVarTab[0]+i/2+EEPROM_MAG_ZERO, (uint16_t*)(((uint8_t*)&mag_zero.array)+i));
-	for(int i=0; i<sizeof(mag_gain); i+=2)
-		EE_ReadVariable(VirtAddVarTab[0]+i/2+EEPROM_MAG_GAIN, (uint16_t*)(((uint8_t*)&mag_gain.array)+i));
+	space_read("magzero", 7, &mag_zero, sizeof(mag_zero),NULL);
+	space_read("maggain", 7, &mag_gain, sizeof(mag_gain),NULL);
+
 
 	for(int i=0; i<3; i++)
 	{
@@ -1862,10 +1932,8 @@ mag_load:
 			ERROR("mag[%d] max/min/gain=%d,%d,%.2f\n", i, mag_max[i], mag_min[i], mag_gain.array[i]);
 		}
 		mag_offset.get_result(mag_zero.array, &mag_radius);
-		for(int i=0; i<sizeof(mag_zero); i+=2)
-			EE_WriteVariable(VirtAddVarTab[0]+i/2+EEPROM_MAG_ZERO, *(uint16_t*)(((uint8_t*)&mag_zero.array)+i));
-		for(int i=0; i<sizeof(mag_gain); i+=2)
-			EE_WriteVariable(VirtAddVarTab[0]+i/2+EEPROM_MAG_GAIN, *(uint16_t*)(((uint8_t*)&mag_gain.array)+i));
+		space_read("magzero", 7, &mag_zero, sizeof(mag_zero),NULL);
+		space_read("maggain", 7, &mag_gain, sizeof(mag_gain),NULL);
 
 		// flash all LED to signal success
 		led_all_on();
@@ -1944,7 +2012,7 @@ int sensor_calibration()
 #if QUADCOPTER == 1
 			g_ppm_output[i] = THROTTLE_STOP;
 #else
-			g_ppm_output[i] = floor(g_ppm_input[i]+0.5);
+			g_ppm_output[i] = g_ppm_input[i];
 #endif
 
 		PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
@@ -1979,11 +2047,10 @@ int sensor_calibration()
 
 	if (VCC_5V / VCC_motor >= 0.85f && VCC_5V / VCC_motor <= 1.15f)
 	{
-		voltage_divider_factor *= VCC_5V / VCC_motor;
+		voltage_divider_factor = voltage_divider_factor * VCC_5V / VCC_motor;
 
 		TRACE("motor factor fix!\n");
-		for(int i=0; i<sizeof(voltage_divider_factor); i+=2)
-			EE_WriteVariable(VirtAddVarTab[0]+i/2+EEPROM_VOLTAGE_DIVIDER, ((uint16_t*)(((uint8_t*)&voltage_divider_factor)+i))[0]);
+		voltage_divider_factor.save();
 	}
 
 	groundA = accel_avg;
@@ -2016,6 +2083,7 @@ int sensor_calibration()
 
 
 	// my12doom
+	/*
 	gyro_bias[0][0] = 25.880f;
 	gyro_bias[0][1] = 14.993f;
 	gyro_bias[0][2] = -10.073f;
@@ -2024,6 +2092,7 @@ int sensor_calibration()
 	gyro_bias[1][1] = -3.490f;
 	gyro_bias[1][2] = -17.723f;
 	gyro_bias[1][3] = 18.823f;
+	*/
 
 	// zewu
 	/*
@@ -2038,13 +2107,15 @@ int sensor_calibration()
 	*/
 
 
+	/*
 	for(int i=0; i<4; i++)
 	{
 		gyro_bias[0][i].save();
 		gyro_bias[1][i].save();
 	}
+	*/
 
-	if (!isnan(gyro_bias[0][0]) && !isnan(gyro_bias[0][0]))
+	if (!isnan((float)gyro_bias[0][0]) && !isnan((float)gyro_bias[1][0]))
 	{
 		float dt = gyro_bias[1][0] - gyro_bias[0][0];
 		if (dt > 1.0f)
@@ -2054,11 +2125,29 @@ int sensor_calibration()
 				gyro_temp_a.array[i] = gyro_bias[0][i+1];
 				gyro_temp_k.array[i] = (gyro_bias[1][i+1] - gyro_bias[0][i+1]) / dt;
 			}
+			temperature0 = gyro_bias[0][0];
 		}
 		else
 		{
 			// treat as one point
+			int group = !isnan(gyro_bias[0][0]) ? 0 : (!isnan(gyro_bias[1][0]) ? 1: -1);
+			for(int i=0; i<3; i++)
+			{
+				gyro_temp_a.array[i] = group >= 0 ? gyro_bias[group][i+1] : 0;
+				gyro_temp_k.array[i] = 0;
+			}
+			temperature0 = group != 0 ? gyro_bias[group][0] : 0;
 		}
+	}
+	else
+	{
+		int group = !isnan(gyro_bias[0][0]) ? 0 : (!isnan(gyro_bias[1][0]) ? 1: -1);
+		for(int i=0; i<3; i++)
+		{
+			gyro_temp_a.array[i] = group >= 0 ? gyro_bias[group][i+1] : 0;
+			gyro_temp_k.array[i] = 0;
+		}
+		temperature0 = group != 0 ? gyro_bias[group][0] : 0;
 	}
 
 	/*
@@ -2118,17 +2207,13 @@ int usb_lock()
 
 		}
 		PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
-		while(1)
-		{
-			handle_com();
-		}
 	}
 
 	return -1;
 }
 
 
-int last_ch4 = 0;
+float last_ch4 = 0;
 int64_t arm_start_tick = 0;
 int check_mode()
 {
@@ -2140,17 +2225,15 @@ int check_mode()
 			mode = shutdown;
 
 		// emergency switch
-		if ((g_ppm_input[4] < 1333 && last_ch4 > 1666 ) 
-			|| (g_ppm_input[4] > 1666 && last_ch4 < 1333))
+		if (fabs(rc[4]-last_ch4) > 0.33f)
 		{
 			mode = shutdown;
-			last_ch4 = g_ppm_input[4];
+			last_ch4 = rc[4];
 			ERROR("shutdown!\n");
 		}
 
 		// arm action check: throttle minimum, rudder max or min, aileron & elevator near netrual, for 0.5second
-		bool arm_action = g_ppm_input[2] < THROTTLE_IDLE && abs(g_ppm_input[0] - RC_CENTER) < 150 && abs(g_ppm_input[1] - RC_CENTER) < 150
-			&& (g_ppm_input[3] > 1850 || g_ppm_input[3] < 1150);
+		bool arm_action = rc[2] < 0.1f && fabs(rc[0]) < 0.15f && fabs(rc[1]) < 0.15f && fabs(rc[3]) > 0.85f;
 		if (!arm_action)
 		{
 			arm_start_tick = 0;
@@ -2202,7 +2285,7 @@ int check_mode()
 		target_climb_rate = -quadcopter_max_descend_rate;
 		target_accel = -quadcopter_max_acceleration*2;
 		accel_error_pid[0] = target_accel;
-// 		accel_error_pid[1] = 0;
+		accel_error_pid[1] = 0;
 		accel_error_pid[2] = 0;
 		yaw_launch = yaw_est;
 
@@ -2317,7 +2400,7 @@ int real_log()
 int64_t land_detect_us = 0;
 int land_detector()
 {
-	if (g_ppm_input[2] < THROTTLE_IDLE				// low throttle
+	if (rc[2] < 0.1f				// low throttle
 		&& fabs(state[1]) < (quadcopter_max_descend_rate/4.0f)			// low climb rate : 25% of max descend rate should be reached in such low throttle, or ground was touched
 // 		&& fabs(state[2] + state[3]) < 0.5f			// low acceleration
 	)
@@ -2338,6 +2421,18 @@ int land_detector()
 	return 0;
 }
 
+float ppm2rc(float ppm, float min_rc, float center_rc, float max_rc, bool revert)
+{
+	float v = (ppm-center_rc) / (ppm>center_rc ? (max_rc-center_rc) : (center_rc-min_rc));
+
+	v = limit(v, -1, +1);
+
+	if (revert)
+		v = -v;
+
+	return v;
+}
+
 int64_t tic = 0;
 int loop(void)
 {
@@ -2346,7 +2441,18 @@ int loop(void)
 	interval = (round_start_tick-last_tick)/1000000.0f;
 	last_tick = round_start_tick;
 
-	handle_com();
+	// rc inputs
+	TRACE("\rRC");
+	for(int i=0; i<8; i++)
+	{
+		rc[i] = ppm2rc(g_ppm_input[i], rc_setting[i][0], rc_setting[i][1], rc_setting[i][2], rc_setting[i][3] > 0);
+		TRACE("%.2f,", rc[i]);
+	}
+
+	rc[2] = (rc[2]+1)/2;
+
+
+	// usb
 	usb_lock();	// lock the system if usb transfer occurred
 
 
@@ -2443,7 +2549,12 @@ int loop(void)
 	return 0;
 }
 
+int int288 = 0;
+int power = 0;
+int int61152 = 0;
+int int2882 = 0;
 
+#include "common/space.h"
 int main(void)
 {
 	//Basic Initialization
@@ -2456,11 +2567,12 @@ int main(void)
 	// priority settings
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_3);
 	
+
 	// USB
 #if defined(STM32F1)
-	#ifndef LITE
+#ifndef LITE
 	Set_System();
-	#endif
+#endif
 	Set_USBClock();
 	USB_Interrupts_Config();
 	USB_Init();
@@ -2468,14 +2580,14 @@ int main(void)
 
 #ifdef STM32F4
 	USBD_Init(&USB_OTG_dev,
-	#ifdef USE_USB_OTG_HS
-            USB_OTG_HS_CORE_ID,
-	#else
-            USB_OTG_FS_CORE_ID,
-	#endif
-            &USR_desc,
-            &USBD_MSC_cb,
-            &USR_cb);
+#ifdef USE_USB_OTG_HS
+		USB_OTG_HS_CORE_ID,
+#else
+		USB_OTG_FS_CORE_ID,
+#endif
+		&USR_desc,
+		&USBD_MSC_cb,
+		&USR_cb);
 #endif
 
 	ADC1_Init();
@@ -2493,8 +2605,8 @@ int main(void)
 		critical_errors |= error_magnet;	
 	GPS_Init(115200);
 	NRF_Init();
-	MAX7456_SYS_Init();
-	Max7456_Set_System(1);
+// 	MAX7456_SYS_Init();
+// 	Max7456_Set_System(1);
 	sonar_init();
 	#else
 	if (init_BMP085() < 0)
@@ -2502,16 +2614,219 @@ int main(void)
 	#endif
 	flashlight_on();
 
-	
 	#if PCB_VERSION == 3 && !defined(LITE)
+	int16_t int6115 = 0;
+	float vpower = NAN;
+	float v6115;
+	float v288;
+	float v61152;
 	ads1115_init();	
-	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN0, ads1115_gain_4V, &ads1115_voltage);
-	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN1_AIN3, ads1115_gain_4V, &ads1115_current);
-	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN2_AIN3, ads1115_gain_2V, &ads1115_airspeed);
-	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN3, ads1115_gain_4V, &ads1115_2_5V);
+// 	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN0, ads1115_gain_4V, &ads1115_voltage);
+// 	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN1_AIN3, ads1115_gain_4V, &ads1115_current);
+// 	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN2_AIN3, ads1115_gain_2V, &ads1115_airspeed);
+// 	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN3, ads1115_gain_4V, &ads1115_2_5V);
+	//ads1115_new_work(ads1115_speed_8sps, ads1115_channnel_AIN3, ads1115_gain_6V, &power);
+	//ads1115_new_work(ads1115_speed_8sps, ads1115_channnel_AIN1, ads1115_gain_4V, &int61152);
+	//ads1115_new_work(ads1115_speed_8sps, ads1115_channnel_AIN1_AIN3, ads1115_gain_1V, &int6115);
+	//ads1115_new_work(ads1115_speed_8sps, ads1115_channnel_AIN2, ads1115_gain_4V, &int288);
+
+	if(0)
+	{
+		init_hp203b();
+
+		while(1)
+		{
+			int data[2];
+			if (read_hp203b(data) == 0)
+			{
+				printf("data=%d,%d\n", data[0], data[1]);
+			}
+		}
+	}
 	#endif
+
+
+	if(0)
+	{
+		space_init();
+
+		char test[200] = "world";
+		char key[200] = "hello";
+		char test2[200];
+		char key2[200];
+
+		int got = 0;
+		int write_result;
+		int read_result;
+
+		read_result = space_read(key, strlen(key), test2, sizeof(test2), &got);
+		ERROR("read:%d, %s", read_result, test2);
+		write_result = space_write(key, strlen(key), test, strlen(test), &got); 
+		read_result = space_read(key, strlen(key), test2, sizeof(test2), &got);
+		read_result = space_read(key, strlen(key), test2, sizeof(test2), &got); 
+
+		strcpy(test, "world2");
+
+		for(int i=0; i<100; i++)
+			write_result = space_write("key2", 4, "k345", 4, &got);
+		write_result = space_write(key, strlen(key), test, strlen(test), &got); 
+		space_init();
+		// 	write_result = space_delete(key, strlen(key));
+		// 	read_result = space_read(key, strlen(key), test2, sizeof(test2), &got); 
+
+ 		//int resort_result = space_resort();
+
+		space_init();
+
+		read_result = space_read("key2", 4, test2, sizeof(test2), &got); 
+		read_result = space_read(key, strlen(key), test2, sizeof(test2), &got); 
+		ERROR("read:%d, %s", read_result, test2);
+	}
+
+	#if !defined(LITE) && !defined(STM32F4) && 0
+	ads1256_init();
+
+	ads1256_begin();
+	ads1256_tx_rx(CMD_Reset);
+	ads1256_end();
+	delayms(100);
+	
+	
+	ads1256_status status;
+	ads1256_read_registers(REG_Status, 1, &status);
+	status.BufferEnable = 0;
+	status.AutoCalibration = 1;
+	ads1256_write_registers(REG_Status, 1, &status);
+
+	uint8_t speed = 0;
+// 	ads1256_mux mux = {ads1256_channnel_AIN6, ads1256_channnel_AIN7};
+// 	ads1256_write_registers(REG_MUX, 1, &mux);
+// 	ads1256_read_registers(REG_MUX, 1, &mux);
+// 	ERROR("1256:mux register = %02x\n", *(uint8_t*)&mux);
+
+	delayms(50);
+	ads1256_read_registers(REG_DataRate, 1, &speed);
+	delayms(50);
+	ERROR("1256:speed register = %02x\n", speed);
+	speed = ads1256_speed_100sps;
+	ERROR("1256:speed register writing %02x\n", speed);
+	ads1256_write_registers(REG_DataRate, 1, &speed);
+	delayms(50);
+	ads1256_read_registers(REG_DataRate, 1, &speed);
+	ERROR("1256:speed register = %02x\n", speed);
+
+	ERROR("time,vpower,v6115,v288,Pa6115,Pa288,ms5611,m\r\n");
+
+// 	ads1256_begin();
+// 	ads1256_tx_rx(CMD_SystemOffsetCalibration);
+// 	ads1256_end();
+// 	delayms(15);
+
+
+	ads1256_begin();
+	ads1256_tx_rx(CMD_OffsetGainCalibration);
+	ads1256_end();
+	delayms(150);
+
+	while(1)
+	{
+		status.DataReady = 1;
+
+		while(status.DataReady == 1)		
+			ads1256_read_registers(REG_Status, 1, &status);
+
+		status.DataReady = 1;
+		ads1256_begin();
+		ads1256_tx_rx(CMD_Sync);
+		ads1256_tx_rx(CMD_WakeUp);
+		ads1256_end();
+
+		while(status.DataReady == 1)
+		{
+			//ERROR("wait..\n");
+			ads1256_read_registers(REG_Status, 1, &status);
+		}
+
+		//ERROR("ads1256 status=%02x, d=%d\n", *(uint8_t*)&status, status.DataReady);
+
+
+		if (status.DataReady == 0)
+		{
+			uint8_t data[4];
+			ads1256_begin();
+			ads1256_tx_rx(CMD_ReadData);
+			delayus(15);
+			for(int i=0; i<3; i++)
+				data[i+1] = ads1256_tx_rx(0);
+			data[0] = (data[1] & 0x80) ? 0xff : 0x00;
+			swap(data, 4);
+			ads1256_end();
+
+// 			ERROR("data=%08x(%fV)\n", *(int*)data, *(int*)data * 5.0f / 8388607.0f);
+// 			ads1256_read_register(REG_Status, 1, &status);
+// 			ERROR("ads1256 status=%d, d=%d\n", *(uint8_t*)&status, status.DataReady);
+
+
+			float v6115 = *(int*)data * 5.0f / 8388607.0f;
+			float pa_6115 = 15000 + (v6115-5.0*0.05f)/(0.9f*5.0)*100000.0f;
+			ERROR("%.2f,%f\n", pa_6115, v6115);
+
+		}
+
+		/*
+		//int adc = ads1115_go_on();
+		int oss = 64;
+		power = 0;
+		ads1115_config(ads1115_speed_250sps, ads1115_channnel_AIN3, ads1115_gain_6V, ads1115_mode_singleshot);
+		for(int i=0; i<oss; i++)
+			power += ads1115_convert();
+
+		int61152 = 0;
+		ads1115_config(ads1115_speed_250sps, ads1115_channnel_AIN1, ads1115_gain_4V, ads1115_mode_singleshot);
+		for(int i=0; i<oss; i++)
+			int61152 += ads1115_convert();
+
+
+		int288 = 0;
+		ads1115_config(ads1115_speed_250sps, ads1115_channnel_AIN2, ads1115_gain_4V, ads1115_mode_singleshot);
+		for(int i=0; i<oss; i++)
+			int288 += ads1115_convert();
+
+		int2882 = 0;
+		ads1115_config(ads1115_speed_250sps, ads1115_channnel_AIN2, ads1115_gain_6V, ads1115_mode_singleshot);
+		for(int i=0; i<oss; i++)
+			int2882 += ads1115_convert();
+
+
+
+		vpower = power/32767.0f*6.0f/oss;
+		float vpower2 = power/32767.0f*6.0f/oss;
+		v6115 = vpower + int6115*1.0f/32767.0f;
+		v288 = int2882*6.0f/oss/32767.0f;
+		v61152 = int61152/32767.0f*4.0f/oss;
+
+
+
+		float pa_6115 = 15000 + (v6115-vpower*0.05f)/(0.9f*vpower)*100000.0f;
+		float pa_61152 = 15000 + (v61152-vpower*0.05f)/(0.9f*vpower)*100000.0f;
+		float pa_288 = 50000.0f + (v288-vpower*0.06f)/(0.9f*vpower)*65000.0f;
+		pa_288 = ((v288/vpower) +0.095f)/0.009f*1000.0f;
+
+		read_baro(ms5611);
+		delayms(20);
+		read_baro(ms5611);
+		delayms(20);
+		read_baro(ms5611);
+		delayms(20);
+		read_baro(ms5611);
+
+		//ERROR("%.3f,%f,%f,%f,%.3f,%.3f,%d,%f\r\n", getus()/1000000.0f, vpower2, v61152, v288, pa_6115, pa_288,ms5611[0], pa_61152);
+		*/
+
+	}
 	
 	delayms(100);
+	#endif
 	
 	#ifndef LITE
 	NRF_Init();
@@ -2524,15 +2839,6 @@ int main(void)
 	p->voltage = -32768;
 	p->current = -32768;
 
-	power_factor = 0.65f;
-	pid_factor2[0][1] = 0.18f;
-	pid_factor2[0][2] = 0.18f;
-
-	// load voltage divider factor
-	for(int i=0; i<sizeof(voltage_divider_factor); i+=2)
-		EE_ReadVariable(VirtAddVarTab[0]+i/2+EEPROM_VOLTAGE_DIVIDER, (uint16_t*)(((uint8_t*)&voltage_divider_factor)+i));
-	
-	TRACE("voltage_divider_factor=%f\r\n", voltage_divider_factor);
 			
 	magnet_calibration();
 	sensor_calibration();
@@ -2561,9 +2867,6 @@ int main(void)
 				led_all_off();
 				flashlight_off();
 				delayms(150);
-
-				//GPS_ParseBuffer();
-				handle_com();
 			}
 
 			delayms(1500);
@@ -2662,6 +2965,10 @@ int main(void)
 
 extern "C"
 {
+#ifdef __GNUC__
+#define TIM1_UP_IRQHandler TIM1_UP_TIM10_IRQHandler
+#endif
+
 #ifdef STM32F1
 void TIM1_UP_IRQHandler(void)
 #endif
@@ -2835,33 +3142,3 @@ int ads1115_go_on()
 	return 1;
 }
 #endif
-
-int handle_com()
-{
-#ifdef STM32F1
-	NVIC_DisableIRQ(USB_LP_CAN1_RX0_IRQn);
-#endif
-#ifdef STM32F4
-	NVIC_DisableIRQ(OTG_HS_IRQn);
-	NVIC_DisableIRQ(OTG_FS_IRQn);
-	NVIC_DisableIRQ(OTG_HS_EP1_IN_IRQn);
-	NVIC_DisableIRQ(OTG_HS_EP1_OUT_IRQn);
-#endif
-	__DSB();
-	__ISB();
-
-
-
-
-#ifdef STM32F1
-	NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
-#endif
-#ifdef STM32F4
-	NVIC_EnableIRQ(OTG_HS_IRQn);
-	NVIC_EnableIRQ(OTG_FS_IRQn);
-	NVIC_EnableIRQ(OTG_HS_EP1_IN_IRQn);
-	NVIC_EnableIRQ(OTG_HS_EP1_OUT_IRQn);
-#endif
-
-	return 0;
-}

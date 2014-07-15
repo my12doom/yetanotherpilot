@@ -280,8 +280,8 @@ int main(int argc, char **argv)
  			if (m++ %5 == 0)
 			{
 				fprintf(gpso, "%.4f", float(time/1000000.0f));
-				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[2], quad.angle_target[2], quad.speed[2], quad.speed_target[2]);
-				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d,", quad.angle_pos[1],quad.angle_target[1],quad.speed[1],quad.speed_target[1], quad3.altitude_target, quad3.accel_I, quad3.accel_target);
+				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[2], quad.angle_target[2], quad.speed[2], sensor.gyro[1]);
+				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d,", quad.angle_pos[0],quad.angle_target[0],quad.speed[0],quad.speed_target[0], quad3.altitude_target, quad3.accel_I, quad3.accel_target);
 				fprintf(gpso, "%d,%d,%d", int(quad3.altitude), int(quad3.accel), quad2.airborne ? 555 : 0);
 				fprintf(gpso, "\r\n");
 			}

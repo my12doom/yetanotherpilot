@@ -39,9 +39,8 @@
 #define VOLTAGE_DIVIDER_BASE 6		// uncalibrated voltage divider ratio
 #define MAX_GYRO_BIAS_DRIFT 30
 #define THROTTLE_STOP 1110
-#define THROTTLE_IDLE (THROTTLE_STOP+90)
 #define THROTTLE_MAX 1888
-#define THROTTLE_CRUISE 1450
+#define THROTTLE_CRUISE 0.45f
 
 #define ACRO_ROLL_RATE (PI*3/2)				// 270 degree/s
 #define ACRO_PITCH_RATE (PI)			// 180 degree/s
@@ -59,14 +58,6 @@ extern int LOG_LEVEL;
 
 
 
-static int quadcopter_mixing_matrix[4][3] = // the motor mixing matrix, [motor number] [roll, pitch, yaw]
-{
-	{0, +1, -1},			// rear
-	{-1, 0, +1},			// right
-	{0, -1, -1},			// front
-	{+1, 0, +1},			// left
-};
-
 #if QUADCOPTER == 1
 #define ACRO_MANUAL_FACTOR (0.0)
 
@@ -75,7 +66,7 @@ static int quadcopter_mixing_matrix[4][3] = // the motor mixing matrix, [motor n
 
 #endif
 
-#define QUADCOPTER_MAX_DELTA 100
+#define QUADCOPTER_THROTTLE_RESERVE 0.15
 
 
 
