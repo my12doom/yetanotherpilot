@@ -1,4 +1,5 @@
 #include "vector.h"
+#include "common.h"
 #include <math.h>
 
 // http://zh.wikipedia.org/wiki/%E6%97%8B%E8%BD%AC%E7%9F%A9%E9%98%B5
@@ -102,3 +103,11 @@ float vector_angle(vector *v1, vector *v2)
 	return (v1->V.x * v2->V.x + v1->V.y * v2->V.y + v1->V.z * v2->V.z)/vector_length(v1)/vector_length(v2);
 }
 
+int accel_vector_to_euler_angle(vector accel, vector *ouler)		// ouler angle roll, pitch are stored in ouler->array[0,1], yaw not calculated
+{
+	ouler->array[0] = radian_add(atan2(accel.V.x, accel.V.z), PI);
+	ouler->array[1] = atan2(accel.V.y, (accel.V.z > 0 ? 1 : -1) * sqrt(accel.V.x*accel.V.x + accel.V.z * accel.V.z));
+	ouler->array[1] = radian_add(ouler->array[1], PI);
+
+	return 0;
+}
