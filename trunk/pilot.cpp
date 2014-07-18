@@ -52,11 +52,10 @@ extern "C"
 #endif
 
 #ifdef STM32F4
-	#include "common/eepromF4.h"
-	#include "usb_mass_storageF4/usbd_msc_core.h"
-	#include "usb_mass_storageF4/usbd_usr.h"
-	#include "usb_mass_storageF4/usbd_desc.h"
-	#include "usb_mass_storageF4/usb_conf.h"
+	#include "usb_comF4/cdc/usbd_cdc_core.h"
+	#include "usb_comF4/core/usbd_usr.h"
+	#include "usb_comF4/usb_conf/usbd_desc.h"
+	#include "usb_comF4/usb_conf/usb_conf.h"
 
 	#ifdef USB_OTG_HS_INTERNAL_DMA_ENABLED
 	#if defined ( __ICCARM__ ) /*!< IAR Compiler */
@@ -2369,7 +2368,7 @@ int real_log()
 #endif
 #ifdef STM32F4
 	NVIC_DisableIRQ(OTG_HS_IRQn);
-	NVIC_DisableIRQ(OTG_FS_IRQn);
+	//NVIC_DisableIRQ(OTG_FS_IRQn);
 	NVIC_DisableIRQ(OTG_HS_EP1_IN_IRQn);
 	NVIC_DisableIRQ(OTG_HS_EP1_OUT_IRQn);
 #endif
@@ -2586,7 +2585,7 @@ int main(void)
 		USB_OTG_FS_CORE_ID,
 #endif
 		&USR_desc,
-		&USBD_MSC_cb,
+		&USBD_CDC_cb,
 		&USR_cb);
 #endif
 

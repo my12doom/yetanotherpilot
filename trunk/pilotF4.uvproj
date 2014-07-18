@@ -335,7 +335,7 @@
           <Cads>
             <interw>1</interw>
             <Optim>4</Optim>
-            <oTime>0</oTime>
+            <oTime>1</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
             <Strict>0</Strict>
@@ -1061,6 +1061,11 @@
               <FileType>5</FileType>
               <FilePath>.\sensors\sonar.h</FilePath>
             </File>
+            <File>
+              <FileName>hp203b.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\sensors\hp203b.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1134,177 +1139,67 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>mass_storage</GroupName>
+          <GroupName>usb</GroupName>
           <Files>
             <File>
-              <FileName>usb_bsp.c</FileName>
+              <FileName>usbd_cdc_core.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_bsp.c</FilePath>
+              <FilePath>.\usb_comF4\cdc\usbd_cdc_core.c</FilePath>
             </File>
             <File>
-              <FileName>usb_bsp.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_bsp.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_conf.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_conf.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_core.c</FileName>
+              <FileName>usbd_cdc_vcp.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_core.c</FilePath>
-            </File>
-            <File>
-              <FileName>usb_core.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_core.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_dcd.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_dcd.c</FilePath>
-            </File>
-            <File>
-              <FileName>usb_dcd.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_dcd.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_dcd_int.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_dcd_int.c</FilePath>
-            </File>
-            <File>
-              <FileName>usb_dcd_int.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_dcd_int.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_defines.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_defines.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_regs.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_regs.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_conf.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_conf.h</FilePath>
+              <FilePath>.\usb_comF4\cdc\usbd_cdc_vcp.c</FilePath>
             </File>
             <File>
               <FileName>usbd_core.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_core.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_core.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_core.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_def.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_def.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_desc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_desc.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_desc.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_desc.h</FilePath>
+              <FilePath>.\usb_comF4\core\usbd_core.c</FilePath>
             </File>
             <File>
               <FileName>usbd_ioreq.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_ioreq.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_ioreq.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_ioreq.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_bot.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_bot.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_bot.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_bot.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_core.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_core.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_core.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_core.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_data.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_data.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_data.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_data.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_mem.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_mem.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_scsi.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_scsi.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_scsi.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_scsi.h</FilePath>
+              <FilePath>.\usb_comF4\core\usbd_ioreq.c</FilePath>
             </File>
             <File>
               <FileName>usbd_req.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_req.c</FilePath>
+              <FilePath>.\usb_comF4\core\usbd_req.c</FilePath>
             </File>
             <File>
-              <FileName>usbd_req.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_req.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_storage_msd.c</FileName>
+              <FileName>usb_core.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_storage_msd.c</FilePath>
+              <FilePath>.\usb_comF4\otg\usb_core.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_dcd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_comF4\otg\usb_dcd.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_dcd_int.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_comF4\otg\usb_dcd_int.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_bsp.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_comF4\usb_conf\usb_bsp.c</FilePath>
+            </File>
+            <File>
+              <FileName>usbd_desc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_comF4\usb_conf\usbd_desc.c</FilePath>
             </File>
             <File>
               <FileName>usbd_usr.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_usr.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_usr.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_usr.h</FilePath>
+              <FilePath>.\usb_comF4\usb_conf\usbd_usr.c</FilePath>
             </File>
             <File>
               <FileName>interrupt.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\interrupt.c</FilePath>
+              <FilePath>.\usb_comF4\interrupt.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -2365,6 +2260,11 @@
               <FileType>5</FileType>
               <FilePath>.\sensors\sonar.h</FilePath>
             </File>
+            <File>
+              <FileName>hp203b.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\sensors\hp203b.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -2438,177 +2338,67 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>mass_storage</GroupName>
+          <GroupName>usb</GroupName>
           <Files>
             <File>
-              <FileName>usb_bsp.c</FileName>
+              <FileName>usbd_cdc_core.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_bsp.c</FilePath>
+              <FilePath>.\usb_comF4\cdc\usbd_cdc_core.c</FilePath>
             </File>
             <File>
-              <FileName>usb_bsp.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_bsp.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_conf.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_conf.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_core.c</FileName>
+              <FileName>usbd_cdc_vcp.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_core.c</FilePath>
-            </File>
-            <File>
-              <FileName>usb_core.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_core.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_dcd.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_dcd.c</FilePath>
-            </File>
-            <File>
-              <FileName>usb_dcd.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_dcd.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_dcd_int.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_dcd_int.c</FilePath>
-            </File>
-            <File>
-              <FileName>usb_dcd_int.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_dcd_int.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_defines.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_defines.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_regs.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_regs.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_conf.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_conf.h</FilePath>
+              <FilePath>.\usb_comF4\cdc\usbd_cdc_vcp.c</FilePath>
             </File>
             <File>
               <FileName>usbd_core.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_core.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_core.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_core.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_def.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_def.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_desc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_desc.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_desc.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_desc.h</FilePath>
+              <FilePath>.\usb_comF4\core\usbd_core.c</FilePath>
             </File>
             <File>
               <FileName>usbd_ioreq.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_ioreq.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_ioreq.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_ioreq.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_bot.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_bot.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_bot.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_bot.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_core.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_core.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_core.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_core.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_data.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_data.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_data.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_data.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_mem.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_mem.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_scsi.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_scsi.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_scsi.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_scsi.h</FilePath>
+              <FilePath>.\usb_comF4\core\usbd_ioreq.c</FilePath>
             </File>
             <File>
               <FileName>usbd_req.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_req.c</FilePath>
+              <FilePath>.\usb_comF4\core\usbd_req.c</FilePath>
             </File>
             <File>
-              <FileName>usbd_req.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_req.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_storage_msd.c</FileName>
+              <FileName>usb_core.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_storage_msd.c</FilePath>
+              <FilePath>.\usb_comF4\otg\usb_core.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_dcd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_comF4\otg\usb_dcd.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_dcd_int.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_comF4\otg\usb_dcd_int.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_bsp.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_comF4\usb_conf\usb_bsp.c</FilePath>
+            </File>
+            <File>
+              <FileName>usbd_desc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_comF4\usb_conf\usbd_desc.c</FilePath>
             </File>
             <File>
               <FileName>usbd_usr.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_usr.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_usr.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_usr.h</FilePath>
+              <FilePath>.\usb_comF4\usb_conf\usbd_usr.c</FilePath>
             </File>
             <File>
               <FileName>interrupt.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\interrupt.c</FilePath>
+              <FilePath>.\usb_comF4\interrupt.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -3669,6 +3459,11 @@
               <FileType>5</FileType>
               <FilePath>.\sensors\sonar.h</FilePath>
             </File>
+            <File>
+              <FileName>hp203b.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\sensors\hp203b.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -3742,177 +3537,67 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>mass_storage</GroupName>
+          <GroupName>usb</GroupName>
           <Files>
             <File>
-              <FileName>usb_bsp.c</FileName>
+              <FileName>usbd_cdc_core.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_bsp.c</FilePath>
+              <FilePath>.\usb_comF4\cdc\usbd_cdc_core.c</FilePath>
             </File>
             <File>
-              <FileName>usb_bsp.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_bsp.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_conf.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_conf.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_core.c</FileName>
+              <FileName>usbd_cdc_vcp.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_core.c</FilePath>
-            </File>
-            <File>
-              <FileName>usb_core.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_core.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_dcd.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_dcd.c</FilePath>
-            </File>
-            <File>
-              <FileName>usb_dcd.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_dcd.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_dcd_int.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_dcd_int.c</FilePath>
-            </File>
-            <File>
-              <FileName>usb_dcd_int.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_dcd_int.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_defines.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_defines.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_regs.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_regs.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_conf.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_conf.h</FilePath>
+              <FilePath>.\usb_comF4\cdc\usbd_cdc_vcp.c</FilePath>
             </File>
             <File>
               <FileName>usbd_core.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_core.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_core.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_core.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_def.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_def.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_desc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_desc.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_desc.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_desc.h</FilePath>
+              <FilePath>.\usb_comF4\core\usbd_core.c</FilePath>
             </File>
             <File>
               <FileName>usbd_ioreq.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_ioreq.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_ioreq.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_ioreq.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_bot.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_bot.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_bot.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_bot.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_core.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_core.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_core.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_core.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_data.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_data.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_data.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_data.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_mem.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_mem.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_scsi.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_scsi.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_scsi.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_scsi.h</FilePath>
+              <FilePath>.\usb_comF4\core\usbd_ioreq.c</FilePath>
             </File>
             <File>
               <FileName>usbd_req.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_req.c</FilePath>
+              <FilePath>.\usb_comF4\core\usbd_req.c</FilePath>
             </File>
             <File>
-              <FileName>usbd_req.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_req.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_storage_msd.c</FileName>
+              <FileName>usb_core.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_storage_msd.c</FilePath>
+              <FilePath>.\usb_comF4\otg\usb_core.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_dcd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_comF4\otg\usb_dcd.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_dcd_int.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_comF4\otg\usb_dcd_int.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_bsp.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_comF4\usb_conf\usb_bsp.c</FilePath>
+            </File>
+            <File>
+              <FileName>usbd_desc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_comF4\usb_conf\usbd_desc.c</FilePath>
             </File>
             <File>
               <FileName>usbd_usr.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_usr.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_usr.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_usr.h</FilePath>
+              <FilePath>.\usb_comF4\usb_conf\usbd_usr.c</FilePath>
             </File>
             <File>
               <FileName>interrupt.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\interrupt.c</FilePath>
+              <FilePath>.\usb_comF4\interrupt.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -4973,6 +4658,11 @@
               <FileType>5</FileType>
               <FilePath>.\sensors\sonar.h</FilePath>
             </File>
+            <File>
+              <FileName>hp203b.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\sensors\hp203b.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -5046,177 +4736,67 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>mass_storage</GroupName>
+          <GroupName>usb</GroupName>
           <Files>
             <File>
-              <FileName>usb_bsp.c</FileName>
+              <FileName>usbd_cdc_core.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_bsp.c</FilePath>
+              <FilePath>.\usb_comF4\cdc\usbd_cdc_core.c</FilePath>
             </File>
             <File>
-              <FileName>usb_bsp.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_bsp.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_conf.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_conf.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_core.c</FileName>
+              <FileName>usbd_cdc_vcp.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_core.c</FilePath>
-            </File>
-            <File>
-              <FileName>usb_core.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_core.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_dcd.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_dcd.c</FilePath>
-            </File>
-            <File>
-              <FileName>usb_dcd.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_dcd.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_dcd_int.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_dcd_int.c</FilePath>
-            </File>
-            <File>
-              <FileName>usb_dcd_int.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_dcd_int.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_defines.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_defines.h</FilePath>
-            </File>
-            <File>
-              <FileName>usb_regs.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usb_regs.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_conf.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_conf.h</FilePath>
+              <FilePath>.\usb_comF4\cdc\usbd_cdc_vcp.c</FilePath>
             </File>
             <File>
               <FileName>usbd_core.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_core.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_core.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_core.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_def.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_def.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_desc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_desc.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_desc.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_desc.h</FilePath>
+              <FilePath>.\usb_comF4\core\usbd_core.c</FilePath>
             </File>
             <File>
               <FileName>usbd_ioreq.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_ioreq.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_ioreq.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_ioreq.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_bot.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_bot.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_bot.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_bot.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_core.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_core.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_core.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_core.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_data.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_data.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_data.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_data.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_mem.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_mem.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_scsi.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_scsi.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_msc_scsi.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_msc_scsi.h</FilePath>
+              <FilePath>.\usb_comF4\core\usbd_ioreq.c</FilePath>
             </File>
             <File>
               <FileName>usbd_req.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_req.c</FilePath>
+              <FilePath>.\usb_comF4\core\usbd_req.c</FilePath>
             </File>
             <File>
-              <FileName>usbd_req.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_req.h</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_storage_msd.c</FileName>
+              <FileName>usb_core.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_storage_msd.c</FilePath>
+              <FilePath>.\usb_comF4\otg\usb_core.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_dcd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_comF4\otg\usb_dcd.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_dcd_int.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_comF4\otg\usb_dcd_int.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_bsp.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_comF4\usb_conf\usb_bsp.c</FilePath>
+            </File>
+            <File>
+              <FileName>usbd_desc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\usb_comF4\usb_conf\usbd_desc.c</FilePath>
             </File>
             <File>
               <FileName>usbd_usr.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_usr.c</FilePath>
-            </File>
-            <File>
-              <FileName>usbd_usr.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\usb_mass_storageF4\usbd_usr.h</FilePath>
+              <FilePath>.\usb_comF4\usb_conf\usbd_usr.c</FilePath>
             </File>
             <File>
               <FileName>interrupt.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\usb_mass_storageF4\interrupt.c</FilePath>
+              <FilePath>.\usb_comF4\interrupt.c</FilePath>
             </File>
           </Files>
         </Group>
