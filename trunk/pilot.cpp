@@ -1027,7 +1027,8 @@ int calculate_target()
 				// max target rate: 180 degree/second
 				target[i] = limit(target[i], -PI, PI);
 			}
-			ERROR("angle pos,target=%f,%f, air=%s\r\n", angle_pos[2] * PI180, angle_target[2] * PI180, airborne ? "true" : "false");
+			ERROR(",roll=%f,%f", angle_pos[0] * PI180, angle_target[0] * PI180, airborne ? "true" : "false");
+			ERROR("angle pos,target=%f,%f, air=%s\r\n", angle_pos[1] * PI180, angle_target[1] * PI180, airborne ? "true" : "false");
 
 			// check takeoff
 			float active_throttle = (g_ppm_input[5] > RC_CENTER) ? throttle_result : rc[2];
@@ -1653,18 +1654,6 @@ int calculate_attitude()
 
 	float GYRO_SCALE = 2000.0f * PI / 180 / 32767 * interval;		// full scale: +/-2000 deg/s  +/-31767, 8ms interval
 
-
-	// my12doom
-// 	vector gyro_zero2 = {0.681f * mpu6050_temperature - 28.075f,
-// 		0.1063f * mpu6050_temperature +3.1409f,
-// 		-0.3083f * mpu6050_temperature - 0.6421f};
-
-	// zewu
-// 	vector gyro_zero2 = {0.0978f * mpu6050_temperature + 36.313f,
-// 		-1.3836f * mpu6050_temperature + 40.139f,
-// 		-0.4823f * mpu6050_temperature + 22.603f};
-
-
 	// universal
 	float dt = mpu6050_temperature - temperature0;
 	vector gyro_zero_raw = 
@@ -2065,54 +2054,6 @@ int sensor_calibration()
 	estAccGyro = accel_avg;
 	estGyro= estMagGyro = mag_avg;
 	accel_1g = vector_length(&accel_avg);	
-
-
-
-	// lite no.1
-	/*
-	gyro_bias[0][0] = 29.744f;
-	gyro_bias[0][1] = -18.823;
-	gyro_bias[0][2] = 13.877;
-	gyro_bias[0][3] = -9.247;
-	gyro_bias[1][0] = 62.674f;
-	gyro_bias[1][1] = -37.363f;
-	gyro_bias[1][2] = 12.910f;
-	gyro_bias[1][3] = -1.337f;
-	*/
-
-
-	// my12doom
-	/*
-	gyro_bias[0][0] = 25.880f;
-	gyro_bias[0][1] = 14.993f;
-	gyro_bias[0][2] = -10.073f;
-	gyro_bias[0][3] = 9.983f;
-	gyro_bias[1][0] = 55.838f;
-	gyro_bias[1][1] = -3.490f;
-	gyro_bias[1][2] = -17.723f;
-	gyro_bias[1][3] = 18.823f;
-	*/
-
-	// zewu
-	/*
-	gyro_bias[0][0] = 33.277;
-	gyro_bias[0][1] = -40.187;
-	gyro_bias[0][2] = 4.390;
-	gyro_bias[0][3] = -5.993;
-	gyro_bias[1][0] = 45.967;
-	gyro_bias[1][1] = -37.807;
-	gyro_bias[1][2] = 20.973;
-	gyro_bias[1][3] = -4.500;
-	*/
-
-
-	/*
-	for(int i=0; i<4; i++)
-	{
-		gyro_bias[0][i].save();
-		gyro_bias[1][i].save();
-	}
-	*/
 
 	if (!isnan((float)gyro_bias[0][0]) && !isnan((float)gyro_bias[1][0]))
 	{

@@ -221,6 +221,28 @@ extern "C" int parse_command_line(const char *line, char *out)
 
 		return count;
 	}
+	else if (strstr(line, "accel,") == line)
+	{
+		int v1,v2,v3;
+		if (sscanf(line, "accel,%d,%d,%d", &v1, &v2, &v3) != 3)
+		{
+			strcpy(out, "wrong parameter\n");
+			return strlen(out);
+		}
+
+		// accel trimming, use same mount definition from pilot.cpp if you changed
+		int accel[3] = {v1, v2, v3};
+#ifndef LITE
+		vector acc = {-accel[1], accel[0], accel[2]};
+#else
+		vector acc = {-accel[1], -accel[0], -accel[2]};
+#endif
+
+		vector trim;
+		accel_vector_to_euler_angle(acc, &trim);
+		sprintf(out, "%f,%f\n", trim.array[0], trim.array[1]);
+		return strlen(out);
+	}
 
 
 
