@@ -95,11 +95,15 @@ enum
 
 int critical_errors = 0;
 
+static param crash_protect("prot", 0);		// crash protection
+#define CRASH_TILT_IMMEDIATE	1
+#define CRASH_COLLISION_IMMEDIATE	2
+
 
 static param pid_factor[3][4] = 			// pid_factor[roll,pitch,yaw][p,i,d,i_limit]
 {
-	{param("rP1",0.50), param("rI1",0.45), param("rD1",0.03),param("rM1",PI)},
-	{param("rP2",0.50), param("rI2",0.45), param("rD2",0.03),param("rM2",PI)},
+	{param("rP1",0.50), param("rI1",0.375), param("rD1",0.05),param("rM1",PI)},
+	{param("rP2",0.50), param("rI2",0.375), param("rD2",0.05),param("rM2",PI)},
 	{param("rP3",1.75), param("rI3",0.25), param("rD3",0.01),param("rM3",PI)},
 };
 static param pid_factor2[3][4] = 			// pid_factor2[roll,pitch,yaw][p,i,d,i_limit]
@@ -276,8 +280,13 @@ bool airborne = false;
 bool nearground = false;
 float takeoff_ground_altitude = 0;
 int mode = initializing;
+int64_t collision_detected = 0;	// remember to clear it before arming
+int64_t tilt_us = 0;	// remember to clear it before arming
 uint8_t data[32];
 static sensor_data *p = (sensor_data*)data;
+vector gyro;
+vector mag;
+vector accel;
 vector estAccGyro = {0};			// for roll & pitch
 vector estMagGyro = {0};			// for yaw
 vector estGyro = {0};				// for gyro only yaw, yaw lock on this
@@ -703,7 +712,7 @@ int auto_throttle(float user_climb_rate)
 	
 	throttle_result = limit(throttle_result, airborne ? QUADCOPTER_THROTTLE_RESERVE : 0, 1 - QUADCOPTER_THROTTLE_RESERVE);
 
-	ERROR("\rthrottle=%.3f, altitude = %.2f/%.2f, pid=%.2f,%.2f,%.2f", throttle_result, state[0], target_altitude,
+	TRACE("\rthrottle=%.3f, altitude = %.2f/%.2f, pid=%.2f,%.2f,%.2f", throttle_result, state[0], target_altitude,
 		accel_error_pid[0], accel_error_pid[1], accel_error_pid[2]);
 
 	// update throttle_real_crusing if we're in near level state and no violent climbing/descending action
@@ -1027,8 +1036,8 @@ int calculate_target()
 				// max target rate: 180 degree/second
 				target[i] = limit(target[i], -PI, PI);
 			}
-			ERROR(",roll=%f,%f", angle_pos[0] * PI180, angle_target[0] * PI180, airborne ? "true" : "false");
-			ERROR("angle pos,target=%f,%f, air=%s\r\n", angle_pos[1] * PI180, angle_target[1] * PI180, airborne ? "true" : "false");
+			TRACE(",roll=%f,%f", angle_pos[0] * PI180, angle_target[0] * PI180, airborne ? "true" : "false");
+			TRACE("angle pos,target=%f,%f, air=%s\r\n", angle_pos[1] * PI180, angle_target[1] * PI180, airborne ? "true" : "false");
 
 			// check takeoff
 			float active_throttle = (g_ppm_input[5] > RC_CENTER) ? throttle_result : rc[2];
@@ -1162,7 +1171,6 @@ int output()
 
 		int motor_count = MAX_MOTOR_COUNT;
 
-		ERROR("OUT-");
 		for(int i=0; i<MAX_MOTOR_COUNT; i++)
 		{
 			if (quadcopter_mixing_matrix[matrix][i][0] == quadcopter_mixing_matrix[matrix][i][1] && 
@@ -1682,6 +1690,10 @@ int calculate_attitude()
 	vector_rotate(&estGyro, gyro.array);
 	vector_rotate(&estAccGyro, gyro.array);
 	vector_rotate(&estMagGyro, gyro.array);
+
+	::gyro = gyro;
+	::accel = acc;
+	::mag = mag;
 
 	for(int i=0; i<3; i++)
 		gyroI.array[i] = radian_add(gyroI.array[i], gyro.array[i]);
@@ -2228,6 +2240,8 @@ int check_mode()
 		accel_error_pid[1] = 0;
 		accel_error_pid[2] = 0;
 		yaw_launch = yaw_est;
+		collision_detected = 0;
+		tilt_us = 0;
 
 #if QUADCOPTER == 1
 		for(int i=0; i<3; i++)
@@ -2361,6 +2375,50 @@ int land_detector()
 	return 0;
 }
 
+int crash_detector()
+{
+	// always detect high G force
+	vector ground = {0,0,-2000};		// not very precise, but should be enough
+	vector accel_delta;
+	for(int i=0; i<3; i++)
+		accel_delta.array[i] = accel.array[i] - estAccGyro.array[i];
+
+	float gforce = vector_length(&accel_delta) / accel_1g;
+	if (gforce > 1.25f)
+	{
+		ERROR("high G force (%.2f) detected\n", gforce);
+		collision_detected = getus();
+	}
+
+	// forced shutdown if >3g external force
+	if (gforce > 3.0f)
+	{
+		ERROR("very high G force (%.2f) detected\n", gforce);
+		mode = shutdown;
+	}
+
+	int prot = (float)::crash_protect;
+
+	// tilt detection
+	if (rc[2] < 0.1f || prot & CRASH_TILT_IMMEDIATE)
+	{
+		if (vector_angle(&ground, &estAccGyro) < 0.33)		// around 70 degree
+			tilt_us = tilt_us > 0 ? tilt_us : getus();
+		else
+			tilt_us = 0;
+	}
+
+	if (((getus() - collision_detected < 5000000) && (rc[2] < 0.1f || prot & CRASH_COLLISION_IMMEDIATE)) 
+		|| (tilt_us> 0 && getus()-tilt_us > 1000000))	// more than 1 second
+	{
+		ERROR("crash landing detected(%s)\n", (getus() - collision_detected < 5000000) ? "collision" : "tilt");
+
+		mode = shutdown;
+	}
+
+	return 0;
+}
+
 float ppm2rc(float ppm, float min_rc, float center_rc, float max_rc, bool revert)
 {
 	float v = (ppm-center_rc) / (ppm>center_rc ? (max_rc-center_rc) : (center_rc-min_rc));
@@ -2445,7 +2503,10 @@ int loop(void)
 	save_logs();
 
 	if (mode == quadcopter)
+	{
 		land_detector();
+		crash_detector();
+	}
 	else
 		land_detect_us = 0;
 
@@ -2579,7 +2640,7 @@ int main(void)
 			int data[2];
 			if (read_hp203b(data) == 0)
 			{
-				printf("data=%d,%d\n", data[0], data[1]);
+				printf("data=%d(%08x),%f\n", data[0], data[0], data[1]/256.0f);
 			}
 		}
 	}
