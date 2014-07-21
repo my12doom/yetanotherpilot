@@ -2408,10 +2408,10 @@ int crash_detector()
 			tilt_us = 0;
 	}
 
-	if (((getus() - collision_detected < 5000000) && (rc[2] < 0.1f || prot & CRASH_COLLISION_IMMEDIATE)) 
+	if (((collision_detected > 0 && getus() - collision_detected < 5000000) && (rc[2] < 0.1f || prot & CRASH_COLLISION_IMMEDIATE)) 
 		|| (tilt_us> 0 && getus()-tilt_us > 1000000))	// more than 1 second
 	{
-		ERROR("crash landing detected(%s)\n", (getus() - collision_detected < 5000000) ? "collision" : "tilt");
+		ERROR("crash landing detected(%s)\n", (collision_detected > 0 && getus() - collision_detected < 5000000) ? "collision" : "tilt");
 
 		mode = shutdown;
 	}
