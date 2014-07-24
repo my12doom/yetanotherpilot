@@ -837,7 +837,7 @@ int calculate_position()
 	// the quadcopter's main pid lock on angle rate
 	for(int i=0; i<3; i++)
 	{
-		pos[i] = angle_posD[i] = (new_angle_pos[i] - angle_pos[i])/interval;
+		pos[i] = angle_posD[i] = ::gyro.array[i];
 		angle_pos[i] = new_angle_pos[i];
 	}
 #else
@@ -1660,7 +1660,7 @@ int read_sensors()
 int calculate_attitude()
 {
 
-	float GYRO_SCALE = 2000.0f * PI / 180 / 32767 * interval;		// full scale: +/-2000 deg/s  +/-31767, 8ms interval
+	float GYRO_SCALE = 2000.0f * PI / 180 / 32767;		// full scale: +/-2000 deg/s  +/-32767
 
 	// universal
 	float dt = mpu6050_temperature - temperature0;
@@ -1687,18 +1687,22 @@ int calculate_attitude()
 // 			gyro.array[i] = 0;
 	vector_multiply(&gyro, GYRO_SCALE);
 
+	::gyro = gyro;
+	::accel = acc;
+	::mag = mag;
+
+	vector_multiply(&gyro, interval);
+
 	vector_rotate(&estGyro, gyro.array);
 	vector_rotate(&estAccGyro, gyro.array);
 	vector_rotate(&estMagGyro, gyro.array);
 
-	::gyro = gyro;
-	::accel = acc;
-	::mag = mag;
 
 	for(int i=0; i<3; i++)
 		gyroI.array[i] = radian_add(gyroI.array[i], gyro.array[i]);
 
 	TRACE("gyroI:%f,%f,%f\r", gyroI.array[0] *180/PI, gyroI.array[1]*180/PI, gyroI.array[2]*180/PI);
+	ERROR("\r          gyro:%.2f,%.2f, pos:%.2f,%.2f             ", ::gyro.array[0], ::gyro.array[1], pos[0], pos[1]);
 
 	// apply CF filter for Mag : 0.5hz low pass for mag
 	const float RC = 1.0f/(2*3.1415926 * 0.5f);
@@ -1980,7 +1984,7 @@ int sensor_calibration()
 		vector gyro = {p->gyro[0], p->gyro[1], p->gyro[2]};
 		vector acc = {-p->accel[1], -p->accel[0], -p->accel[2]};
 #endif
-	vector mag = {(p->mag[2]-mag_zero.array[2]), -(p->mag[0]-mag_zero.array[0]), -(p->mag[1]-mag_zero.array[1])};
+		vector mag = {(p->mag[2]-mag_zero.array[2]), -(p->mag[0]-mag_zero.array[0]), -(p->mag[1]-mag_zero.array[1])};
 		vector_add(&gyro_zero, &gyro);
 		vector_add(&accel_avg, &acc);
 		vector_add(&mag_avg, &mag);
