@@ -1539,45 +1539,6 @@ int read_sensors()
 		TRACE("HMC5883 Error\n");
 	}
 
-	// update imu statics
-// #ifdef STM32F1
-// 	NVIC_DisableIRQ(USB_LP_CAN1_RX0_IRQn);
-// #endif
-// #ifdef STM32F4
-// 	NVIC_DisableIRQ(OTG_HS_IRQn);
-// 	NVIC_DisableIRQ(OTG_FS_IRQn);
-// 	NVIC_DisableIRQ(OTG_HS_EP1_IN_IRQn);
-// 	NVIC_DisableIRQ(OTG_HS_EP1_OUT_IRQn);
-// #endif
-// 	__DSB();
-// 	__ISB();
-// 	delayus(30);
-	if (!imu_error)
-	{
-		for(int i=0; i<3; i++)
-		{
-			imu_statics[0][0].array[i] = f_min(p->accel[i], imu_statics[0][0].array[i]);
-			imu_statics[0][1].array[i] = p->accel[i];
-			imu_statics[0][2].array[i] = f_max(p->accel[i], imu_statics[0][2].array[i]);
-			imu_statics[0][3].array[i] = p->accel[i] + imu_statics[0][3].array[i];
-
-			imu_statics[1][0].array[i] = f_min(p->gyro[i], imu_statics[1][0].array[i]);
-			imu_statics[1][1].array[i] = p->gyro[i];
-			imu_statics[1][2].array[i] = f_max(p->gyro[i], imu_statics[1][2].array[i]);
-			imu_statics[1][3].array[i] = p->gyro[i] + imu_statics[1][3].array[i];
-		}
-		avg_count ++;
-	}
-// #ifdef STM32F1
-// 	NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
-// #endif
-// #ifdef STM32F4
-// 	NVIC_EnableIRQ(OTG_HS_IRQn);
-// 	NVIC_EnableIRQ(OTG_FS_IRQn);
-// 	NVIC_EnableIRQ(OTG_HS_EP1_IN_IRQn);
-// 	NVIC_EnableIRQ(OTG_HS_EP1_OUT_IRQn);
-// #endif
-
 	for(int i=0; i<3; i++)
 		p->mag[i] *= mag_gain.array[i];
 
@@ -1659,7 +1620,6 @@ int read_sensors()
 
 int calculate_attitude()
 {
-
 	float GYRO_SCALE = 2000.0f * PI / 180 / 32767;		// full scale: +/-2000 deg/s  +/-32767
 
 	// universal
@@ -1672,14 +1632,18 @@ int calculate_attitude()
 	};
 
 #ifndef LITE
+	vector acc = {-p->accel[1], p->accel[0], p->accel[2]};
 	vector gyro = {-p->gyro[0], -p->gyro[1], -p->gyro[2]};
 	vector gyro_zero2 = {-gyro_zero_raw.array[0], -gyro_zero_raw.array[1], -gyro_zero_raw.array[2]};
-	vector acc = {-p->accel[1], p->accel[0], p->accel[2]};
 #else
-	vector gyro = {p->gyro[0], -p->gyro[1], p->gyro[2]};
-	vector gyro_zero2 = {gyro_zero_raw.array[0], -gyro_zero_raw.array[1], gyro_zero_raw.array[2]};
-	vector acc = {-p->accel[1], -p->accel[0], -p->accel[2]};
+	vector acc = {p->accel[1], p->accel[0], -p->accel[2]};
+	vector gyro = {-p->gyro[0], p->gyro[1], p->gyro[2]};
+	vector gyro_zero2 = {-gyro_zero_raw.array[0], gyro_zero_raw.array[1], gyro_zero_raw.array[2]};
+// 	vector acc = {-p->accel[1], -p->accel[0], -p->accel[2]};
+// 	vector gyro = {p->gyro[0], -p->gyro[1], p->gyro[2]};
+// 	vector gyro_zero2 = {gyro_zero_raw.array[0], -gyro_zero_raw.array[1], gyro_zero_raw.array[2]};
 #endif
+	vector gyro_raw = gyro;
 	vector mag = {(p->mag[2]-mag_zero.array[2]), -(p->mag[0]-mag_zero.array[0]), -(p->mag[1]-mag_zero.array[1])};
 	vector_sub(&gyro, &gyro_zero2);
 // 	for(int i=0; i<3; i++)
@@ -1698,11 +1662,49 @@ int calculate_attitude()
 	vector_rotate(&estMagGyro, gyro.array);
 
 
+	// update imu statics
+	// #ifdef STM32F1
+	// 	NVIC_DisableIRQ(USB_LP_CAN1_RX0_IRQn);
+	// #endif
+	// #ifdef STM32F4
+	// 	NVIC_DisableIRQ(OTG_HS_IRQn);
+	// 	NVIC_DisableIRQ(OTG_FS_IRQn);
+	// 	NVIC_DisableIRQ(OTG_HS_EP1_IN_IRQn);
+	// 	NVIC_DisableIRQ(OTG_HS_EP1_OUT_IRQn);
+	// #endif
+	// 	__DSB();
+	// 	__ISB();
+	// 	delayus(30);
+	for(int i=0; i<3; i++)
+	{
+		imu_statics[0][0].array[i] = f_min(acc.array[i], imu_statics[0][0].array[i]);
+		imu_statics[0][1].array[i] = acc.array[i];
+		imu_statics[0][2].array[i] = f_max(acc.array[i], imu_statics[0][2].array[i]);
+		imu_statics[0][3].array[i] = acc.array[i] + imu_statics[0][3].array[i];
+
+		imu_statics[1][0].array[i] = f_min(p->gyro[i], imu_statics[1][0].array[i]);
+		imu_statics[1][1].array[i] = p->gyro[i];
+		imu_statics[1][2].array[i] = f_max(p->gyro[i], imu_statics[1][2].array[i]);
+		imu_statics[1][3].array[i] = p->gyro[i] + imu_statics[1][3].array[i];
+	}
+	avg_count ++;
+	// #ifdef STM32F1
+	// 	NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
+	// #endif
+	// #ifdef STM32F4
+	// 	NVIC_EnableIRQ(OTG_HS_IRQn);
+	// 	NVIC_EnableIRQ(OTG_FS_IRQn);
+	// 	NVIC_EnableIRQ(OTG_HS_EP1_IN_IRQn);
+	// 	NVIC_EnableIRQ(OTG_HS_EP1_OUT_IRQn);
+	// #endif
+
+
+
 	for(int i=0; i<3; i++)
 		gyroI.array[i] = radian_add(gyroI.array[i], gyro.array[i]);
 
 	TRACE("gyroI:%f,%f,%f\r", gyroI.array[0] *180/PI, gyroI.array[1]*180/PI, gyroI.array[2]*180/PI);
-	ERROR("\r          gyro:%.2f,%.2f, pos:%.2f,%.2f             ", ::gyro.array[0], ::gyro.array[1], pos[0], pos[1]);
+	TRACE("\r          gyro:%.2f,%.2f, pos:%.2f,%.2f             ", ::gyro.array[0], ::gyro.array[1], pos[0], pos[1]);
 
 	// apply CF filter for Mag : 0.5hz low pass for mag
 	const float RC = 1.0f/(2*3.1415926 * 0.5f);
@@ -2562,6 +2564,11 @@ int int2882 = 0;
 #include "common/space.h"
 int main(void)
 {
+// #ifdef LITE
+	//if (FLASH_GetReadOutProtectionStatus() != SET)
+	//	FLASH_ReadOutProtection(ENABLE);
+// #endif
+
 	//Basic Initialization
 	init_timer();
 	SysClockInit();

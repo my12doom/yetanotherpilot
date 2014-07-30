@@ -238,6 +238,14 @@
 					>
 				</File>
 				<File
+					RelativePath=".\common\console.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\common\console.h"
+					>
+				</File>
+				<File
 					RelativePath=".\common\eeprom.c"
 					>
 				</File>

@@ -334,8 +334,8 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>4</Optim>
-            <oTime>1</oTime>
+            <Optim>1</Optim>
+            <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
             <Strict>0</Strict>
@@ -437,9 +437,9 @@
               <FilePath>.\sensors\sonar.c</FilePath>
             </File>
             <File>
-              <FileName>hp203b.c</FileName>
+              <FileName>MPL3115A2.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\sensors\hp203b.c</FilePath>
+              <FilePath>.\sensors\MPL3115A2.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -530,6 +530,11 @@
               <FileName>spaceIO.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\common\spaceIO.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>console.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\console.cpp</FilePath>
             </File>
           </Files>
         </Group>

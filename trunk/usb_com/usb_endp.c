@@ -28,6 +28,7 @@
 /* Private variables ---------------------------------------------------------*/
 uint8_t buffer_out[64];
 __IO uint32_t count_out = 0;
+#define tx_packet_size 63
 
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
@@ -80,8 +81,8 @@ static char* parse_command(char *cmd)
 	
 		while(pos < response_size)
 		{
-			USB_SIL_Write(EP1_IN, (uint8_t*)response + pos, min(response_size - pos, 64));
-			pos += 64;
+			USB_SIL_Write(EP1_IN, (uint8_t*)response + pos, min(response_size - pos, tx_packet_size));
+			pos += tx_packet_size;
 		
 #ifndef STM32F10X_CL
 			SetEPTxValid(ENDP1);

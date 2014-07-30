@@ -71,7 +71,7 @@ int space_virtual_read(int address, void *data, int size)
 	return count+res;
 }
 
-int space_init()
+int space_init(bool erase/* = false*/)
 {
 	space_raw_init();
 
@@ -89,7 +89,7 @@ int space_init()
 	}
 
 	// if none found, format it and create a NULL entry
-	if (write_pointer == 0)
+	if (erase || write_pointer == 0)
 	{
 		for(int i=0; i<space_size/page_size; i++)
 			space_raw_erase(i*page_size);
