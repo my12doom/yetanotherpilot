@@ -1,0 +1,261 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 中文(中华人民共和国) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
+#ifdef _WIN32
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
+#pragma code_page(936)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_INTRODUTION DIALOGEX 0, 0, 500, 263
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
+EXSTYLE WS_EX_TOOLWINDOW
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "选中1",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,123,73,300,133
+END
+
+IDD_INSTALL DIALOGEX 0, 0, 500, 263
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
+EXSTYLE WS_EX_TOOLWINDOW
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "I型",IDC_MATRIX_0,27,22,166,156
+    PUSHBUTTON      "X型",IDC_MATRIX_1,221,20,169,157
+    GROUPBOX        "怠速",IDC_STATIC,7,201,482,53
+    CONTROL         "",IDC_IDLE_0,"Button",BS_AUTORADIOBUTTON | WS_GROUP,39,222,30,26
+    CONTROL         "",IDC_IDLE_1,"Button",BS_AUTORADIOBUTTON,79,222,30,26
+    CONTROL         "",IDC_IDLE_2,"Button",BS_AUTORADIOBUTTON,121,223,30,26
+    CONTROL         "",IDC_IDLE_3,"Button",BS_AUTORADIOBUTTON,163,220,30,26
+    CONTROL         "",IDC_IDLE_4,"Button",BS_AUTORADIOBUTTON,220,220,30,26
+    CONTROL         "",IDC_RADIO_MATRIX0,"Button",BS_AUTORADIOBUTTON | WS_GROUP,97,182,24,16
+    CONTROL         "",IDC_RADIO_MATRIX1,"Button",BS_AUTORADIOBUTTON,284,182,41,18
+END
+
+IDD_REMOTE DIALOGEX 0, 0, 500, 263
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
+EXSTYLE WS_EX_TOOLWINDOW
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "静态",IDC_STATIC,7,7,272,173,WS_BORDER
+    PUSHBUTTON      "Button1",IDC_RC,91,201,125,22
+    CONTROL         "",IDC_SLIDER1,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,343,22,92,12
+    PUSHBUTTON      "Button2",IDC_REVERT0,436,18,40,16
+    LTEXT           "静态",IDC_STATIC,304,20,36,14
+    CONTROL         "",IDC_SLIDER2,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,345,41,90,12
+    PUSHBUTTON      "Button2",IDC_REVERT1,436,38,40,16
+    LTEXT           "静态",IDC_STATIC,304,41,36,14
+    CONTROL         "",IDC_SLIDER3,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,343,67,92,12
+    PUSHBUTTON      "Button2",IDC_REVERT2,436,63,40,16
+    LTEXT           "静态",IDC_STATIC,304,65,36,14
+    CONTROL         "",IDC_SLIDER4,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,348,85,86,12
+    PUSHBUTTON      "Button2",IDC_REVERT3,436,81,40,16
+    LTEXT           "静态",IDC_STATIC,303,83,36,14
+END
+
+IDD_PID DIALOGEX 0, 0, 500, 263
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
+EXSTYLE WS_EX_TOOLWINDOW
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Basic",IDC_STATIC,30,62,54,13
+    LTEXT           "Roll",IDC_STATIC,95,33,53,17
+    LTEXT           "Pitch",IDC_STATIC,173,32,42,20
+    LTEXT           "Yaw",IDC_STATIC,255,28,28,20
+    LTEXT           "Vertical",IDC_STATIC,29,215,57,19
+    EDITTEXT        IDC_RATE_0,79,61,46,14,ES_AUTOHSCROLL
+    LTEXT           "%",IDC_STATIC,133,64,18,12
+    EDITTEXT        IDC_RATE_1,161,61,46,14,ES_AUTOHSCROLL
+    LTEXT           "%",IDC_STATIC,215,64,18,12
+    EDITTEXT        IDC_RATE_2,247,58,46,14,ES_AUTOHSCROLL
+    LTEXT           "%",IDC_STATIC,301,61,18,12
+    EDITTEXT        IDC_VERTICAL,94,212,46,14,ES_AUTOHSCROLL
+    LTEXT           "%",IDC_STATIC,155,213,18,12
+    LTEXT           "Stabalize",IDC_STATIC,30,91,47,13
+    EDITTEXT        IDC_STABLIZE_0,79,90,46,14,ES_AUTOHSCROLL
+    LTEXT           "%",IDC_STATIC,133,93,18,12
+    EDITTEXT        IDC_STABLIZE_1,161,90,46,14,ES_AUTOHSCROLL
+    LTEXT           "%",IDC_STATIC,215,93,18,12
+    EDITTEXT        IDC_STABLIZE_2,247,87,46,14,ES_AUTOHSCROLL
+    LTEXT           "%",IDC_STATIC,301,90,18,12
+    LTEXT           "Inertia",IDC_STATIC,31,124,45,13
+    EDITTEXT        IDC_RATE_D0,81,122,46,14,ES_AUTOHSCROLL
+    LTEXT           "%",IDC_STATIC,134,126,18,12
+    EDITTEXT        IDC_RATE_D1,163,123,46,14,ES_AUTOHSCROLL
+    LTEXT           "%",IDC_STATIC,216,126,18,12
+    EDITTEXT        IDC_RATE_D2,249,120,46,14,ES_AUTOHSCROLL
+    LTEXT           "%",IDC_STATIC,303,123,18,12
+END
+
+IDD_CALIBRATION DIALOGEX 0, 0, 500, 263
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "陀螺仪状态",IDC_STATIC,21,22,327,63
+    EDITTEXT        IDC_GYRO0,65,46,52,15,ES_AUTOHSCROLL | WS_DISABLED
+    LTEXT           "X",IDC_STATIC,36,48,24,15
+    EDITTEXT        IDC_GYRO1,162,43,55,14,ES_AUTOHSCROLL | WS_DISABLED
+    LTEXT           "Y",IDC_STATIC,143,46,24,15
+    EDITTEXT        IDC_GYRO2,258,40,76,19,ES_AUTOHSCROLL | WS_DISABLED
+    LTEXT           "Z",IDC_STATIC,230,44,24,15
+    LTEXT           "静态",IDC_STATIC,71,94,229,24,SS_CENTERIMAGE | WS_BORDER
+    LTEXT           "静态",IDC_TEMP,30,227,66,18
+    PUSHBUTTON      "Button1",IDC_CAL_T1,121,226,79,21
+    PUSHBUTTON      "Button2",IDC_CAL_T2,226,224,79,24
+    GROUPBOX        "校准",IDC_STATIC,28,158,321,109
+    LTEXT           "静态",IDC_STATIC,129,195,67,18
+    LTEXT           "静态",IDC_STATIC,239,194,50,20
+    LTEXT           "静态",IDC_ACCEL,369,42,94,69
+END
+
+IDD_PROFILE DIALOGEX 0, 0, 500, 263
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
+EXSTYLE WS_EX_TOOLWINDOW
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "载入设置",IDC_BUTTON1,7,55,158,46
+    PUSHBUTTON      "重置飞控",IDC_BUTTON2,7,108,158,46
+    PUSHBUTTON      "保存设置",IDC_BUTTON3,7,7,158,46
+END
+
+IDD_MAIN DIALOGEX 0, 0, 656, 362
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_CAPTION | WS_SYSMENU
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "静态",IDC_STATIC,521,48,128,307,WS_BORDER
+    PUSHBUTTON      "安装",IDC_INSTALL,7,7,59,38
+    PUSHBUTTON      "遥控器",IDC_REMOTE,66,7,59,39
+    PUSHBUTTON      "感度",IDC_PID,125,7,59,39
+    PUSHBUTTON      "传感器校准",IDC_CALIBRATION,184,7,59,39
+    PUSHBUTTON      "配置文件",IDC_PROFILE,244,7,59,38
+    LTEXT           "MAIN",IDC_PAGES,7,46,507,309,WS_BORDER
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_INTRODUTION, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 490
+        TOPMARGIN, 7
+    END
+
+    IDD_INSTALL, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 489
+        TOPMARGIN, 7
+    END
+
+    IDD_REMOTE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 490
+        TOPMARGIN, 7
+    END
+
+    IDD_PID, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 488
+        TOPMARGIN, 7
+    END
+
+    IDD_CALIBRATION, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 488
+        TOPMARGIN, 7
+    END
+
+    IDD_PROFILE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 360
+        TOPMARGIN, 7
+    END
+
+    IDD_MAIN, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 649
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 355
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_BITMAP1             BITMAP                  "box_checked_enabled.bmp"
+#endif    // 中文(中华人民共和国) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
