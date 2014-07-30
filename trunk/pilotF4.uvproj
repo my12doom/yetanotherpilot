@@ -906,6 +906,11 @@
               <FileType>8</FileType>
               <FilePath>.\common\spaceIO.cpp</FilePath>
             </File>
+            <File>
+              <FileName>console.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\console.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -2104,6 +2109,11 @@
               <FileName>spaceIO.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\common\spaceIO.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>console.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\console.cpp</FilePath>
             </File>
           </Files>
         </Group>
@@ -3304,6 +3314,11 @@
               <FileType>8</FileType>
               <FilePath>.\common\spaceIO.cpp</FilePath>
             </File>
+            <File>
+              <FileName>console.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\console.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -4502,6 +4517,11 @@
               <FileName>spaceIO.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\common\spaceIO.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>console.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\console.cpp</FilePath>
             </File>
           </Files>
         </Group>
