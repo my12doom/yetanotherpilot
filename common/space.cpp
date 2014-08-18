@@ -91,7 +91,7 @@ int space_init(bool erase/* = false*/)
 	// if none found, format it and create a NULL entry
 	if (erase || write_pointer == 0)
 	{
-		for(int i=0; i<space_size/page_size; i++)
+		for(int i=0; i<page_count; i++)
 			space_raw_erase(i*page_size);
 
 		int meta_data = 0;

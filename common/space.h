@@ -16,7 +16,7 @@
 #endif
 
 #ifdef STM32F4
-#define START_ADDRESS 0x08030000
+#define START_ADDRESS 0x080C0000
 #define page_size 0x20000
 #define buffer_size 0x40000
 #endif

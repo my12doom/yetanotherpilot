@@ -29,7 +29,7 @@ static float default_pid_factor2[3][4] = 			// pid_factor2[roll,pitch,yaw][p,i,d
 static float pid_factor[3][4];
 static float pid_factor2[3][4];
 static float p_rate_climb;
-static float default_p_rate_climb = 6.0f;
+static float default_p_rate_climb = 4.5f;
 
 #ifdef WIN32
 #define isnan _isnan
@@ -90,7 +90,7 @@ int write_editbox()
 	{
 		wchar_t tmp[200] = {0};
 
-		swprintf(tmp, L"%d", int(factor_display[i]*100));
+		swprintf(tmp, L"%d", int(factor_display[i]*100+0.5));
 
 		SetDlgItemTextW(hWnd, factor_editbox_id[i], tmp);
 	}

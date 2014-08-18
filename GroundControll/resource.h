@@ -11,11 +11,19 @@
 #define IDD_DIALOG1                     107
 #define IDD_MAIN                        107
 #define IDB_BITMAP1                     109
+#define IDB_BG                          110
+#define IDB_BITMAP2                     111
+#define IDB_EXPORT                      111
 #define IDC_BUTTON1                     1001
+#define IDC_LOAD                        1001
+#define IDC_OD                          1001
+#define IDC_BYE                         1001
 #define IDC_BUTTON2                     1002
+#define IDC_RESET                       1002
 #define IDC_RADIO1                      1003
 #define IDC_BUTTON3                     1003
 #define IDC_IDLE_0                      1003
+#define IDC_SAVE                        1003
 #define IDC_RADIO2                      1004
 #define IDC_SLIDER1                     1004
 #define IDC_BUTTON6                     1004
@@ -82,7 +90,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        110
+#define _APS_NEXT_RESOURCE_VALUE        112
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1028
 #define _APS_NEXT_SYMED_VALUE           101

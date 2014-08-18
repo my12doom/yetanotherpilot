@@ -23,7 +23,7 @@ int Comm::find_device()
 		return 0;
 	}
 
-	for(int i=-1; i<32; i++)
+	for(int i=-1; i<48; i++)
 	{
 
 		if (i == 31)
@@ -187,6 +187,34 @@ int Comm::read_float(const char* id, float *out)
 
 	if (sscanf(output, "%f", out) != 1)
 		return -2;
+
+	return 0;
+}
+
+int Comm::enum_float(int pos, char *id, float *out)
+{
+	if (!out || !id)
+		return -3;
+
+	char cmd[200];
+	char output[20480] = {0};
+
+	memset(output, 0, sizeof(output));
+	sprintf(cmd, "!%d\n", pos);
+
+	if (command(cmd, strlen(cmd), output) <= 0)
+		return -1;
+
+	if (strstr(output, "null") == output)
+		return 1;
+
+	const char *p = strstr(output, "=");
+	if (!p)
+		return -2;
+	*(char*)p = NULL;
+	strncpy(id, output, 4);
+	id[4] = NULL;
+	*out = atof(p+1);
 
 	return 0;
 }

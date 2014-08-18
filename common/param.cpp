@@ -98,10 +98,14 @@ float *param::find_param(const char *fourcc)
 			return &all_params[i].v;
 	return NULL;
 }
-float *param::enum_params(int pos)
+const char *param::enum_params(int pos)
 {
 	if (pos < 0 || pos >= all_param_count)
 		return NULL;
-	return &all_params[pos].v;
+	return all_params[pos].fourcc;
 }
 
+const char *param::fourcc()
+{
+	return all_params[pos].fourcc;
+}

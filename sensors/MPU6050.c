@@ -49,8 +49,8 @@ int init_MPU6050(void)
 	#else
 	I2C_WriteReg(MPU6050SlaveAddress, SMPLRT_DIV, 0x07);
 	#endif
-	I2C_WriteReg(MPU6050SlaveAddress, MPU6050_CONFIG, 0x06);
-	I2C_WriteReg(MPU6050SlaveAddress, GYRO_CONFIG, 0x18);			// full scale : +/-8192; +/- 2000 degree/s
+	I2C_WriteReg(MPU6050SlaveAddress, MPU6050_CONFIG, 0x04);
+	I2C_WriteReg(MPU6050SlaveAddress, GYRO_CONFIG, 0);			// full scale : +/-8192; +/- 2000 degree/s
 	I2C_WriteReg(MPU6050SlaveAddress, ACCEL_CONFIG, 0x18);
 	
 	res = I2C_ReadReg(MPU6050SlaveAddress, WHO_AM_I, &who_am_i, 1);
@@ -71,7 +71,7 @@ int init_MPU6050(void)
 // data[0 ~ 7] :
 // accel_x, accel_y, accel_z, raw_temperature, gyro_x, gyro_y, gyro_z
 short gyro_o[3];
-short gyro_raw[3];
+static short gyro_raw[3];
 int64_t lastus = -1;
 int read_MPU6050(short*data)
 {	

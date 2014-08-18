@@ -25,7 +25,8 @@ public:
 	void save();						// save to eeprom
 
 	static float *find_param(const char *fourcc);
-	static float *enum_params(int pos);
+	static const char *enum_params(int pos);
+	const char *fourcc();
 protected:
 
 	float* volatile pv;

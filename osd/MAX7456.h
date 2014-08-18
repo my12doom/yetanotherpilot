@@ -1,4 +1,5 @@
 //#include "stm32f10x_lib.h" 
+#pragma once
 #include "../mcu.h"
 #define MAX7456_SPI          SPI1
 
