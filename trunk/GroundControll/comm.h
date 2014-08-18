@@ -28,11 +28,12 @@ public:
 
 	int read_float(const char* id, float *out);
 	int write_float(const char* id, float newdata);
+	int enum_float(int pos, char *id, float *out);			// return 1 on EOF, 0 on success, -x on error
+	int disconnect();	// also on_disconnect()
 
 
 protected:
 	static DWORD CALLBACK find_device_thread(LPVOID p);
-	int disconnect();	// also on_disconnect()
 	int on_connect();
 	int find_device();
 	int hand_shake();

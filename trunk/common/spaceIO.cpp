@@ -85,7 +85,7 @@ int space_raw_erase(int address)
 	#endif
 	
 	#ifdef STM32F4
-		FLASH_EraseSector(address >= 0x080C4000 ? FLASH_Sector_11 : FLASH_Sector_10, VoltageRange_3);
+		FLASH_Status res = FLASH_EraseSector(address >= 0x080C0000 + page_size ? FLASH_Sector_11 : FLASH_Sector_10, VoltageRange_3);
 	#endif
 
 	return 0;

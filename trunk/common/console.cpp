@@ -36,15 +36,30 @@ extern "C" int parse_command_line(const char *line, char *out)
 			strcpy(out, "null\n");
 		return strlen(out);
 	}
+	if (*line == '!')
+	{
+		const char *fourcc = param::enum_params(atoi(line+1));
+		if (fourcc)
+		{
+			param v(fourcc, 0);
+			sprintf(out, "%s=%f\n", fourcc, (float)v);
+		}
+		else
+			strcpy(out, "null\n");
+		return strlen(out);
+	}
 	else if (char *p = (char*)strchr(line, '='))
 	{
 		*p = NULL;
 		p++;
 
-		float *v = param::find_param(line);
-		if (v)
+		float *pv = param::find_param(line);
+		if (pv)
 		{
-			*v = atof(p);
+			float v = atof(p);
+			if (strstr(p, "NAN"))
+				v = NAN;
+			*pv = v;
 			param(line, 0).save();
 			strcpy(out, "ok\n");
 			return 3;

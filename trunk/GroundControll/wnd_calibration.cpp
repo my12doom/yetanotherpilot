@@ -8,6 +8,8 @@
 #include "../common/vector.h"
 #include "../common/build.h"
 
+#define ACC_Z_1G -2048
+
 extern Comm test;
 vector imu_statics[2][4] = {0};		//	[accel, gyro][min, current, max, avg][x,y,z]
 int avg_count = 0;
@@ -17,7 +19,9 @@ int calibrating = 0;
 static float gyro_bias[2][4];	//[p1,p2][temperature,g0,g1,g2]
 static float k[3];
 static float a[3];
+float temperature0 = 0;
 float trim[2];
+float acc_bias_z = 0;
 
 float client_accel[3] = {0, 0, 0};
 vector client_tilt;
@@ -25,14 +29,15 @@ vector client_tilt;
 HWND hWnd;
 
 #ifdef WIN32
-#define isnan _isnan
+#define isnan(x) (_isnan(x) || !_finite(x))
 #endif
 
-char name_table[10][5] =
+char name_table[11][5] =
 {
 	"gbt1", "gb11", "gb21", "gb31",
 	"gbt2", "gb12", "gb22", "gb32",
 	"trmR", "trmP",
+	"abiz"
 };
 
 float *variable_table[] = 
@@ -40,15 +45,14 @@ float *variable_table[] =
 	&gyro_bias[0][0], &gyro_bias[0][1], &gyro_bias[0][2], &gyro_bias[0][3],
 	&gyro_bias[1][0], &gyro_bias[1][1], &gyro_bias[1][2], &gyro_bias[1][3],
 	&trim[0], &trim[1],
+	&acc_bias_z,
 };
 
 int read_gyro_bias()
 {
-
-
 	char cmd[200];
 	char output[20480] = {0};
-	for(int i=0; i<10; i++)
+	for(int i=0; i<11; i++)
 	{
 		memset(output, 0, sizeof(output));
 		sprintf(cmd, "?%s\n", name_table[i]);
@@ -60,7 +64,7 @@ int read_gyro_bias()
 	}
 
 	// update k & a
-	if (!isnan(gyro_bias[0][0]) && !isnan(gyro_bias[0][0]))
+	if (!isnan((float)gyro_bias[0][0]) && !isnan((float)gyro_bias[1][0]))
 	{
 		float dt = gyro_bias[1][0] - gyro_bias[0][0];
 		if (dt > 1.0f)
@@ -70,27 +74,32 @@ int read_gyro_bias()
 				a[i] = gyro_bias[0][i+1];
 				k[i] = (gyro_bias[1][i+1] - gyro_bias[0][i+1]) / dt;
 			}
+			temperature0 = gyro_bias[0][0];
 		}
 		else
 		{
 			// treat as one point
-			int group = !isnan(gyro_bias[0][0]) ? 0 : 1;
+			int group = !isnan(gyro_bias[0][0]) ? 0 : (!isnan(gyro_bias[1][0]) ? 1: -1);
 			for(int i=0; i<3; i++)
 			{
-				a[i] = gyro_bias[group][i+1];
+				a[i] = group >= 0 ? gyro_bias[group][i+1] : 0;
 				k[i] = 0;
 			}
+			temperature0 = group != 0 ? gyro_bias[group][0] : 0;
 		}
 	}
 	else
 	{
-		int group = !isnan(gyro_bias[0][0]) ? 0 : 1;
+		int group = !isnan(gyro_bias[0][0]) ? 0 : (!isnan(gyro_bias[1][0]) ? 1: -1);
 		for(int i=0; i<3; i++)
 		{
-			a[i] = gyro_bias[group][i+1];
+			a[i] = group >= 0 ? gyro_bias[group][i+1] : 0;
 			k[i] = 0;
 		}
+		temperature0 = group != 0 ? gyro_bias[group][0] : 0;
 	}
+
+
 	return 0;
 }
 
@@ -111,10 +120,10 @@ int write_gyro_bias(int to)
 			return -2;
 	}
 
-	for(int i=0; i<2; i++)
+	for(int i=0; i<3; i++)
 	{
 		memset(output, 0, sizeof(output));
-		sprintf(cmd, "%s=%f\n", name_table[i+8], trim[i]);
+		sprintf(cmd, "%s=%f\n", name_table[i+8], *variable_table[8+i]);
 		if (test.command(cmd, strlen(cmd), output) <= 0)
 			return -1;
 
@@ -174,7 +183,7 @@ fail:
 
 		// update
 		DWORD IDtable[] = {IDC_GYRO0, IDC_GYRO1, IDC_GYRO2};
-		float dt = mpu6050_temperature - gyro_bias[0][0];
+		float dt = mpu6050_temperature - temperature0;
 		float gyro_zero_raw[3] = 
 		{
 			dt * k[0] + a[0],
@@ -186,19 +195,19 @@ fail:
 		for(int i=0; i<3;i ++)
 		{
 			wchar_t str[100];
-			float v = (imu_statics[1][1].array[i] - gyro_zero_raw[i]) * 2000 / 32767;
+			float v = (imu_statics[1][1].array[i] - gyro_zero_raw[i]) * 250 / 32767;
 			v = fabs(v) < 0.07 ? 0 : v;
 			sprintf(gyro_str+strlen(gyro_str), "%f,", v);
 			if (v>0)
 				log = true;
-			swprintf(str, L"%s%01.1f бу/s", v>=0?"+":"", v);
+			swprintf(str, L"%s%01.2f бу/s", v>=0?"+":"", v);
 			SetDlgItemTextW(hWnd, IDtable[i], str);
 
 			swprintf(str, L"%.1fбуC", mpu6050_temperature);
 			SetDlgItemTextW(hWnd, IDC_TEMP, str);
 
 			// client side accel low pass for tile display
-			client_accel[i] = client_accel[i] * 0.9 + imu_statics[0][1].array[i] * 0.1;
+			client_accel[i] = client_accel[i] * 0 + imu_statics[0][1].array[i] * 1;
 		}
 
 		if(log)
@@ -215,9 +224,11 @@ fail:
 		vector accel = {client_accel[0], client_accel[1], client_accel[2]};
 		accel_vector_to_euler_angle(accel, &client_tilt);
 		float g = sqrt(bias_client_accel[0]*bias_client_accel[0] + bias_client_accel[1]*bias_client_accel[1] + bias_client_accel[2]*bias_client_accel[2]);
-		swprintf(str, L"%f\n%f\n%f\n%f\n%f\n%f\n%f\n%fg\n", client_accel[0], client_accel[1], client_accel[2],
+		swprintf(str, L"%f\n%f\n%f\n%f\n%f\n%f\n%f\n%fg\n"
+			L"gyro:%.1f,%.1f,%.1f\n", client_accel[0], client_accel[1], client_accel[2],
 			(client_tilt.array[0]+trim[0])*180/PI, (client_tilt.array[1]+trim[1])*180/PI,
-			(trim[0])*180/PI, (trim[1])*180/PI, g/2048);
+			(trim[0])*180/PI, (trim[1])*180/PI, g/2048,
+			imu_statics[1][1].array[0], imu_statics[1][1].array[1], imu_statics[1][1].array[2]);
 		SetDlgItemTextW(hWnd, IDC_ACCEL, str);
 
 
@@ -240,9 +251,20 @@ fail:
 				{
 					vibration[i] = imu_statics[i/3][2].array[i%3] - imu_statics[i/3][0].array[i%3];
 				}
+				float accel_vibration = sqrt(vibration[0]*vibration[0]+vibration[1]*vibration[1]+vibration[2]*vibration[2]);
+				float gyro_vibration = sqrt(vibration[3]*vibration[3]+vibration[4]*vibration[4]+vibration[5]*vibration[5]);
+
+				if (accel_vibration > 204 || gyro_vibration > 160)		// 0.1g, 10degree/s
+				{
+					MessageBoxW(hWnd, L"stay still please!", L"", MB_OK | MB_ICONERROR);
+				}
+
+				// calculate
+				float dz = ACC_Z_1G - imu_statics[0][3].array[2];
+				acc_bias_z += dz;
 
 				// check for extreme tilt
-				vector accel = {imu_statics[0][3].array[0], imu_statics[0][3].array[1], imu_statics[0][3].array[2]};
+				vector accel = {imu_statics[0][3].array[0], imu_statics[0][3].array[1], imu_statics[0][3].array[2]+dz};
 				vector new_trim = {0};
 				if (accel_vector_to_euler_angle(accel, &new_trim) < 0)
 				{
@@ -252,6 +274,7 @@ fail:
 				if (fabs(new_trim.array[0]) > PI/18 || fabs(new_trim.array[1]) > PI/18)
 				{
 					// TODO : error message
+					MessageBoxW(hWnd, L"stay flat please!", L"", MB_OK | MB_ICONERROR);
 				}
 				
 				trim[0] = -new_trim.array[0];
@@ -334,7 +357,10 @@ INT_PTR CALLBACK WndProcCalibration(HWND hWnd, UINT message, WPARAM wParam, LPAR
 					}
 				}
 				if (previous_avg_count<= avg_count)
-					calibrating = -1;
+				{
+					// TODO: failed
+					to = 0;
+				}
 				calibrating = to;
 			}
 		}

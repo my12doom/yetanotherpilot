@@ -30,25 +30,18 @@ int main()
 	{
 		fgets(input, 1024, stdin);
 		p = strlen(input);
-// 		int c = fgetc(stdin);
-// 		input[p++] = c;
-// 		fputc(c, stdout);
+		int count = con.command(input, p, output);
+		p = 0;
 
-// 		if (c == '\n')
+		if (count > 0)
 		{
-			int count = con.command(input, p, output);
-			p = 0;
-
-			if (count > 0)
-			{
-				for(int i=0; i<count; i++)
-					fputc(output[i], stdout);
-				fputc('\n', stdout);
-			}
-			else
-			{
-				printf("error:%d\n", count);
-			}
+			for(int i=0; i<count; i++)
+				fputc(output[i], stdout);
+			fputc('\n', stdout);
+		}
+		else
+		{
+			printf("error:%d\n", count);
 		}
 	}
 }
