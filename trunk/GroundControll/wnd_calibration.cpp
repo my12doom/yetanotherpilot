@@ -7,6 +7,7 @@
 #include <math.h>
 #include "../common/vector.h"
 #include "../common/build.h"
+#include "OwnerDraw.h"
 
 #define ACC_Z_1G -2048
 
@@ -310,12 +311,9 @@ INT_PTR CALLBACK WndProcCalibration(HWND hWnd, UINT message, WPARAM wParam, LPAR
 		break;
 
 	case WM_PAINT:
-		{
-			PAINTSTRUCT ps;
-			HDC hdc = BeginPaint(hWnd, &ps);
-			EndPaint(hWnd, &ps);
-		}
+		return paint_white(hWnd, wParam, lParam);
 		break;
+
 	case WM_DESTROY:
 		KillTimer(hWnd, 1);
 		break;

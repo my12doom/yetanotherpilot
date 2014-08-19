@@ -2,62 +2,16 @@
 #include <float.h>
 #include "comm.h"
 #include "resource.h"
+#include "OwnerDraw.h"
 
 extern Comm test;
 static HWND wnd;
-static HBITMAP hBitmap = LoadBitmap(GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_EXPORT));
 #define countof(x) (sizeof(x)/sizeof(x[0]))
 int profile_OnEvent(int code, void *extra_data)
 {
 	if (code == WM_CONNECT)
 
 	return 0;
-}
-
-POINT coords1[] = 
-{
-	{0,0},
-	{0,116},
-	{25,163},
-	{87,163},
-	{123,116},
-	{231,116},
-	{231,0},
-};
-
-static int owner_draw_window(LPDRAWITEMSTRUCT lpDIS)
-{
-
-	printf("WM_DRAW\n");
-	HDC hDC = lpDIS->hDC;
-	RECT rectItem = lpDIS->rcItem;
-	BOOL bIsDisabled = FALSE;
-
-	// Draw the bitmap on button
-	if ( hBitmap  != NULL ) {
-		RECT rcImage;
-		BITMAP bm;
-		LONG cxBitmap, cyBitmap;
-		if ( GetObject(hBitmap, sizeof(bm), &bm) ) {
-			cxBitmap = bm.bmWidth;
-			cyBitmap = bm.bmHeight;
-		}
-
-		// Center image horizontally  
-		FillRect(hDC, &rectItem, (HBRUSH)GetStockObject(BLACK_BRUSH));
-		CopyRect(&rcImage, &rectItem);
-		LONG image_width = rcImage.right - rcImage.left;
-		LONG image_height = rcImage.bottom - rcImage.top;
-		rcImage.left = (image_width - cxBitmap)/2;
-		rcImage.top = (image_height - cyBitmap)/2;            
-		DrawState(hDC, NULL, NULL, (LPARAM)hBitmap, 0,
-			rcImage.left, rcImage.top,
-			rcImage.right - rcImage.left,
-			rcImage.bottom - rcImage.top, 
-			(bIsDisabled ? DSS_DISABLED : DSS_NORMAL) | DST_BITMAP);
-	}
-
-	return TRUE;
 }
 
 INT_PTR CALLBACK WndProcProfile(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -68,12 +22,6 @@ INT_PTR CALLBACK WndProcProfile(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 	case WM_INITDIALOG:
 		wnd = hWnd;
 		test.add_callback(profile_OnEvent);
-		{
-			HWND hButton = GetDlgItem(hWnd, IDC_SAVE);
-			SetClassLong(hButton, GCL_STYLE, GetClassLong(hButton, GCL_STYLE) & (~CS_PARENTDC));
-			HRGN polygon = CreatePolygonRgn(coords1, countof(coords1), WINDING);
-			SetWindowRgn(hButton, polygon, TRUE);
-		}
 
 		break;
 
@@ -81,7 +29,7 @@ INT_PTR CALLBACK WndProcProfile(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		EndDialog(hWnd, 0);
 		break;
 	case WM_DRAWITEM:
-		return owner_draw_window((LPDRAWITEMSTRUCT)lParam);
+		return draw_window((LPDRAWITEMSTRUCT)lParam);
 
 	case WM_COMMAND:
 		{
@@ -138,6 +86,9 @@ INT_PTR CALLBACK WndProcProfile(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 			}
 
 		}
+		break;
+	case WM_PAINT:
+		return paint_white(hWnd, wParam, lParam);
 		break;
 
 	default:

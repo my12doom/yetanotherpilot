@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <float.h>
 #include "../common/vector.h"
+#include "OwnerDraw.h"
 
 extern Comm test;
 
@@ -185,6 +186,11 @@ INT_PTR CALLBACK WndProcPid(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 		if (HIWORD(wParam) == EN_CHANGE && !app_writing_editbox)
 			write_pid();
 		break;
+
+	case WM_PAINT:
+		return paint_white(hWnd, wParam, lParam);
+		break;
+
 
 	default:
 		return FALSE;
