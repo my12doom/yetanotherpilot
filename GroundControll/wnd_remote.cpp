@@ -3,6 +3,7 @@
 #include "resource.h"
 #include <CommCtrl.h>
 #include <stdio.h>
+#include "OwnerDraw.h"
 
 extern Comm test;
 HWND sliders[4];
@@ -206,6 +207,11 @@ INT_PTR CALLBACK WndProcRemote(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 			}
 		}
 		break;
+
+	case WM_PAINT:
+		return paint_white(hWnd, wParam, lParam);
+		break;
+
 
 	default:
 		return FALSE;

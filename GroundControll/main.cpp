@@ -6,6 +6,7 @@
 #include "wnd_calibration.h"
 #include "wnd_profile.h"
 #include "comm.h"
+#include "OwnerDraw.h"
 
 INT_PTR CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK WndProc2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -31,53 +32,10 @@ HWND pages_hwnd[100];
 HWND g_hwnd;
 DWORD active_id = 0;
 
-HBITMAP hBitmap = LoadBitmap(GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_BITMAP1));
 HBITMAP hBG = LoadBitmap(GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_BG));
 
 HWND last_wnd = NULL;
 
-int refresh_window(HWND hwnd)
-{
-	if (GetDlgCtrlID(hwnd) == IDC_OD)
-		InvalidateRect(hwnd, NULL, FALSE);
-
-	return 0;
-}
-
-int owner_draw_window(LPDRAWITEMSTRUCT lpDIS)
-{
-
-	printf("WM_DRAW\n");
-	HDC hDC = lpDIS->hDC;
-	RECT rectItem = lpDIS->rcItem;
-	BOOL bIsDisabled = last_wnd == lpDIS->hwndItem;
-
-	// Draw the bitmap on button
-	if ( hBitmap != NULL ) {
-		RECT rcImage;
-		BITMAP bm;
-		LONG cxBitmap, cyBitmap;
-		if ( GetObject(hBitmap, sizeof(bm), &bm) ) {
-			cxBitmap = bm.bmWidth;
-			cyBitmap = bm.bmHeight;
-		}
-
-		// Center image horizontally  
-		FillRect(hDC, &rectItem, (HBRUSH)GetStockObject(BLACK_BRUSH));
-		CopyRect(&rcImage, &rectItem);
-		LONG image_width = rcImage.right - rcImage.left;
-		LONG image_height = rcImage.bottom - rcImage.top;
-		rcImage.left = (image_width - cxBitmap)/2;
-		rcImage.top = (image_height - cyBitmap)/2;            
-		DrawState(hDC, NULL, NULL, (LPARAM)hBitmap, 0,
-			rcImage.left, rcImage.top,
-			rcImage.right - rcImage.left,
-			rcImage.bottom - rcImage.top, 
-			(bIsDisabled ? DSS_DISABLED : DSS_NORMAL) | DST_BITMAP);
-	}
-
-	return TRUE;
-}
 
 
 INT_PTR CALLBACK WndProc2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -92,30 +50,13 @@ INT_PTR CALLBACK WndProc2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		PostQuitMessage(0);
 		break;
 	case WM_TIMER:
-		{
-			POINT p;
-			GetCursorPos(&p);
-			HWND wnd = WindowFromPoint(p);
-			while (wnd)
-			{
-				GetCursorPos(&p);
-				ScreenToClient(wnd, &p);
-				HWND child_wnd = ChildWindowFromPoint(wnd, p);
-
-				if (child_wnd == wnd)
-					break;
-				wnd = child_wnd;
-			}
-			if (wnd != last_wnd)
-			{
-				refresh_window(wnd);
-				refresh_window(last_wnd);
-				last_wnd = wnd;
-			}
-		}
+		update_ownerdraw_window();
 		break;
 	case WM_DRAWITEM:
-		return owner_draw_window((LPDRAWITEMSTRUCT)lParam);
+		return draw_window((LPDRAWITEMSTRUCT)lParam);
+	case WM_PAINT:
+		return paint_white(hWnd, wParam, lParam);
+		break;
 	default:
 		return FALSE;
 	}
@@ -205,6 +146,7 @@ INT_PTR CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			show_page(0);
 
+			init_owner_draw(hWnd);
 
 		}
 
@@ -218,7 +160,7 @@ INT_PTR CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			PAINTSTRUCT ps;
 			RECT rect;
-			GetUpdateRect(hWnd, &rect, FALSE);
+			GetClientRect(hWnd, &rect);
 			HDC hdc = BeginPaint(hWnd, &ps);
 
 
@@ -245,13 +187,15 @@ INT_PTR CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 	case WM_DRAWITEM:
-		return owner_draw_window((LPDRAWITEMSTRUCT)lParam);
+		return draw_window((LPDRAWITEMSTRUCT)lParam);
 	case WM_COMMAND:
 		{
 			int id = LOWORD(wParam);
 
-			if (id == IDC_BYE)
+			if (id == IDC_CLOSE)
 				EndDialog(hWnd, 0);
+			if (id == IDC_MINIMIZE)
+				ShowWindow(hWnd, SW_MINIMIZE);
 
 			show_page(id);
 			active_id = id;

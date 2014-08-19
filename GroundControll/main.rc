@@ -57,8 +57,7 @@ STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
 EXSTYLE WS_EX_TOOLWINDOW
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         "选中1",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,123,73,300,133
-    CONTROL         "Button1",IDC_OD,"Button",BS_OWNERDRAW | WS_TABSTOP,28,78,51,59
+    PUSHBUTTON      "快插入USB",IDC_BUTTON1,97,81,227,82
 END
 
 IDD_INSTALL DIALOGEX 0, 0, 500, 263
@@ -159,9 +158,9 @@ STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_CLIPCHILDREN | WS_SYSMENU
 EXSTYLE WS_EX_TOOLWINDOW
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    PUSHBUTTON      "载入设置",IDC_LOAD,7,55,158,46
-    PUSHBUTTON      "重置飞控",IDC_RESET,225,116,158,46
-    CONTROL         "保存设置",IDC_SAVE,"Button",BS_OWNERDRAW | WS_TABSTOP,223,46,153,105
+    CONTROL         "载入设置",IDC_LOAD,"Button",BS_OWNERDRAW | WS_TABSTOP,63,124,154,92
+    CONTROL         "重置飞控",IDC_RESET,"Button",BS_OWNERDRAW | WS_TABSTOP,198,89,180,68
+    CONTROL         "保存设置",IDC_SAVE,"Button",BS_OWNERDRAW | WS_TABSTOP,128,18,164,105
 END
 
 IDD_MAIN DIALOGEX 0, 0, 600, 326
@@ -169,14 +168,15 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CLIPC
 EXSTYLE WS_EX_TRANSPARENT | WS_EX_APPWINDOW
 FONT 8, "MS Shell Dlg", 400, 0, 0x86
 BEGIN
-    LTEXT           "静态",IDC_STATIC,146,280,447,39,WS_BORDER
+    LTEXT           "静态",IDC_STATIC,153,280,447,39,WS_BORDER
     PUSHBUTTON      "安装",IDC_INSTALL,7,47,124,38
     PUSHBUTTON      "遥控器",IDC_REMOTE,7,86,121,39
     PUSHBUTTON      "感度",IDC_PID,7,127,121,39
     PUSHBUTTON      "传感器校准",IDC_CALIBRATION,7,167,121,39
     PUSHBUTTON      "配置文件",IDC_PROFILE,7,208,122,38
-    LTEXT           "MAIN",IDC_PAGES,145,50,448,230,WS_BORDER
-    CONTROL         "X",IDC_BYE,"Button",BS_OWNERDRAW | WS_TABSTOP,539,17,54,25
+    LTEXT           "MAIN",IDC_PAGES,152,50,448,230
+    CONTROL         "X",IDC_CLOSE,"Button",BS_OWNERDRAW | WS_TABSTOP,569,0,28,26
+    CONTROL         "X",IDC_MINIMIZE,"Button",BS_OWNERDRAW | WS_TABSTOP,541,0,28,26
 END
 
 
@@ -232,8 +232,6 @@ BEGIN
     IDD_MAIN, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 593
-        TOPMARGIN, 7
         BOTTOMMARGIN, 319
     END
 END
@@ -245,9 +243,23 @@ END
 // Bitmap
 //
 
-IDB_BITMAP1             BITMAP                  "box_checked_enabled.bmp"
 IDB_BG                  BITMAP                  "bg.bmp"
 IDB_EXPORT              BITMAP                  "export.bmp"
+IDB_SAVE_DOWN           BITMAP                  "output_down.bmp"
+IDB_SAVE_HOVER          BITMAP                  "output_hover.bmp"
+IDB_SAVE_NORMAL         BITMAP                  "output_normal.bmp"
+IDB_CLOSE_DOWN          BITMAP                  "res\\btn_close_active.bmp"
+IDB_CLOSE_HOVER         BITMAP                  "res\\btn_close_hover.bmp"
+IDB_CLOSE_NORMAL        BITMAP                  "res\\btn_close_normal.bmp"
+IDB_MINIMIZE_DOWN       BITMAP                  "res\\btn_minimize_active.bmp"
+IDB_MINIMIZE_HOVER      BITMAP                  "res\\btn_minimize_hover.bmp"
+IDB_MINIMIZE_NORMAL     BITMAP                  "res\\btn_minimize_normal.bmp"
+IDB_RESET_DOWN          BITMAP                  "res\\reset_active.bmp"
+IDB_RESET_HOVER         BITMAP                  "res\\reset_hover.bmp"
+IDB_RESET_NORMAL        BITMAP                  "res\\reset_normal.bmp"
+IDB_IMPORT_DOWN         BITMAP                  "res\\import_active.bmp"
+IDB_IMPORT_HOVER        BITMAP                  "res\\import_hover.bmp"
+IDB_IMPORT_NORMAL       BITMAP                  "res\\import_normal.bmp"
 #endif    // 中文(中华人民共和国) resources
 /////////////////////////////////////////////////////////////////////////////
 

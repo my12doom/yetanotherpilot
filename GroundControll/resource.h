@@ -10,16 +10,33 @@
 #define IDD_PROFILE                     106
 #define IDD_DIALOG1                     107
 #define IDD_MAIN                        107
-#define IDB_BITMAP1                     109
 #define IDB_BG                          110
 #define IDB_BITMAP2                     111
 #define IDB_EXPORT                      111
+#define IDB_SAVE_DOWN                   112
+#define IDB_SAVE_HOVER                  113
+#define IDB_SAVE_NORMAL                 114
+#define IDB_CLOSE_DOWN                  115
+#define IDB_CLOSE_HOVER                 116
+#define IDB_CLOSE_NORMAL                117
+#define IDB_MINIMIZE_DOWN               118
+#define IDB_MINIMIZE_HOVER              119
+#define IDB_MINIMIZE_NORMAL             120
+#define IDB_RESET_DOWN                  122
+#define IDB_RESET_HOVER                 123
+#define IDB_BITMAP4                     124
+#define IDB_RESET_NORMAL                124
+#define IDB_IMPORT_DOWN                 125
+#define IDB_IMPORT_HOVER                126
+#define IDB_BITMAP5                     127
+#define IDB_IMPORT_NORMAL               127
 #define IDC_BUTTON1                     1001
-#define IDC_LOAD                        1001
+#define IDC_LOAD                        51001
 #define IDC_OD                          1001
 #define IDC_BYE                         1001
+#define IDC_CLOSE                       1001
 #define IDC_BUTTON2                     1002
-#define IDC_RESET                       1002
+#define IDC_MINIMIZE                    1002
 #define IDC_RADIO1                      1003
 #define IDC_BUTTON3                     1003
 #define IDC_IDLE_0                      1003
@@ -85,14 +102,15 @@
 #define IDC_MATRIX_1                    1025
 #define IDC_TEMP                        1026
 #define IDC_ACCEL                       1027
+#define IDC_RESET                       1028
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        112
+#define _APS_NEXT_RESOURCE_VALUE        128
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1028
+#define _APS_NEXT_CONTROL_VALUE         1029
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

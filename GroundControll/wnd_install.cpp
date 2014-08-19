@@ -1,6 +1,7 @@
 #include "wnd_install.h"
 #include "resource.h"
 #include "comm.h"
+#include "OwnerDraw.h"
 
 extern Comm test;
 
@@ -16,15 +17,8 @@ int read_install()
 
 	// update UI
 	// matrix
-	HBITMAP bm = LoadBitmap(GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_BITMAP1));
 	DWORD matrix_table[] = {IDC_RADIO_MATRIX0, IDC_RADIO_MATRIX1};
 	CheckRadioButton(wnd, IDC_RADIO_MATRIX0, IDC_RADIO_MATRIX1, matrix_table[int(matrix)]);
-	DWORD button_table[] = {IDC_MATRIX_0, IDC_MATRIX_1};
-	for(int i=0; i<sizeof(button_table)/sizeof(button_table[0]); i++)
-	{
-		SendMessage(GetDlgItem(wnd, button_table[i]), BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)(i == int(matrix) ? bm : NULL));
-	}
-
 
 	// idle throtte
 	DWORD matrix_table2[] = {IDC_IDLE_0, IDC_IDLE_1, IDC_IDLE_2, IDC_IDLE_3, IDC_IDLE_4};
@@ -106,6 +100,11 @@ INT_PTR CALLBACK WndProcInstall(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 			}
 		}
 		break;
+
+	case WM_PAINT:
+		return paint_white(hWnd, wParam, lParam);
+		break;
+
 
 	default:
 		return FALSE;
