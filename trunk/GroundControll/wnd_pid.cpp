@@ -172,6 +172,9 @@ INT_PTR CALLBACK WndProcPid(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
 	switch (message)
 	{
+	case WM_LBUTTONDOWN:
+		SendMessage(GetParent(GetParent(hWnd)), WM_NCLBUTTONDOWN, HTCAPTION, 0);
+		break;
 	case WM_INITDIALOG:
 		::hWnd = hWnd;
 		test.add_callback(pid_OnEvent);

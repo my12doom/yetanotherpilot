@@ -1,3 +1,4 @@
+#include <WindowsX.h>
 #include "wnd_install.h"
 #include "resource.h"
 #include "comm.h"
@@ -25,6 +26,10 @@ int read_install()
 	CheckRadioButton(wnd, IDC_IDLE_0, IDC_IDLE_4, matrix_table2[int(throttle_idle - 1144)/16]);
 
 
+	DWORD matrix_table3[] = {IDC_MATRIX_0, IDC_MATRIX_1};
+	for(int i=0; i<2; i++)
+		Button_SetState(GetDlgItem(wnd, matrix_table3[i]), i == int(matrix));
+
 
 	return 0;
 }
@@ -50,6 +55,9 @@ INT_PTR CALLBACK WndProcInstall(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 
 	switch (message)
 	{
+	case WM_LBUTTONDOWN:
+		SendMessage(GetParent(GetParent(hWnd)), WM_NCLBUTTONDOWN, HTCAPTION, 0);
+		break;
 	case WM_INITDIALOG:
 		wnd = hWnd;
 		test.add_callback(install_OnEvent);

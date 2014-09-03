@@ -159,21 +159,20 @@ EXSTYLE WS_EX_TOOLWINDOW
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "载入设置",IDC_LOAD,"Button",BS_OWNERDRAW | WS_TABSTOP,63,124,154,92
-    CONTROL         "重置飞控",IDC_RESET,"Button",BS_OWNERDRAW | WS_TABSTOP,198,89,180,68
-    CONTROL         "保存设置",IDC_SAVE,"Button",BS_OWNERDRAW | WS_TABSTOP,128,18,164,105
+    CONTROL         "重置飞控",IDC_RESET,"Button",BS_OWNERDRAW | WS_TABSTOP,195,89,180,68
+    CONTROL         "保存设置",IDC_SAVE,"Button",BS_OWNERDRAW | WS_TABSTOP,128,19,164,105
 END
 
 IDD_MAIN DIALOGEX 0, 0, 600, 326
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CLIPCHILDREN | WS_CAPTION
-EXSTYLE WS_EX_TRANSPARENT | WS_EX_APPWINDOW
+STYLE DS_SETFONT | DS_FIXEDSYS | DS_CENTER | WS_POPUP
 FONT 8, "MS Shell Dlg", 400, 0, 0x86
 BEGIN
     LTEXT           "静态",IDC_STATIC,153,280,447,39,WS_BORDER
-    PUSHBUTTON      "安装",IDC_INSTALL,7,47,124,38
-    PUSHBUTTON      "遥控器",IDC_REMOTE,7,86,121,39
-    PUSHBUTTON      "感度",IDC_PID,7,127,121,39
-    PUSHBUTTON      "传感器校准",IDC_CALIBRATION,7,167,121,39
-    PUSHBUTTON      "配置文件",IDC_PROFILE,7,208,122,38
+    CONTROL         "安装",IDC_INSTALL,"Button",BS_OWNERDRAW | WS_TABSTOP,0,47,135,27
+    CONTROL         "遥控器",IDC_REMOTE,"Button",BS_OWNERDRAW | WS_TABSTOP,0,74,135,27
+    CONTROL         "感度",IDC_PID,"Button",BS_OWNERDRAW | WS_TABSTOP,0,101,135,27
+    CONTROL         "传感器校准",IDC_CALIBRATION,"Button",BS_OWNERDRAW | WS_TABSTOP,0,128,135,27
+    CONTROL         "配置文件",IDC_PROFILE,"Button",BS_OWNERDRAW | WS_TABSTOP,0,155,135,27
     LTEXT           "MAIN",IDC_PAGES,152,50,448,230
     CONTROL         "X",IDC_CLOSE,"Button",BS_OWNERDRAW | WS_TABSTOP,569,0,28,26
     CONTROL         "X",IDC_MINIMIZE,"Button",BS_OWNERDRAW | WS_TABSTOP,541,0,28,26
@@ -231,7 +230,6 @@ BEGIN
 
     IDD_MAIN, DIALOG
     BEGIN
-        LEFTMARGIN, 7
         BOTTOMMARGIN, 319
     END
 END
@@ -244,7 +242,6 @@ END
 //
 
 IDB_BG                  BITMAP                  "bg.bmp"
-IDB_EXPORT              BITMAP                  "export.bmp"
 IDB_SAVE_DOWN           BITMAP                  "output_down.bmp"
 IDB_SAVE_HOVER          BITMAP                  "output_hover.bmp"
 IDB_SAVE_NORMAL         BITMAP                  "output_normal.bmp"
@@ -260,6 +257,21 @@ IDB_RESET_NORMAL        BITMAP                  "res\\reset_normal.bmp"
 IDB_IMPORT_DOWN         BITMAP                  "res\\import_active.bmp"
 IDB_IMPORT_HOVER        BITMAP                  "res\\import_hover.bmp"
 IDB_IMPORT_NORMAL       BITMAP                  "res\\import_normal.bmp"
+IDB_MENU0_DOWN          BITMAP                  "res\\menu_0_down.bmp"
+IDB_MENU0_HOVER         BITMAP                  "res\\menu_0_hover.bmp"
+IDB_MENU0_NORMAL        BITMAP                  "res\\menu_0_normal.bmp"
+IDB_MENU1_DOWN          BITMAP                  "res\\menu_1_down.bmp"
+IDB_MENU1_HOVER         BITMAP                  "res\\menu_1_hover.bmp"
+IDB_MENU1_NORMAL        BITMAP                  "res\\menu_1_normal.bmp"
+IDB_MENU2_DOWN          BITMAP                  "res\\menu_2_down.bmp"
+IDB_MENU2_HOVER         BITMAP                  "res\\menu_2_hover.bmp"
+IDB_MENU2_NORMAL        BITMAP                  "res\\menu_2_normal.bmp"
+IDB_MENU3_DOWN          BITMAP                  "res\\menu_3_down.bmp"
+IDB_MENU3_HOVER         BITMAP                  "res\\menu_3_hover.bmp"
+IDB_MENU3_NORMAL        BITMAP                  "res\\menu_3_normal.bmp"
+IDB_MENU4_DOWN          BITMAP                  "res\\menu_4_down.bmp"
+IDB_MENU4_HOVER         BITMAP                  "res\\menu_4_hover.bmp"
+IDB_MENU4_NORMAL        BITMAP                  "res\\menu_4_normal.bmp"
 #endif    // 中文(中华人民共和国) resources
 /////////////////////////////////////////////////////////////////////////////
 

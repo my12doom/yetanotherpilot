@@ -49,6 +49,16 @@ float *variable_table[] =
 	&acc_bias_z,
 };
 
+void DoEvents()  
+{  
+	MSG msg;  
+	while(PeekMessage(&msg,NULL,0,0,PM_REMOVE))  
+	{  
+		DispatchMessage(&msg);  
+		TranslateMessage(&msg);  
+	}
+}  
+
 int read_gyro_bias()
 {
 	char cmd[200];
@@ -301,6 +311,9 @@ INT_PTR CALLBACK WndProcCalibration(HWND hWnd, UINT message, WPARAM wParam, LPAR
 
 	switch (message)
 	{
+	case WM_LBUTTONDOWN:
+		SendMessage(GetParent(GetParent(hWnd)), WM_NCLBUTTONDOWN, HTCAPTION, 0);
+		break;
 	case WM_INITDIALOG:
 		::hWnd = hWnd;
 		CreateThread(NULL, NULL, calibration_update_thread, NULL, NULL, NULL);
@@ -353,6 +366,8 @@ INT_PTR CALLBACK WndProcCalibration(HWND hWnd, UINT message, WPARAM wParam, LPAR
 						to = -1;
 						break;
 					}
+					DoEvents();
+					Sleep(1);
 				}
 				if (previous_avg_count<= avg_count)
 				{

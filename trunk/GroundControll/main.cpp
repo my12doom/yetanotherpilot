@@ -1,4 +1,5 @@
 #include <Windows.h>
+#include <WindowsX.h>
 #include "resource.h"
 #include "wnd_install.h"
 #include "wnd_remote.h"
@@ -49,11 +50,15 @@ INT_PTR CALLBACK WndProc2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
+	case WM_LBUTTONDOWN:
+		SendMessage(GetParent(GetParent(hWnd)), WM_NCLBUTTONDOWN, HTCAPTION, 0);
+		break;
 	case WM_TIMER:
 		update_ownerdraw_window();
 		break;
 	case WM_DRAWITEM:
 		return draw_window((LPDRAWITEMSTRUCT)lParam);
+	case WM_ERASEBKGND:
 	case WM_PAINT:
 		return paint_white(hWnd, wParam, lParam);
 		break;
@@ -74,11 +79,13 @@ int show_page(int id)
 			MoveWindow(pages_hwnd[i],page_rect.left,page_rect.top,page_rect.right,page_rect.bottom,0);
 			ShowWindow(pages_hwnd[i],SW_SHOW);
 			EnableWindow(pages_hwnd[i], TRUE);
+			Button_SetState(GetDlgItem(g_hwnd, pages[i].controllid), TRUE);
 		}
 		else
 		{
 			EnableWindow(pages_hwnd[i], FALSE);
 			ShowWindow(pages_hwnd[i],SW_HIDE);
+			Button_SetState(GetDlgItem(g_hwnd, pages[i].controllid), FALSE);
 		}
 	return 0;
 }
@@ -99,40 +106,37 @@ INT_PTR CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	switch (message)
 	{
-	case WM_MOUSEMOVE:
-		InvalidateRect(hWnd, NULL, FALSE);
-		break;
 	case WM_INITDIALOG:
 		{
 			// clip out the border
-			RECT client;
-			GetClientRect(hWnd, &client);
-			RECT screen;
-			GetWindowRect(hWnd, &screen);
-
-			POINT topleft = {0,0};
-			POINT bottomright = {client.right, client.bottom};
-
-			ClientToScreen(hWnd, &topleft);
-			ClientToScreen(hWnd, &bottomright);
-
-			int width = bottomright.x - topleft.x;
-			int height = bottomright.y - topleft.y;
-			int left = topleft.x - screen.left;
-			int top = topleft.y - screen.top;
-			int right = left + width;
-			int bottom = top + height;
-
-			POINT coords[4] = 
-			{
-				{left, top},		// top left
-				{right, top},		// top right
-				{right, bottom},		// bottom right
-				{left, bottom},		// bottom left
-			};
-
-			HRGN polygon = CreatePolygonRgn(coords, 4, WINDING);
-			SetWindowRgn(hWnd, polygon, TRUE);
+// 			RECT client;
+// 			GetClientRect(hWnd, &client);
+// 			RECT screen;
+// 			GetWindowRect(hWnd, &screen);
+// 
+// 			POINT topleft = {0,0};
+// 			POINT bottomright = {client.right, client.bottom};
+// 
+// 			ClientToScreen(hWnd, &topleft);
+// 			ClientToScreen(hWnd, &bottomright);
+// 
+// 			int width = bottomright.x - topleft.x;
+// 			int height = bottomright.y - topleft.y;
+// 			int left = topleft.x - screen.left;
+// 			int top = topleft.y - screen.top;
+// 			int right = left + width;
+// 			int bottom = top + height;
+// 
+// 			POINT coords[4] = 
+// 			{
+// 				{left, top},		// top left
+// 				{right, top},		// top right
+// 				{right, bottom},		// bottom right
+// 				{left, bottom},		// bottom left
+// 			};
+// 
+// 			HRGN polygon = CreatePolygonRgn(coords, 4, WINDING);
+// 			SetWindowRgn(hWnd, polygon, TRUE);
 			SetClassLong(hWnd, GCL_STYLE, GetClassLong(hWnd, GCL_STYLE) | CS_DROPSHADOW);
 			
 
@@ -154,14 +158,13 @@ INT_PTR CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_LBUTTONDOWN:
 		SendMessage(hWnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);
 		break;
-	case WM_ERASEBKGND:
-		break;
+// 	case WM_ERASEBKGND:
 	case WM_PAINT:
 		{
 			PAINTSTRUCT ps;
+			HDC hdc = BeginPaint(hWnd, &ps);
 			RECT rect;
 			GetClientRect(hWnd, &rect);
-			HDC hdc = BeginPaint(hWnd, &ps);
 
 
 			HDC memDC = CreateCompatibleDC(hdc);
@@ -171,7 +174,7 @@ INT_PTR CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			HDC brushDC = CreateCompatibleDC(hdc);
 			HGDIOBJ obj = SelectObject(brushDC, hBG);
 
-			FillRect(memDC, &rect, (HBRUSH)GetStockObject(BLACK_BRUSH));
+			FillRect(hdc, &rect, (HBRUSH)GetStockObject(BLACK_BRUSH));
 			StretchBlt(memDC, 0, 0, rect.right, rect.bottom, brushDC, 0, 0, 900, 530, SRCCOPY);
 
 			BitBlt(hdc, 0, 0, rect.right, rect.bottom, memDC, 0, 0, SRCCOPY);

@@ -30,8 +30,23 @@
 #define IDB_IMPORT_HOVER                126
 #define IDB_BITMAP5                     127
 #define IDB_IMPORT_NORMAL               127
+#define IDB_MENU0_DOWN                  129
+#define IDB_MENU0_HOVER                 130
+#define IDB_MENU0_NORMAL                131
+#define IDB_MENU1_DOWN                  132
+#define IDB_MENU1_HOVER                 133
+#define IDB_MENU1_NORMAL                134
+#define IDB_MENU2_DOWN                  135
+#define IDB_MENU2_HOVER                 136
+#define IDB_BITMAP9                     137
+#define IDB_MENU2_NORMAL                137
+#define IDB_MENU3_DOWN                  138
+#define IDB_MENU3_HOVER                 139
+#define IDB_MENU3_NORMAL                140
+#define IDB_MENU4_DOWN                  141
+#define IDB_MENU4_HOVER                 142
+#define IDB_MENU4_NORMAL                143
 #define IDC_BUTTON1                     1001
-#define IDC_LOAD                        51001
 #define IDC_OD                          1001
 #define IDC_BYE                         1001
 #define IDC_CLOSE                       1001
@@ -103,12 +118,13 @@
 #define IDC_TEMP                        1026
 #define IDC_ACCEL                       1027
 #define IDC_RESET                       1028
+#define IDC_LOAD                        51001
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        128
+#define _APS_NEXT_RESOURCE_VALUE        144
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1029
 #define _APS_NEXT_SYMED_VALUE           101
