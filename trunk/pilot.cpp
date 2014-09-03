@@ -18,6 +18,7 @@
 #include "common/matrix.h"
 #include "common/param.h"
 #include "common/space.h"
+#include "ahrs.h"
 
 #ifndef LITE
 #include "common/gps.h"
@@ -99,7 +100,7 @@ static param crash_protect("prot", 0);		// crash protection
 #define CRASH_TILT_IMMEDIATE	1
 #define CRASH_COLLISION_IMMEDIATE	2
 
-
+static param simple_mode("simp", 0.0f) ;
 static param pid_factor[3][4] = 			// pid_factor[roll,pitch,yaw][p,i,d,i_limit]
 {
 	{param("rP1",0.50), param("rI1",0.375), param("rD1",0.05),param("rM1",PI)},
@@ -167,7 +168,7 @@ static param quadcopter_range[3] =
 	param("rngY", PI / 8),			// yaw
 };
 
-static param gyro_bias[2][4] =	//[p1,p2][temperature,g0,g1,g2]
+static param _gyro_bias[2][4] =	//[p1,p2][temperature,g0,g1,g2]
 {
 	{param("gbt1", NAN), param("gb11", 0), param("gb21", 0), param("gb31", 0),},
 	{param("gbt2", NAN), param("gb12", 0), param("gb22", 0), param("gb32", 0),},
@@ -280,6 +281,7 @@ float rc[8] = {0};			// ailerron : full left -1, elevator : full down -1, thrott
 // float climb_rate_lowpass = 0;
 // float climb_rate_filter[7] = {0};			// 7 point Derivative Filter(copied from ArduPilot), see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/#noiserobust_2
 // float climb_rate_filter_time[7] = {0};
+float accelz_mwc = 0;
 float accelz = 0;
 bool airborne = false;
 bool nearground = false;
@@ -289,6 +291,11 @@ int64_t collision_detected = 0;	// remember to clear it before arming
 int64_t tilt_us = 0;	// remember to clear it before arming
 uint8_t data[32];
 static sensor_data *p = (sensor_data*)data;
+float Rot_matrix[9];
+float euler[3];
+float NED2BODY[3][3];
+float BODY2NED[3][3];
+bool gyro_bias_estimating_end = false;
 vector gyro;
 vector gyro_raw;
 vector mag;
@@ -304,6 +311,7 @@ vector accel_avg = {0};
 vector mag_zero = {0};
 vector mag_gain = {0.7924,0.8354,0.8658};
 vector accel_earth_frame;
+vector mag_earth_frame;
 param voltage_divider_factor("vfac",6);
 int ms5611[2];
 int ms5611_result = -1;
@@ -468,7 +476,7 @@ float Q[16] =
 };
 float R[4] = 
 {
-	4.8, 0,
+	15, 0,
 	0, 0.0063,
 };
 
@@ -631,7 +639,7 @@ int kalman()
 	matrix_sub(I, tmp, 4, 4);
 	matrix_mul(P, I, 4, 4, P1, 4, 4);
 	
-	TRACE("\rtime=%.3f,state:%.2f,%.2f,%.2f,%.2f, ref=%.2f/%.2f/%.2f, accelz:%.3f  ", getus()/1000000.0f, state[0], state[1], state[2], state[3], _position, a_raw_altitude, _velocity, accelz);
+	TRACE("\rtime=%.3f,state:%.2f,%.2f,%.2f,%.2f, ref=%.2f/%.2f/%.2f, accelz:%.3f, temp:%.1f, ouler:%.2f,%.2f/%.2f,%.2f  ", getus()/1000000.0f, state[0], state[1], state[2], state[3], _position, a_raw_altitude, _velocity, accelz, mpu6050_temperature, euler[0]*PI180, euler[1]*PI180, roll * PI180, pitch * PI180);
 
 	return 0;
 }
@@ -713,7 +721,7 @@ int auto_throttle(float user_climb_rate)
 	output += accel_error_pid[2] * pid_quad_accel[2];
 
 	throttle_result  = output + throttle_real_crusing;
-	float angle_boost_factor = limit(1/ cos(pitch) / cos(roll), 1.0f, 1.5f);
+	float angle_boost_factor = limit(1/ cos(euler[0]) / cos(euler[1]), 1.0f, 1.5f);
 	throttle_result = throttle_result * angle_boost_factor;
 	
 	throttle_result = limit(throttle_result, airborne ? QUADCOPTER_THROTTLE_RESERVE : 0, 1 - QUADCOPTER_THROTTLE_RESERVE);
@@ -839,7 +847,8 @@ int prepare_pid()
 {
 	// calculate current core pid position
 #if QUADCOPTER == 1
-	float new_angle_pos[3] = {roll, pitch, gyroI.array[2]};
+// 	float new_angle_pos[3] = {roll, pitch, gyroI.array[2]};
+	float new_angle_pos[3] = {euler[0], euler[1], gyroI.array[2]};
 
 	// the quadcopter's main pid lock on angle rate
 	for(int i=0; i<3; i++)
@@ -973,29 +982,35 @@ int prepare_pid()
 			auto_throttle(user_rate);
 
 
-			// first, calculate target angle
-			// roll & pitch, RC trim is accepted.
-			for(int i=0; i<2; i++)
-			{
-				float limit_l = angle_target_unrotated[i] - PI * interval;
-				float limit_r = angle_target_unrotated[i] + PI * interval;
-				angle_target_unrotated[i] = rc[i] * quadcopter_range[i] * (i==1?-1:1);	// pitch stick and coordinate are reversed 
-				angle_target_unrotated[i] = limit(angle_target_unrotated[i], limit_l, limit_r);
-				angle_target[i] = angle_target_unrotated[i];
-			}
+			// airborne or armed and throttle up
+			bool after_unlock_action = airborne || rc[2] > 0.2f;
 
-#ifdef HEADFREE
-			float diff = yaw_launch - yaw_est;
-			float cosdiff = cos(diff);
-			float sindiff = sin(diff);
-			angle_target[0] = angle_target_unrotated[0] * cosdiff - angle_target_unrotated[1] * sindiff;
-			angle_target[1] = angle_target_unrotated[0] * sindiff + angle_target_unrotated[1] * cosdiff;
-#endif
 
-			// yaw:
-			//target[2] = limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[2] / RC_RANGE, -1, 1) * quadcopter_range[2] + yaw_gyro + quadcopter_trim[2];
-			if (airborne || rc[2] > 0.2f)	// airborne or armed and throttle up
+
+			if (after_unlock_action)	// airborne or armed and throttle up
 			{
+				// first, calculate target angle
+				// roll & pitch, RC trim is accepted.
+				for(int i=0; i<2; i++)
+				{
+					float limit_l = angle_target_unrotated[i] - PI * interval;
+					float limit_r = angle_target_unrotated[i] + PI * interval;
+					angle_target_unrotated[i] = rc[i] * quadcopter_range[i] * (i==1?-1:1);	// pitch stick and coordinate are reversed 
+					angle_target_unrotated[i] = limit(angle_target_unrotated[i], limit_l, limit_r);
+					angle_target[i] = angle_target_unrotated[i];
+				}
+
+				if (simple_mode > 0.1f)
+				{
+					float diff = yaw_launch - yaw_est;
+					float cosdiff = cos(diff);
+					float sindiff = sin(diff);
+					angle_target[0] = angle_target_unrotated[0] * cosdiff - angle_target_unrotated[1] * sindiff;
+					angle_target[1] = angle_target_unrotated[0] * sindiff + angle_target_unrotated[1] * cosdiff;
+				}
+				
+				// yaw:
+				//target[2] = limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[2] / RC_RANGE, -1, 1) * quadcopter_range[2] + yaw_gyro + quadcopter_trim[2];
 				rc_d[2] = ((fabs(rc[3]) < (float)RC_DEAD_ZONE/RC_RANGE) ? 0 : -rc[3]) * interval * QUADCOPTER_ACRO_YAW_RATE;
 
 				float trimmed_pos = radian_add(angle_pos[2], quadcopter_trim[2]);
@@ -1008,6 +1023,8 @@ int prepare_pid()
 			}
 			else
 			{
+				angle_target[0] = 0;
+				angle_target[1] = 0;
 				angle_target[2] = angle_pos[2];
 			}
 
@@ -1047,6 +1064,7 @@ int prepare_pid()
 				(active_throttle > throttle_real_crusing + QUADCOPTER_THROTTLE_RESERVE))
 			{
 				airborne = true;
+				gyro_bias_estimating_end = true;
 			}
 		}
 		break;
@@ -1431,7 +1449,7 @@ int save_logs()
 		state[0] * 100,
 		state[2] * 100,
 		a_raw_altitude * 100,
-		accelz * 100,
+		accelz_mwc * 100,
 	};
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA2;
@@ -1532,17 +1550,23 @@ int read_sensors()
 	if (read_MPU6050(&p->accel[0]) < 0 && read_MPU6050(&p->accel[0]) < 0)
 	{
 		ERROR("MPU6050 Error\n");
+		critical_errors |= error_accelerometer | error_gyro;
 		imu_error = true;
 	}
 	if (read_HMC5883(&p->mag[0]) < 0 && read_HMC5883(&p->mag[0]) < 0)
 	{
 		TRACE("HMC5883 Error\n");
+#ifndef LITE
+		critical_errors |= error_magnet;
+#endif
 	}
 
 	for(int i=0; i<3; i++)
 		p->mag[i] *= mag_gain.array[i];
 
 	ms5611_result = read_baro(ms5611);
+	if (ms5611_result < 0)
+		critical_errors |= error_baro;
 
 	mpu6050_temperature = p->temperature1  / 340.0f + 36.53f;
 
@@ -1557,15 +1581,21 @@ int read_sensors()
 	};
 
 #ifndef LITE
-	vector acc = {-p->accel[1], p->accel[0], p->accel[2]};
-	vector gyro = {-p->gyro[0], -p->gyro[1], -p->gyro[2]};
+// 	vector acc = {-p->accel[1], p->accel[0], p->accel[2]};
+// 	vector gyro = {-p->gyro[0], -p->gyro[1], -p->gyro[2]};
+// 	vector mag = {(p->mag[2]-mag_zero.array[2]), -(p->mag[0]-mag_zero.array[0]), -(p->mag[1]-mag_zero.array[1])};
+	vector acc = {p->accel[1], p->accel[0], -p->accel[2]};
+	vector gyro = {-p->gyro[0], p->gyro[1], p->gyro[2]};
+	vector mag = {(p->mag[0]-mag_zero.array[0]), (p->mag[2]-mag_zero.array[2]), (p->mag[1]-mag_zero.array[1])};
+		
+// 	ERROR("\rmag:%d,%d,%d,%d, %.2f   ", int(mag.array[0]), int(mag.array[1]), int(mag.array[2]), (int)sqrt(mag.array[0]*mag.array[0]+mag.array[1]*mag.array[1]+mag.array[2]*mag.array[2]), yaw_est*PI180);
 #else
 	vector acc = {p->accel[1], p->accel[0], -p->accel[2]};
 	vector gyro = {-p->gyro[0], p->gyro[1], p->gyro[2]};
+	vector mag = {(p->mag[2]-mag_zero.array[2]), -(p->mag[0]-mag_zero.array[0]), (p->mag[1]-mag_zero.array[1])};
 #endif
 	acc.array[2] += acc_bias_z;
 	gyro_raw = gyro;
-	vector mag = {(p->mag[2]-mag_zero.array[2]), -(p->mag[0]-mag_zero.array[0]), -(p->mag[1]-mag_zero.array[1])};
 	vector_sub(&gyro, &gyro_bias);
 	vector_multiply(&gyro, GYRO_SCALE);
 
@@ -1574,15 +1604,15 @@ int read_sensors()
 
 
 	// apply a 5hz LPF to accelerometer readings
-	const float RC5 = 1.0f/(2*3.1415926 * 2.0f);
-	float alpha5 = interval / (interval + RC5);
+	const float RC20 = 1.0f/(2*3.1415926 * 20.0f);
+	float alpha20 = interval / (interval + RC20);
 
 	if (isnan(accel.array[0]))
 		::accel = acc;
 	else
 	{
-		vector_multiply(&::accel, 1-alpha5);
-		vector_multiply(&acc, alpha5);
+		vector_multiply(&::accel, 1-alpha20);
+		vector_multiply(&acc, alpha20);
 		vector_add(&::accel, &acc);
 	}
 
@@ -1679,12 +1709,43 @@ int read_sensors()
 	mah_consumed += interval / 3600 * p->current;
 	wh_consumed += interval / 3600 * p->current * p->voltage / 1000000.0f;
 
+	TRACE("\rvoltage=%.2fV, current=%.2fA", p->voltage/1000.0f, p->current/1000.0f);
+
 	return 0;
 }
+
+// see http://mathworld.wolfram.com/MatrixInverse.html
+int inverse_matrix3x3(const float src[3][3], float dst[3][3])
+{
+	float det = +src[0][0] * (src[1][1] * src[2][2] - src[1][2] * src[2][1]) 
+				-src[0][1] * (src[1][0] * src[2][2] - src[1][2] * src[2][0])
+				+src[0][2] * (src[1][0] * src[2][1] - src[1][1] * src[2][0]);
+
+	det = 1.0f/det;
+
+	dst[0][0] =  det * (src[1][1]*src[2][2] - src[1][2] * src[2][1]);
+	dst[0][1] = det * (src[0][2]*src[2][1] - src[1][2] * src[2][1]);
+	dst[0][2] =  det * (src[0][1]*src[1][2] - src[0][2] * src[1][1]);
+
+	dst[1][0] = det * (src[1][2]*src[2][0] - src[1][0] * src[2][2]);
+	dst[1][1] =  det * (src[0][0]*src[2][2] - src[0][2] * src[2][0]);
+	dst[1][2] = det * (src[0][2]*src[1][0] - src[0][0] * src[1][2]);
+
+	dst[2][0] =  det * (src[1][0]*src[2][1] - src[1][1] * src[2][0]);
+	dst[2][1] = det * (src[0][1]*src[2][0] - src[0][0] * src[2][1]);
+	dst[2][2] =  det * (src[0][0]*src[1][1] - src[0][1] * src[1][0]);
+
+	return 0;
+}
+
+extern float bias0, bias1, bias2, bias3;
+extern float gyro_bias[3];
 
 int calculate_attitude()
 {
 	vector delta_rotation = gyro;
+	vector bias = {-gyro_bias[0], gyro_bias[1], 0};
+	vector_add(&delta_rotation, &bias);
 	vector_multiply(&delta_rotation, interval);
 	vector_rotate(&estGyro, delta_rotation.array);
 	vector_rotate(&estAccGyro, delta_rotation.array);
@@ -1697,14 +1758,100 @@ int calculate_attitude()
 	TRACE("gyroI:%f,%f,%f\r", gyroI.array[0] *180/PI, gyroI.array[1]*180/PI, gyroI.array[2]*180/PI);
 	TRACE("\r          gyro:%.2f,%.2f, pos:%.2f,%.2f             ", ::gyro.array[0], ::gyro.array[1], pos[0], pos[1]);
 
+	vector acc_norm = accel;
+	vector_multiply(&acc_norm, 9.8065f/2048.0f);
+	float pix_acc[3] = {acc_norm.V.y, acc_norm.V.x, -acc_norm.V.z};
+	float pix_acc_g = vector_length(&accel)/ accel_1g;
+	float pix_acc2[3] = {pix_acc[0], pix_acc[1], pix_acc[2]};
+	if (pix_acc_g > 1.15f || pix_acc_g < 0.85f)
+		pix_acc2[0] = pix_acc2[1] = pix_acc2[2] = 0;
+
+	NonlinearSO3AHRSupdate(
+		-gyro.array[0], gyro.array[1], gyro.array[2],
+// 		0,0,0,
+		pix_acc2[0], pix_acc2[1], pix_acc2[2],
+		mag.V.y, mag.V.x, -mag.V.z, 
+		1.5f, gyro_bias_estimating_end ? 0.05f : 0.16f, 0.0f, 0.0f, interval);
+// 	MadgwickAHRSupdateIMU(gyro.array[0] /*+ (getus() > 15000000 ? PI*5.0f/180.0f : 0)*/, gyro.array[1], -gyro.array[2], -acc_norm.V.y, acc_norm.V.x, acc_norm.V.z, 1.5f, interval);
+
+	// Convert q->R, This R converts inertial frame to body frame.
+	float q0q0 = q0*q0;
+	float q1q1 = q1*q1;
+	float q2q2 = q2*q2;
+	float q3q3 = q3*q3;
+
+	Rot_matrix[0] = q0q0 + q1q1 - q2q2 - q3q3;// 11
+	Rot_matrix[1] = 2.f * (q1*q2 + q0*q3);	// 12
+	Rot_matrix[2] = 2.f * (q1*q3 - q0*q2);	// 13
+	Rot_matrix[3] = 2.f * (q1*q2 - q0*q3);	// 21
+	Rot_matrix[4] = q0q0 - q1q1 + q2q2 - q3q3;// 22
+	Rot_matrix[5] = 2.f * (q2*q3 + q0*q1);	// 23
+	Rot_matrix[6] = 2.f * (q1*q3 + q0*q2);	// 31
+	Rot_matrix[7] = 2.f * (q2*q3 - q0*q1);	// 32
+	Rot_matrix[8] = q0q0 - q1q1 - q2q2 + q3q3;// 33
+
+	memcpy(&NED2BODY, Rot_matrix, sizeof(float)*9);
+	inverse_matrix3x3(NED2BODY, BODY2NED);
+
+	float NED[3] = {0, 0, 9.8};
+	float accz_NED = 0;
+	for(int j=0; j<3; j++)
+		accz_NED += BODY2NED[2][j] * pix_acc[j];
+	accz_NED -= 9.8065f;
+
+
+	/* transform acceleration vector from body frame to NED frame */
+	float acc[3];
+	for (int i = 0; i < 3; i++) {
+		acc[i] = 0.0f;
+
+		for (int j = 0; j < 3; j++) {
+			acc[i] += BODY2NED[i][j] * NED2BODY[j][0];
+		}
+	}
+
+// 	ERROR("accz=%f/%f, acc=%f,%f,%f, raw=%f,%f,%f\n", accz_NED, accelz, acc[0], acc[1], acc[2], pix_acc[0], pix_acc[1], pix_acc[2]);
+
+
+// 	matrix_()
+
+	//1-2-3 Representation.
+	//Equation (290) 
+	//Representing Attitude: Euler Angles, Unit Quaternions, and Rotation Vectors, James Diebel.
+	// Existing PX4 EKF code was generated by MATLAB which uses coloum major order matrix.
+	euler[0] = -atan2f(Rot_matrix[5], Rot_matrix[8]);	//! Roll
+	euler[1] = -asinf(Rot_matrix[2]);	//! Pitch
+	euler[2] = atan2f(Rot_matrix[1], Rot_matrix[0]);		//! Yaw
+	euler[0] = radian_add(euler[0], quadcopter_trim[0]);
+	euler[1] = radian_add(euler[1], quadcopter_trim[1]);
+
+	ERROR("euler:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, time:%f\n", euler[0]*PI180, euler[1]*PI180, euler[2]*PI180, roll*PI180, pitch*PI180, yaw_est*PI180, getus()/1000000.0f);
+
 	// apply CF filter for Mag : 0.5hz low pass for mag
 	const float RC = 1.0f/(2*3.1415926 * 0.5f);
 	float alpha = interval / (interval + RC);
 
-	vector mag_f = mag;
-	vector_multiply(&mag_f, alpha);
-	vector_multiply(&estMagGyro, 1-alpha);
-	vector_add(&estMagGyro, &mag_f);
+	const float RC2 = 1.0f/(2*3.1415926 * 0.15f);
+	float alpha2 = interval / (interval + RC2);
+
+	vector mag_delta = estMagGyro;
+	vector_sub(&mag_delta, &mag);
+
+	// apply CF filter for Mag if delta is acceptable
+	static float mag_tolerate = 0.25f;
+	if (fabs(vector_length(&mag) / vector_length(&estMagGyro) - 1.0f) < mag_tolerate)
+	{
+		vector mag_f = mag;
+		vector_multiply(&mag_f, alpha2);
+		vector_multiply(&estMagGyro, 1-alpha2);
+		vector_add(&estMagGyro, &mag_f);
+		mag_tolerate = 0.25f;
+	}
+	else
+	{
+		mag_tolerate += 0.05f * interval;
+		ERROR("warning: possible magnetic interference");
+	}
 
 	// apply CF filter for Acc if g force is acceptable
 	float acc_g = vector_length(&accel)/ accel_1g;
@@ -1749,14 +1896,8 @@ int calculate_attitude()
 
 #ifndef LITE
 	accel_earth_frame = accel;
-	vector mag_ef = estMagGyro;
-	float attitude[3] = {roll, pitch, 0};
-	vector_rotate2(&mag_ef, attitude);
-
-	attitude[2] = yaw_est;
+	float attitude[3] = {-roll, -pitch, 0};
 	vector_rotate2(&accel_earth_frame, attitude);
-
-	float yaw_mag = atan2(mag_ef.V.x, mag_ef.V.y);
 
 	TRACE("\raccel_ef:%.1f, %.1f, %.1f, accelz:%.2f/%.2f, yaw=%.2f/%.2f", accel_earth_frame.V.x, accel_earth_frame.V.y, accel_earth_frame.V.z, accelz, (accel_earth_frame.V.z+2085)/2085*9.80, yaw_est*180/PI, yaw_mag*180/PI);
 #endif
@@ -1771,6 +1912,9 @@ int calculate_attitude()
 		a_raw_temperature = ms5611[1] / 100.0f;
 		altitude_estimation_baro();
 	}
+
+	accelz_mwc = accelz;
+	accelz = accz_NED;
 
 	altitude_estimation_inertial();
 
@@ -1933,8 +2077,8 @@ mag_load:
 			ERROR("mag[%d] max/min/gain=%d,%d,%.2f\n", i, mag_max[i], mag_min[i], mag_gain.array[i]);
 		}
 		mag_offset.get_result(mag_zero.array, &mag_radius);
-		space_read("magzero", 7, &mag_zero, sizeof(mag_zero),NULL);
-		space_read("maggain", 7, &mag_gain, sizeof(mag_gain),NULL);
+		space_write("magzero", 7, &mag_zero, sizeof(mag_zero),NULL);
+		space_write("maggain", 7, &mag_gain, sizeof(mag_gain),NULL);
 
 		// flash all LED to signal success
 		led_all_on();
@@ -2058,39 +2202,39 @@ int sensor_calibration()
 	estGyro= estMagGyro = mag_avg;
 	accel_1g = vector_length(&accel_avg);	
 
-	if (!isnan((float)gyro_bias[0][0]) && !isnan((float)gyro_bias[1][0]))
+	if (!isnan((float)_gyro_bias[0][0]) && !isnan((float)_gyro_bias[1][0]))
 	{
-		float dt = gyro_bias[1][0] - gyro_bias[0][0];
+		float dt = _gyro_bias[1][0] - _gyro_bias[0][0];
 		if (dt > 1.0f)
 		{
 			for(int i=0; i<3; i++)
 			{
-				gyro_temp_a.array[i] = gyro_bias[0][i+1];
-				gyro_temp_k.array[i] = (gyro_bias[1][i+1] - gyro_bias[0][i+1]) / dt;
+				gyro_temp_a.array[i] = _gyro_bias[0][i+1];
+				gyro_temp_k.array[i] = (_gyro_bias[1][i+1] - _gyro_bias[0][i+1]) / dt;
 			}
-			temperature0 = gyro_bias[0][0];
+			temperature0 = _gyro_bias[0][0];
 		}
 		else
 		{
 			// treat as one point
-			int group = !isnan(gyro_bias[0][0]) ? 0 : (!isnan(gyro_bias[1][0]) ? 1: -1);
+			int group = !isnan(_gyro_bias[0][0]) ? 0 : (!isnan(_gyro_bias[1][0]) ? 1: -1);
 			for(int i=0; i<3; i++)
 			{
-				gyro_temp_a.array[i] = group >= 0 ? gyro_bias[group][i+1] : 0;
+				gyro_temp_a.array[i] = group >= 0 ? _gyro_bias[group][i+1] : 0;
 				gyro_temp_k.array[i] = 0;
 			}
-			temperature0 = group != 0 ? gyro_bias[group][0] : 0;
+			temperature0 = group != 0 ? _gyro_bias[group][0] : 0;
 		}
 	}
 	else
 	{
-		int group = !isnan(gyro_bias[0][0]) ? 0 : (!isnan(gyro_bias[1][0]) ? 1: -1);
+		int group = !isnan(_gyro_bias[0][0]) ? 0 : (!isnan(_gyro_bias[1][0]) ? 1: -1);
 		for(int i=0; i<3; i++)
 		{
-			gyro_temp_a.array[i] = group >= 0 ? gyro_bias[group][i+1] : 0;
+			gyro_temp_a.array[i] = group >= 0 ? _gyro_bias[group][i+1] : 0;
 			gyro_temp_k.array[i] = 0;
 		}
-		temperature0 = group != 0 ? gyro_bias[group][0] : 0;
+		temperature0 = group != 0 ? _gyro_bias[group][0] : 0;
 	}
 
 	ERROR("base value measured\n");
@@ -2149,8 +2293,9 @@ int check_mode()
 			ERROR("shutdown!\n");
 		}
 
-		// arm action check: throttle minimum, rudder max or min, aileron & elevator near netrual, for 0.5second
-		bool arm_action = rc[2] < 0.1f && fabs(rc[0]) < 0.25f && fabs(rc[1]) < 0.25f && fabs(rc[3]) > 0.85f;
+		// arm action check: throttle minimum, elevator stick down, rudder max or min, aileron max or min, for 0.5second
+		bool arm_action = rc[2] < 0.1f  && fabs(rc[0]) > 0.85f
+						&& fabs(rc[1]) > 0.85f && fabs(rc[3]) > 0.85f;
 		if (!arm_action)
 		{
 			arm_start_tick = 0;
@@ -2598,10 +2743,11 @@ int main(void)
 	float v288;
 	float v61152;
 	ads1115_init();	
-// 	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN0, ads1115_gain_4V, &ads1115_voltage);
-// 	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN1_AIN3, ads1115_gain_4V, &ads1115_current);
-// 	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN2_AIN3, ads1115_gain_2V, &ads1115_airspeed);
-// 	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN3, ads1115_gain_4V, &ads1115_2_5V);
+ 	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN0, ads1115_gain_4V, &ads1115_voltage);
+ 	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN1_AIN3, ads1115_gain_4V, &ads1115_current);
+ 	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN2_AIN3, ads1115_gain_2V, &ads1115_airspeed);
+ 	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN3, ads1115_gain_4V, &ads1115_2_5V);
+	
 	//ads1115_new_work(ads1115_speed_8sps, ads1115_channnel_AIN3, ads1115_gain_6V, &power);
 	//ads1115_new_work(ads1115_speed_8sps, ads1115_channnel_AIN1, ads1115_gain_4V, &int61152);
 	//ads1115_new_work(ads1115_speed_8sps, ads1115_channnel_AIN1_AIN3, ads1115_gain_1V, &int6115);

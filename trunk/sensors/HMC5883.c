@@ -158,7 +158,7 @@ int read_HMC5883(short*data)
 	for(i=0; i<3; i++)
 	{
 		swap((uint8_t*)&data[i], 2);
-		data[i] *= gain[i];
+// 		data[i] *= gain[i];
 	}
 	
 	return result;

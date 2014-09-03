@@ -27,6 +27,7 @@ float vector_length(vector *v);
 float vector_angle(vector *v1, vector *v2);	// return cos(angle(v1, v2))
 void vector_normalize(vector *v);
 int accel_vector_to_euler_angle(vector accel, vector *ouler);		// ouler angle roll, pitch are stored in ouler->array[0,1], yaw not calculated
+vector vector_delta_angle(vector v1, vector v2);
 
 #ifdef __cplusplus
 }
