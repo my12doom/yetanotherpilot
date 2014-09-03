@@ -247,7 +247,7 @@ int Comm::disconnect()
 // 	EnterCriticalSection(&cs_cb);
 	for(std::vector<ICommEvent*>::iterator i = callbacks1.begin(); i!= callbacks1.end(); ++i)
 		(*i)->OnEvent(WM_DISCONNECT, NULL);
-	for(std::vector<CommEventProc>::iterator i = callbacks2.begin(); i!= callbacks2.end(); ++i)
+for(std::vector<CommEventProc>::iterator i = callbacks2.begin(); i!= callbacks2.end(); ++i)
 		(*i)(WM_DISCONNECT, NULL);
 	for(std::vector<HWND>::iterator i = callbacks3.begin(); i!= callbacks3.end(); ++i)
 		PostMessage(*i, WM_DISCONNECT, NULL, NULL);

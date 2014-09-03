@@ -19,6 +19,9 @@ INT_PTR CALLBACK WndProcProfile(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 
 	switch (message)
 	{
+	case WM_LBUTTONDOWN:
+		SendMessage(GetParent(GetParent(hWnd)), WM_NCLBUTTONDOWN, HTCAPTION, 0);
+		break;
 	case WM_INITDIALOG:
 		wnd = hWnd;
 		test.add_callback(profile_OnEvent);

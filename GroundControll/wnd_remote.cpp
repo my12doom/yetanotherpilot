@@ -141,6 +141,9 @@ INT_PTR CALLBACK WndProcRemote(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 
 	switch (message)
 	{
+	case WM_LBUTTONDOWN:
+		SendMessage(GetParent(GetParent(hWnd)), WM_NCLBUTTONDOWN, HTCAPTION, 0);
+		break;
 	case WM_INITDIALOG:
 		{
 			test.add_callback(remote_OnEvent);
