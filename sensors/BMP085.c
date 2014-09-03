@@ -33,28 +33,33 @@ static int64_t last_pressure_time = 0;
 static int rawTemperature = 0;
 static int rawPressure = 0;
 
-static short I2C_Double_Read(unsigned char slave_address, unsigned char resigter_address)
+static short I2C_Double_Read(unsigned char slave_address, unsigned char resigter_address, int16_t *data)
 {
 	unsigned char tmp[2];
-	I2C_ReadReg(slave_address, resigter_address, tmp, 2);
+	if (I2C_ReadReg(slave_address, resigter_address, tmp, 2) < 0)
+		return -1;
 
-	return (tmp[0] << 8) | tmp[1];
+	*data = (tmp[0] << 8) | tmp[1];
+
+	return 0;
 }
+
+#define RET_IF(x) if((x)<0) return -1
 
 // call initI2C before this
 int init_BMP085(void)
-{	
-	ac1 = I2C_Double_Read(BMP085_SlaveAddress, 0xAA);
-	ac2 = I2C_Double_Read(BMP085_SlaveAddress, 0xAC);
-	ac3 = I2C_Double_Read(BMP085_SlaveAddress, 0xAE);
-	ac4 = I2C_Double_Read(BMP085_SlaveAddress, 0xB0);
-	ac5 = I2C_Double_Read(BMP085_SlaveAddress, 0xB2);
-	ac6 = I2C_Double_Read(BMP085_SlaveAddress, 0xB4);
-	b1 =  I2C_Double_Read(BMP085_SlaveAddress, 0xB6);
-	b2 =  I2C_Double_Read(BMP085_SlaveAddress, 0xB8);
-	mb =  I2C_Double_Read(BMP085_SlaveAddress, 0xBA);
-	mc =  I2C_Double_Read(BMP085_SlaveAddress, 0xBC);
-	md =  I2C_Double_Read(BMP085_SlaveAddress, 0xBE);
+{
+	RET_IF(I2C_Double_Read(BMP085_SlaveAddress, 0xAA, &ac1));
+	RET_IF(I2C_Double_Read(BMP085_SlaveAddress, 0xAC, &ac2));
+	RET_IF(I2C_Double_Read(BMP085_SlaveAddress, 0xAE, &ac3));
+	RET_IF(I2C_Double_Read(BMP085_SlaveAddress, 0xB0, &ac4));
+	RET_IF(I2C_Double_Read(BMP085_SlaveAddress, 0xB2, &ac5));
+	RET_IF(I2C_Double_Read(BMP085_SlaveAddress, 0xB4, &ac6));
+	RET_IF(I2C_Double_Read(BMP085_SlaveAddress, 0xB6, &b1));
+	RET_IF(I2C_Double_Read(BMP085_SlaveAddress, 0xB8, &b2));
+	RET_IF(I2C_Double_Read(BMP085_SlaveAddress, 0xBA, &mb));
+	RET_IF(I2C_Double_Read(BMP085_SlaveAddress, 0xBC, &mc));
+	RET_IF(I2C_Double_Read(BMP085_SlaveAddress, 0xBE, &md));
 	
 	return 0;
 }

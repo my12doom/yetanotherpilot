@@ -63,6 +63,14 @@
 			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			>
 			<File
+				RelativePath=".\ahrs.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ahrs.h"
+				>
+			</File>
+			<File
 				RelativePath=".\mcu.h"
 				>
 			</File>

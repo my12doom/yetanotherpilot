@@ -80,9 +80,9 @@ void vector_rotate(vector *v, float *delta)
 }
 void vector_rotate2(vector *v, float *delta)
 {
+	vector_rotate_yaw(v, -delta[2]);
 	vector_rotate_pitch(v, -delta[1]);
 	vector_rotate_roll(v, -delta[0]);
-	vector_rotate_yaw(v, -delta[2]);
 }
 
 void vector_normalize(vector *v)
@@ -110,4 +110,18 @@ int accel_vector_to_euler_angle(vector accel, vector *ouler)		// ouler angle rol
 	ouler->array[1] = radian_add(ouler->array[1], PI);
 
 	return 0;
+}
+
+vector vector_delta_angle(vector v1, vector v2)
+{
+	vector o;
+
+	vector_normalize(&v1);
+	vector_normalize(&v2);
+
+	o.V.y = asin(v1.V.y * v2.V.z - v1.V.z * v2.V.y);
+	o.V.x = asin(v1.V.x * v2.V.z - v1.V.z * v2.V.x);
+	o.V.z = asin(v1.V.y * v2.V.x - v1.V.x * v2.V.y);
+
+	return o;
 }

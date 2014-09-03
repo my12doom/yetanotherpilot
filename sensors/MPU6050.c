@@ -43,6 +43,8 @@ int init_MPU6050(void)
 
 	TRACE("start MPU6050\r\n");
 	delayms(10);
+	I2C_WriteReg(MPU6050SlaveAddress, PWR_MGMT_1, 0x80);
+	delayms(10);
 	I2C_WriteReg(MPU6050SlaveAddress, PWR_MGMT_1, 0x00);
 	#if QUADCOPTER == 1
 	I2C_WriteReg(MPU6050SlaveAddress, SMPLRT_DIV, 0x02);
@@ -57,7 +59,9 @@ int init_MPU6050(void)
 	ERROR("MPU6050 initialized, WHO_AM_I=%x, address = %x\r\n", who_am_i, MPU6050SlaveAddress);
 	
 	// enable I2C bypass for AUX I2C and initialize HMC5883 into continues mode
-#ifndef EXTERNAL_HMC5883_2
+#ifdef EXTERNAL_HMC5883_2
+ 	I2C_WriteReg(MPU6050SlaveAddress, 0x37, 0);
+#else
 	I2C_WriteReg(MPU6050SlaveAddress, 0x37, 0x02);
 #endif
 	delayms(10);
