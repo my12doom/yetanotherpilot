@@ -33,7 +33,7 @@ extern "C" {
 // if input disabled, it configure TIM4 with REMAP  = 00, output pin = PB6~9
 // if input enabled, those pins are connected to EXTI6~9, and TIM4 is used as input timer
 // ppm time units are 1/1000 ms
-void PPM_init(int enable_input);
+void PPM_init();
 
 // update the specified output channel
 void PPM_update_output_channel(int channel_to_update);

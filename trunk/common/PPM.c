@@ -11,13 +11,15 @@ uint32_t g_ppm_input_start[6];
 float g_ppm_input[6];
 float ppm_static[8][2];
 int64_t g_ppm_input_update[6] = {0};
+
 #if QUADCOPTER == 0
 #undef OC 1
 #define OC 1
-uint16_t g_ppm_output[8] = {1520, 1520, THROTTLE_STOP, 1520, 1520, 1520, 1520, 1520};
 #else
-uint16_t g_ppm_output[8] = {THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP, THROTTLE_STOP};
 #endif
+
+// initialize this before calling ppm_init()!
+uint16_t g_ppm_output[8] = {0};
 
 static float f_min(float a, float b)
 {
@@ -94,7 +96,7 @@ void EXTI15_10_IRQHandler(void)
 	PPM_EXTI_Handler();
 }
 
-static void GPIO_Config(int enable_input) 
+static void GPIO_Config() 
 {
 	GPIO_InitTypeDef GPIO_InitStructure = {0};
 
@@ -158,7 +160,7 @@ static void GPIO_Config(int enable_input)
 #endif
 }
 
-static void Timer_Config(int enable_input)
+static void Timer_Config()
 {
 	TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
 	EXTI_InitTypeDef   EXTI_InitStructure;
@@ -332,10 +334,10 @@ void PPM_reset_static()
 	}
 }
 
-void PPM_init(int enable_input)
+void PPM_init()
 {
 	PPM_reset_static();
-	GPIO_Config(enable_input);
-	Timer_Config(enable_input);
+	GPIO_Config();
+	Timer_Config();
 	PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
 }

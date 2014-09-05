@@ -155,9 +155,9 @@ void NonlinearSO3AHRSupdate(float gx, float gy, float gz, float ax, float ay, fl
 	gz += gyro_bias[2];
 
 	// Apply proportional feedback
-	gx += twoKp * halfexA;
-	gy += twoKp * halfeyA;
-	gz += twoKp * halfezA;
+	gx += twoKp * halfexA + twoKpMag * halfexM;
+	gy += twoKp * halfeyA + twoKpMag * halfeyM;
+	gz += twoKp * halfezA + twoKpMag * halfezM;
 	
 	//! Integrate rate of change of quaternion
 #if 0
