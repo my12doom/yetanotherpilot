@@ -1758,6 +1758,9 @@ int calculate_attitude()
 	TRACE("gyroI:%f,%f,%f\r", gyroI.array[0] *180/PI, gyroI.array[1]*180/PI, gyroI.array[2]*180/PI);
 	TRACE("\r          gyro:%.2f,%.2f, pos:%.2f,%.2f             ", ::gyro.array[0], ::gyro.array[1], pos[0], pos[1]);
 
+	static float mag_tolerate = 0.25f;
+	float pix_mag[3] = {mag.V.y, mag.V.x, -mag.V.z};
+
 	vector acc_norm = accel;
 	vector_multiply(&acc_norm, 9.8065f/2048.0f);
 	float pix_acc[3] = {acc_norm.V.y, acc_norm.V.x, -acc_norm.V.z};
@@ -1766,12 +1769,22 @@ int calculate_attitude()
 	if (pix_acc_g > 1.15f || pix_acc_g < 0.85f)
 		pix_acc2[0] = pix_acc2[1] = pix_acc2[2] = 0;
 
+	if (fabs(vector_length(&mag) / vector_length(&groundM) - 1.0f) < mag_tolerate)
+	{
+		mag_tolerate = 0.25f;
+	}
+	else
+	{
+		pix_mag[0] = pix_mag[1] = pix_mag[2] = 0;
+		mag_tolerate += 0.05f * interval;
+		ERROR("warning: possible magnetic interference");
+	}
 	NonlinearSO3AHRSupdate(
 		-gyro.array[0], gyro.array[1], gyro.array[2],
 // 		0,0,0,
 		pix_acc2[0], pix_acc2[1], pix_acc2[2],
-		mag.V.y, mag.V.x, -mag.V.z, 
-		1.5f, gyro_bias_estimating_end ? 0.05f : 0.16f, 0.0f, 0.0f, interval);
+		pix_mag[0], pix_mag[1], pix_mag[2], 
+		1.5f, gyro_bias_estimating_end ? 0.05f : 0.16f, 1.5f, 0.15f, interval);
 // 	MadgwickAHRSupdateIMU(gyro.array[0] /*+ (getus() > 15000000 ? PI*5.0f/180.0f : 0)*/, gyro.array[1], -gyro.array[2], -acc_norm.V.y, acc_norm.V.x, acc_norm.V.z, 1.5f, interval);
 
 	// Convert q->R, This R converts inertial frame to body frame.
@@ -1825,7 +1838,9 @@ int calculate_attitude()
 	euler[0] = radian_add(euler[0], quadcopter_trim[0]);
 	euler[1] = radian_add(euler[1], quadcopter_trim[1]);
 
-	ERROR("euler:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, time:%f\n", euler[0]*PI180, euler[1]*PI180, euler[2]*PI180, roll*PI180, pitch*PI180, yaw_est*PI180, getus()/1000000.0f);
+// 	ERROR("euler:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, time:%f\n", euler[0]*PI180, euler[1]*PI180, euler[2]*PI180, roll*PI180, pitch*PI180, yaw_est*PI180, getus()/1000000.0f);
+
+// 	ERROR("angle target:%.2f,%.2f,%.2f\n", angle_target[0]*PI180, angle_target[1]*PI180, angle_target[2]*PI180);
 
 	// apply CF filter for Mag : 0.5hz low pass for mag
 	const float RC = 1.0f/(2*3.1415926 * 0.5f);
@@ -1838,7 +1853,6 @@ int calculate_attitude()
 	vector_sub(&mag_delta, &mag);
 
 	// apply CF filter for Mag if delta is acceptable
-	static float mag_tolerate = 0.25f;
 	if (fabs(vector_length(&mag) / vector_length(&estMagGyro) - 1.0f) < mag_tolerate)
 	{
 		vector mag_f = mag;
@@ -2189,11 +2203,10 @@ int sensor_calibration()
 		voltage_divider_factor.save();
 	}
 
-	groundA = accel_avg;
-	groundM = mag_avg;
-
 	vector_divide(&accel_avg, 300);
 	vector_divide(&mag_avg, 300);
+	groundA = accel_avg;
+	groundM = mag_avg;
 	mpu6050_temperature /= 300;
 	ground_pressure /= baro_counter * 100;
 	ground_temperature /= baro_counter * 100;
@@ -2510,7 +2523,7 @@ int crash_detector()
 	// forced shutdown if >3g external force
 	if (gforce > 3.0f)
 	{
-		ERROR("very high G force (%.2f) detected\n", gforce);
+		ERROR("very high G force (%.2f) detected (%.0f,%.0f,%.0f)\n", gforce, accel.array[0], accel.array[1], accel.array[2]);
 		mode = shutdown;
 	}
 
@@ -2712,9 +2725,17 @@ int main(void)
 		&USR_cb);
 #endif
 
+#ifdef QUADCOPTER
+	for(int i=0; i<8; i++)
+		g_ppm_output[i] = THROTTLE_STOP;
+#else
+	for(int i=0; i<8; i++)
+		g_ppm_output[i] = i == 2 ? THROTTLE_STOP : RC_CENTER;
+#endif
+
 	ADC1_Init();
 	SysTick_Config(720);
-	PPM_init(1);
+	PPM_init();
 	printf_init();
 	I2C_init(0x30);
 	debugpin_init();

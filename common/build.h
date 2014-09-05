@@ -9,8 +9,7 @@
 #define GPS_BUFFER_BLOCK 512
 #define PCB_VERSION 3
 //#define EXTERNAL_HMC5883			// different I2C pins
-//#define EXTERNAL_HMC5883_2			// same I2C pins
-//#define HEADFREE
+#define EXTERNAL_HMC5883_2			// same I2C pins
 
 #ifndef PCB_VERSION
 #define PCB_VERSION 1
@@ -38,7 +37,7 @@
 #define hall_sensor_sensitivity	0.0666		// unit: mV / mA
 #define VOLTAGE_DIVIDER_BASE 6		// uncalibrated voltage divider ratio
 #define MAX_GYRO_BIAS_DRIFT 30
-#define THROTTLE_STOP 1110
+#define THROTTLE_STOP ((int)(rc_setting[2][0]-20))
 #define THROTTLE_MAX 1888
 #define THROTTLE_CRUISE 0.45f
 
