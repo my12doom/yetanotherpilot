@@ -383,15 +383,18 @@ int nmea_parse_GPZDA(const char *buff, int buff_sz, nmeaGPZDA *pack)
 	if(6 != nmea_scanf(buff, buff_sz,
 		"$GPZDA,%s,%d,%d,%d,%d,%d*",
 		time_buff,
-		&(pack->day),
-		&(pack->month),
-		&(pack->year),
-		&(pack->zone_hour),
-		&(pack->zone_minute)))
+		&(pack->utc.day),
+		&(pack->utc.mon),
+		&(pack->utc.year),
+		&(pack->utc.zone_hour),
+		&(pack->utc.zone_minute)))
 	{
 		nmea_error("GPZDA parse error!");
 		return 0;
 	}
+
+	pack->utc.mon -= 1;
+	pack->utc.year -= 1900;
 
 	if(0 != _nmea_parse_time(&time_buff[0], (int)strlen(&time_buff[0]), &(pack->utc)))
 	{
@@ -544,11 +547,5 @@ void nmea_GPZDA2info(nmeaGPZDA *pack, nmeaINFO *info)
 {
     NMEA_ASSERT(pack && info);
 
-	info->utc2 = pack->utc;
-	info->utc2.year = pack->year;
-	info->utc2.mon = pack->month;
-	info->utc2.day = pack->day;
-	info->utc2.zone_hour = pack->zone_hour;
-	info->utc2.zone_minute = pack->zone_minute;
-	
+	info->utc2 = pack->utc;	
 }

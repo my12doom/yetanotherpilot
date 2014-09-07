@@ -87,11 +87,6 @@ typedef struct _nmeaGPGSV
 typedef struct _nmeaGPZDA
 {
     nmeaTIME utc;       /**< UTC of position */
-    char    day;        /**< Status (A = active or V = void) */
-	char    month;        /**< Latitude in NDEG - [degree][min].[sec/60] */
-    char    year;         /**< [N]orth or [S]outh */
-	char    zone_hour;        /**< Longitude in NDEG - [degree][min].[sec/60] */
-    char    zone_minute;         /**< [E]ast or [W]est */
 } nmeaGPZDA;
 
 /**
