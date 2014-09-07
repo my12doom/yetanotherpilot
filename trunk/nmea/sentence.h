@@ -29,7 +29,8 @@ enum nmeaPACKTYPE
     GPGSA   = 0x0002,   /**< GSA - GPS receiver operating mode, SVs used for navigation, and DOP values. */
     GPGSV   = 0x0004,   /**< GSV - Number of SVs in view, PRN numbers, elevation, azimuth & SNR values. */
     GPRMC   = 0x0008,   /**< RMC - Recommended Minimum Specific GPS/TRANSIT Data. */
-    GPVTG   = 0x0010    /**< VTG - Actual track made good and speed over ground. */
+    GPVTG   = 0x0010,   /**< VTG - Actual track made good and speed over ground. */
+    GPZDA   = 0x0020,   /**< ZDA - Time & Date. */
 };
 
 /**
@@ -83,6 +84,19 @@ typedef struct _nmeaGPGSV
 /**
  * RMC packet information structure (Recommended Minimum sentence C)
  */
+typedef struct _nmeaGPZDA
+{
+    nmeaTIME utc;       /**< UTC of position */
+    char    day;        /**< Status (A = active or V = void) */
+	char    month;        /**< Latitude in NDEG - [degree][min].[sec/60] */
+    char    year;         /**< [N]orth or [S]outh */
+	char    zone_hour;        /**< Longitude in NDEG - [degree][min].[sec/60] */
+    char    zone_minute;         /**< [E]ast or [W]est */
+} nmeaGPZDA;
+
+/**
+ * RMC packet information structure (Recommended Minimum sentence C)
+ */
 typedef struct _nmeaGPRMC
 {
     nmeaTIME utc;       /**< UTC of position */
@@ -98,6 +112,7 @@ typedef struct _nmeaGPRMC
     char    mode;       /**< Mode indicator of fix type (A = autonomous, D = differential, E = estimated, N = not valid, S = simulator) */
 
 } nmeaGPRMC;
+
 
 /**
  * VTG packet information structure (Track made good and ground speed)
@@ -120,6 +135,7 @@ void nmea_zero_GPGSA(nmeaGPGSA *pack);
 void nmea_zero_GPGSV(nmeaGPGSV *pack);
 void nmea_zero_GPRMC(nmeaGPRMC *pack);
 void nmea_zero_GPVTG(nmeaGPVTG *pack);
+void nmea_zero_GPZDA(nmeaGPVTG *pack);
 
 #ifdef  __cplusplus
 }

@@ -29,6 +29,7 @@ typedef struct _nmeaPARSER
     nmeaGPGSV GPGSV;
     nmeaGPRMC GPRMC;
     nmeaGPVTG GPVTG;
+	nmeaGPZDA GPZDA;
 } nmeaPARSER;
 
 int     nmea_parser_init(nmeaPARSER *parser);

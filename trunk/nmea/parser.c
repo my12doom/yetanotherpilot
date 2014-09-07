@@ -123,6 +123,14 @@ int nmea_parse(nmeaPARSER *parser, const char *buff, int buff_sz, nmeaINFO *info
                     nmea_GPVTG2info(&parser->GPVTG, info);
                 }
                 break;
+			case GPZDA:
+				if(nmea_parse_GPZDA(
+					buff + nparsed,
+					sen_sz, &parser->GPZDA))
+				{
+					nmea_GPZDA2info(&parser->GPZDA, info);
+				}
+				break;
             default:
                 break;
             };
