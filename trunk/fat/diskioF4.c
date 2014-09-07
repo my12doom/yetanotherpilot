@@ -5,11 +5,13 @@
 /* This is a stub disk I/O module that acts as front end of the existing */
 /* disk I/O modules and attach it to FatFs module with common interface. */
 /*-----------------------------------------------------------------------*/
+#include <time.h>
 #include <string.h>
 #include "diskio.h"
 #include "stm324xg_eval_sdio_sd.h"
 #include "../mcu.h"
 #include "stm324xg_eval.h"
+#include "../common/gps.h"
 
 /*-----------------------------------------------------------------------*/
 /* Correspondence between physical drive number and physical drive.      */
@@ -172,9 +174,42 @@ DRESULT disk_ioctl (
 	return RES_OK;
 }
 
-DWORD get_fattime(void){
-	return 0;
+DWORD make_fattime(int sec, int min, int hour, int day, int mon, int year)
+{
+return ((year+1900-1980) << 25)
+| ((mon+1) << 21)
+| ((day) << 16)
+| ((hour) << 11)
+| ((min) << 5)
+| ((sec) << 1)
+;
+	
 }
+
+DWORD get_fattime(void)
+{
+	time_t current_time;
+	nmeaINFO *info = GPS_GetInfo();
+	nmeaTIME *time =  info->utc2.year == 0 ? &info->utc : &info->utc2;
+	struct tm _tm;
+	
+	_tm.tm_sec = time->sec;
+	_tm.tm_min = time->min;
+	_tm.tm_hour = time->hour;
+	_tm.tm_mday = time->day;
+	_tm.tm_mon = time->mon;
+	_tm.tm_year = time->year;
+	
+	current_time = mktime(&_tm);
+	if (current_time == -1)
+		return 0;
+	
+	current_time += 8 * 3600;	// CHINA = UTC+8
+	_tm = *localtime(&current_time);
+	
+	return make_fattime(_tm.tm_sec, _tm.tm_min, _tm.tm_hour, _tm.tm_mday, _tm.tm_mon, _tm.tm_year);
+}
+
 
 void SDIO_IRQHandler(void)
 {
