@@ -310,6 +310,7 @@ vector mag_avg = {0};
 vector accel_avg = {0};
 vector mag_zero = {0};
 vector mag_gain = {0.7924,0.8354,0.8658};
+vector accel_earth_frame_mwc;
 vector accel_earth_frame;
 vector mag_earth_frame;
 param voltage_divider_factor("vfac",6);
@@ -1391,6 +1392,19 @@ int save_logs()
 	memcpy(log_buffer[0]+c*32, &to_send, 32);
 	c++;
 
+	ned_data ned = 
+	{
+		{accel_earth_frame_mwc.array[0] * 1000* 9.8f/2048, accel_earth_frame_mwc.array[1] * 1000* 9.8f/2048, -accel_earth_frame_mwc.array[2] * 1000* 9.8f/2048-9800.0f},
+		{accel_earth_frame.array[0] * 1000, accel_earth_frame.array[1] * 1000, accel_earth_frame.array[2] * 1000},
+	};
+
+	to_send.time = (time & (~TAG_MASK)) | TAG_NED_DATA;
+	to_send.data.ned = ned;
+
+	memcpy(log_buffer[0]+c*32, &to_send, 32);
+	c++;
+
+
 	pilot_data pilot = 
 	{
 		state[0] * 100,
@@ -1824,7 +1838,10 @@ int calculate_attitude()
 	}
 	acc[2] -= 9.8065f;
 
-  	ERROR("accz=%f/%f, acc=%f,%f,%f, raw=%f,%f,%f\n", accz_NED, accelz, acc[0], acc[1], acc[2], BODY2NED[0][0], BODY2NED[0][1], BODY2NED[0][2]);
+	for(int i=0; i<3; i++)
+		accel_earth_frame.array[i] = acc[i];
+
+//   	ERROR("accz=%f/%f, acc=%f,%f,%f, raw=%f,%f,%f\n", accz_NED, accelz, acc[0], acc[1], acc[2], BODY2NED[0][0], BODY2NED[0][1], BODY2NED[0][2]);
 
 
 // 	matrix_()
@@ -1839,7 +1856,7 @@ int calculate_attitude()
 	euler[0] = radian_add(euler[0], quadcopter_trim[0]);
 	euler[1] = radian_add(euler[1], quadcopter_trim[1]);
 
- 	ERROR("euler:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, gyroI:%.2f, time:%f -- ", euler[0]*PI180, euler[1]*PI180, euler[2]*PI180, roll*PI180, pitch*PI180, yaw_est*PI180, gyroI.array[2]*PI180, getus()/1000000.0f);
+ 	ERROR("euler:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, gyroI:%.2f, time:%f \n ", euler[0]*PI180, euler[1]*PI180, euler[2]*PI180, roll*PI180, pitch*PI180, yaw_est*PI180, gyroI.array[2]*PI180, getus()/1000000.0f);
 
 // 	ERROR("angle target:%.2f,%.2f,%.2f\n", angle_target[0]*PI180, angle_target[1]*PI180, angle_target[2]*PI180);
 
@@ -1910,11 +1927,11 @@ int calculate_attitude()
 	yaw_gyro = radian_add(yaw_gyro, quadcopter_trim[2]);
 
 #ifndef LITE
-	accel_earth_frame = accel;
-	float attitude[3] = {-roll, -pitch, 0};
-	vector_rotate2(&accel_earth_frame, attitude);
+	accel_earth_frame_mwc = accel;
+	float attitude[3] = {roll, pitch, yaw_est};
+	vector_rotate2(&accel_earth_frame_mwc, attitude);
 
-	TRACE("\raccel_ef:%.1f, %.1f, %.1f, accelz:%.2f/%.2f, yaw=%.2f/%.2f", accel_earth_frame.V.x, accel_earth_frame.V.y, accel_earth_frame.V.z, accelz, (accel_earth_frame.V.z+2085)/2085*9.80, yaw_est*180/PI, yaw_mag*180/PI);
+// 	ERROR("\raccel_ef:%.1f, %.1f, %.1f, accelz:%.2f/%.2f, yaw=%.2f", accel_earth_frame_mwc.V.x, accel_earth_frame_mwc.V.y, accel_earth_frame_mwc.V.z, accelz, (accel_earth_frame_mwc.V.z+2085)/2085*9.80, yaw_est*180/PI);
 #endif
 
 

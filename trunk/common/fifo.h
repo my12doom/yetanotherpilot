@@ -6,7 +6,7 @@ class CircularQueue
 public:
 	CircularQueue():
 	start(0),
-	count(0)
+	_count(0)
 	{
 
 	}
@@ -20,11 +20,13 @@ public:
 	//        -1 on error (queue full)
 	int push(const T &v)
 	{
-		if (count >= max_elements)
+		if (_count >= max_elements)
 			return -1;
 
-		elements[(start+count)%max_elements] = v;
-		count++;
+		elements[(start+_count)%max_elements] = v;
+		_count++;
+
+		return 0;
 	}
 
 	// pop and return the first element out of the queue.
@@ -32,13 +34,13 @@ public:
 	//        -1 if no element available and *out remain untouched.
 	int pop(T *out)
 	{
-		if (count == 0)
+		if (_count == 0)
 			return -1;
 
 		if (out)
 			*out = elements[start];
 		start = (start+1)%max_elements;
-		count--;
+		_count--;
 
 		return 0;
 	}
@@ -49,7 +51,7 @@ public:
 	//        -1 if element not found and *out remain untouched or invaild out pointer.
 	int peak(int index, T*out)
 	{
-		if (index >= count)
+		if (index >= _count)
 			return -1;
 
 		if (!out)
@@ -62,19 +64,30 @@ public:
 
 	// pop and discards n elements at the top of the queue.
 	// return number of elements removed.
-	int pop_n(int _count)
+	int pop_n(int count)
 	{
-		if (_count>count)
-			_count = count;
+		if (count>_count)
+			count = _count;
 
-		start = (start + _count)%max_elements;
-		count -= _count;
+		start = (start + count)%max_elements;
+		_count -= count;
 
-		return _count;			
+		return count;			
+	}
+
+	// remove all elements
+	void clear()
+	{
+		start = _count = 0;
+	}
+
+	int count()
+	{
+		return _count;
 	}
 
 protected:
 	T elements[max_elements];
 	int start;
-	int count;
+	int _count;
 };

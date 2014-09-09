@@ -262,6 +262,14 @@
 					>
 				</File>
 				<File
+					RelativePath=".\common\fifo.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\common\fifo.h"
+					>
+				</File>
+				<File
 					RelativePath=".\common\gps.c"
 					>
 				</File>
