@@ -83,6 +83,12 @@ typedef struct
 
 typedef struct
 {
+	short accel_NED1[3];
+	short accel_NED2[3];
+} ned_data;
+
+typedef struct
+{
 	int cmd;
 	int reg;
 	int value;
@@ -131,6 +137,7 @@ typedef struct
 		sensor_data sensor;	// 24 bytes
 // 		imu_data_v1 imu_v1;		// 24 bytes
 		imu_data imu;		// 24 bytes
+		ned_data ned;
 		pilot_data pilot;	// 21 bytes
 		pilot_data2 pilot2;	// 24 bytes
 		ppm_data ppm;		// 24 bytes
@@ -156,6 +163,7 @@ typedef struct
 #define TAG_QUADCOPTER_DATA2	0x3800000000000000
 #define TAG_QUADCOPTER_DATA3	0x3900000000000000
 #define TAG_IMU_DATA	0x3A00000000000000
+#define TAG_NED_DATA	0x3B00000000000000
 
 #define CTRL_CMD_SET_VALUE 0
 #define CTRL_CMD_GET_VALUE 1

@@ -80,9 +80,9 @@ void vector_rotate(vector *v, float *delta)
 }
 void vector_rotate2(vector *v, float *delta)
 {
-	vector_rotate_yaw(v, -delta[2]);
-	vector_rotate_pitch(v, -delta[1]);
 	vector_rotate_roll(v, -delta[0]);
+	vector_rotate_pitch(v, -delta[1]);
+	vector_rotate_yaw(v, -delta[2]);
 }
 
 void vector_normalize(vector *v)

@@ -7,7 +7,17 @@ typedef __int64 int64_t;
 #include "..\RFData.h"
 #include "..\common\vector.h"
 #include "..\common\common.h"
-// #include "..\math\matrix.h"
+#include "..\common\matrix.h"
+#include "..\common\fifo.h"
+
+typedef struct
+{
+	double longtitude;
+	double latitude;
+	double vlongtitude;
+	double vlatitude;
+	int64_t time;
+}position;
 
 int max(int a, int b)
 {
@@ -22,77 +32,46 @@ float NDEG2DEG(float ndeg)
 	return degree + minute/60.0f + modf(ndeg, &ndeg)/60.0f;
 }
 
-int kalman()
-{
-
-	float Q = 0.0001;
-	float R = 200;
-	float x = 40;
-	float p = 1000;
-
-	int i = 0;
-
-
-	float RR = 0;
-
-	while(i<500)
-	{
-		float x1 = i == 100 ? x+3:x;
-		float p1 = p + Q;
-
-		float noise = (rand() % 257 - 128)*14/128;
-		RR += noise * noise;
-		float zk = (i<100?25:28) + noise;
-
-		float Kg = p1/(p1+R);
-
-		x = x1 + Kg * (zk - x1);
-		p = (1-Kg) * p1;
-
-		printf("%d\t%.2f\t%.2f\n", ++i, x, zk, RR/i);
-	}
-
-	exit(0);
-
-	return 0;
-}
-
-void matrix_error(const char*msg)
-{
-	ERROR(msg);
-	while(true)
-		;
-}
-
-int matrix_mul(float *out, const float *m1, int row1, int column1, const float *m2, int row2, int column2)
-{
-	if (column1 != row2)
-		matrix_error("invalid matrix_mul");
-
-	for(int x1 = 0; x1<column2; x1++)
-	{
-		for(int y1 = 0; y1<row1; y1++)
-		{
-			out[y1*column2+x1] = 0;
-			for(int k = 0; k<column1; k++)
-				out[y1*column2+x1] += m1[y1*column1+k] * m2[k*column2+x1];
-		}
-	}
-
-	return 0;
-}
-
 int main(int argc, char **argv)
 {
-// 	matrix test = 
-// 	{
-// 		3,3
-// 		{
-// 			1,0,0,
-// 			0,1,0,
-// 			0,0,1,
-// 		}
-// 	};
+	CircularQueue<position, 50> pos_hist;
+	position gps_sample = {0};
+	position current = {0};
+	position abias = {0};
+	position pbias = {0};
+	position base = {0};
+	position meter = {0};
+	position meter_raw = {0};
+
+
+	float o;
+	int res;
+	bool gps_ready = 0;
+
+	
+	CircularQueue<float, 5> q;
+	for(int i=0; i<999; i++)
+	{
+	q.push(1.0f);
+	q.push(2.0f);
+	q.push(3.0f);
+	q.push(4.0f);
+	q.push(5.0f+i);
+	q.push(6.0f);
+
+	res = q.peak(2, &o);
+	res = q.pop_n(3);
+	res = q.peak(2, &o);
+
+	res = q.pop(&o);
+	res = q.pop(&o);
+	res = q.pop(&o);
+	res = q.pop(&o);
+	res = q.pop(&o);
+	res = q.pop(&o);
+	}
+
+
 	double a_raw_altitude;
 	{
 		double scaling = (double)1014.001 / 1014;
@@ -100,12 +79,23 @@ int main(int argc, char **argv)
 		a_raw_altitude = 153.8462f * temp * (1.0f - exp(0.190259f * log(scaling)));
 
 	}
-	vector test = {0,0,1};
-	vector gyro = {0,PI/20000,0};
-	
-	for(int i=0; i<10000; i++)
+
+	FILE * ff = fopen("Z:\\out.csv", "wb");
+	fprintf(ff, "i,x,y,z\r\n");
+
+ 	for(int i=-100; i<=100; i++)
+	{
+		vector test = {1,1,1};
+		vector test2 = test;
+		vector gyro = {0,0,PI*i/100/2,};
+		
 		vector_rotate(&test, gyro.array);
 
+		vector delta = vector_delta_angle(test, test2);
+
+		fprintf(ff, "%f,%f,%f,%f\r\n", PI*i/100/2, (delta.array[0]), delta.array[1], delta.array[2]);
+	}
+	fclose(ff);
 	if (argc<=1)
 	{
 		printf("dat2csv file\r\n");
@@ -126,6 +116,7 @@ int main(int argc, char **argv)
 	quadcopter_data quad = {0};
 	quadcopter_data2 quad2 = {0};
 	quadcopter_data3 quad3 = {0};
+	ned_data ned = {0};
 
 
 	FILE * f = fopen(argv[1], "rb");
@@ -149,7 +140,20 @@ int main(int argc, char **argv)
 		else if ((rf.time & TAG_MASK) ==  TAG_PILOT_DATA2)
 			pilot2 = rf.data.pilot2;
 		else if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA)
+		{
 			gps = rf.data.gps;
+			position s = {NDEG2DEG(gps.longitude), NDEG2DEG(gps.latitude), 0, 0, time};
+			gps_sample = s;
+
+			if (gps.DOP[1] > 0 && gps.DOP[1] < 500 && !gps_ready)
+			{
+				gps_ready = true;
+				base = current = s;
+			}
+
+		}
+		else if ((rf.time & TAG_MASK) ==  TAG_NED_DATA)
+			ned = rf.data.ned;
 // 		else if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA_V1)
 // 			gps_v1 = rf.data.gps_v1;
 		else if ((rf.time & TAG_MASK) ==  TAG_SENSOR_DATA)
@@ -176,7 +180,57 @@ int main(int argc, char **argv)
 			printf("unknown data %x, skipping\r\n", int((rf.time & TAG_MASK)>>56));
 		}
 
-		float *lll = &gps.longitude;
+		// test
+
+		static int64_t last_time = time;
+		double dt = (time - last_time) / 1000000.0f;
+		last_time = time;
+
+		if (gps_ready && dt >0 && dt < 1)
+		{
+			double _time_constant_xy = 3.5f;
+			double _k1_xy = 3 / _time_constant_xy;
+			double _k2_xy = 3 / (_time_constant_xy*_time_constant_xy);
+			double _k3_xy = 1 / (_time_constant_xy*_time_constant_xy*_time_constant_xy);
+
+			double longtitude_to_meter = (40007000.0f/360*cos(current.latitude * PI / 180));
+			double latitude_to_meter = (40007000.0f/360);
+			//double 
+			double accel_x = ned.accel_NED2[1] / 1000.0f / longtitude_to_meter;
+			double accel_y = ned.accel_NED2[0] / 1000.0f / latitude_to_meter;
+
+			double error_x = (gps_sample.longtitude - (current.longtitude + pbias.longtitude));
+			double error_y = (gps_sample.latitude - (current.latitude + pbias.latitude));
+
+			abias.longtitude += error_x * _k3_xy * dt;		// accel bias
+			abias.latitude += error_y * _k3_xy * dt;		// accel bias
+
+			current.vlongtitude += error_x * _k2_xy * dt;
+			current.vlatitude += error_y * _k2_xy * dt;
+
+			pbias.longtitude += error_x * _k1_xy * dt;
+			pbias.latitude += error_y * _k1_xy * dt;
+
+			double v_increase_x = (accel_x + abias.longtitude) * dt;
+			double v_increase_y = (accel_y + abias.latitude) * dt;
+
+			current.longtitude += (current.vlongtitude + v_increase_x*0.5) * dt;
+			current.latitude += (current.vlatitude + v_increase_y*0.5) * dt;
+
+			current.vlongtitude += v_increase_x;
+			current.vlatitude += v_increase_y;
+
+			static int i = 0;
+			if (i++%150==0)
+				printf("v=%.2f/%.2f,time%.2f,p=%f / %f\n", current.vlongtitude*longtitude_to_meter, current.vlatitude*latitude_to_meter, time/1000000.0f, current.longtitude, current.latitude);
+
+			meter.longtitude = (current.longtitude + pbias.longtitude - base.longtitude) * longtitude_to_meter;
+			meter.latitude = (current.latitude + pbias.latitude - base. latitude) * latitude_to_meter;
+			meter_raw.longtitude = (gps_sample.longtitude - base.longtitude) * longtitude_to_meter;
+			meter_raw.latitude = (gps_sample.latitude - base. latitude) * latitude_to_meter;
+		}
+
+
 
 		if (time < lasttime)
 		{
@@ -255,10 +309,10 @@ int main(int argc, char **argv)
  		fprintf(fo, "%.4f,%.2f,%.2f,%2f,%.2f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d,%d\r\n",
-				float(time/1000000.0f), sensor.voltage/1000.0f, sensor.current/1000.0f, pilot.mah_consumed/1.0f, altitude,
- 				sensor.accel[0], sensor.accel[1], sensor.accel[2], sensor.gyro[0], sensor.gyro[1], sensor.gyro[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[0], pilot2.D[0],
-				roll*180/PI, pitch*180/PI, yaw_gyro*180/PI, pilot.target[0]/100.0, pilot.target[1]/100.0, pilot.target[2]/100.0, 
-				(ppm.in[2]-1113)/50, pilot.fly_mode == acrobatic ? 5000 : -5000,
+				float(time/1000000.0f), sensor.voltage/1000.0f, sensor.current/1000.0f, pilot.mah_consumed/1.0f, imu.temperature / 100.0f,
+ 				ned.accel_NED1[0], ned.accel_NED1[1], ned.accel_NED1[2], ned.accel_NED2[0], ned.accel_NED2[1], ned.accel_NED2[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[0], pilot2.D[0],
+				roll*180/PI, pitch*180/PI, yaw_est*180/PI, pilot.target[0]/100.0, pilot.target[1]/100.0, pilot.target[2]/100.0, 
+				(ppm.in[2]-1113)/50, pilot.fly_mode,
 				ppm.in[0], ppm.in[1], ppm.in[2], ppm.in[3], ppm.out[0], ppm.out[1], ppm.out[2], ppm.out[3],
 				estAccGyro.V.x, estAccGyro.V.y, estAccGyro.V.z,
 				sensor.gyro[0],sensor.gyro[1],sensor.gyro[2], sensor.mag[0]);
@@ -272,19 +326,19 @@ int main(int argc, char **argv)
 
 		if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA || (rf.time & TAG_MASK) ==  TAG_GPS_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA2)
 		{
-			if (
-				1 &&
-				pilot.fly_mode == quadcopter
+//  			if (
+// 				1 &&
+// 				pilot.fly_mode == quadcopter
 // 				gps.fix>1 && gps.longitude > 0 && gps.latitude > 0
-				)
-// 			if (time > 300000000 && time < 400000000)
+//  				)
+// 			if (time > 200000000 && time < 500000000)
 // 			if (m++ %3 == 0 && quad3.ultrasonic != 0xffff)
- 			if (m++ %25 == 0)
+ 			if (m++ %50 == 0)
 			{
 				fprintf(gpso, "%.4f", float(time/1000000.0f));
-				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[1], quad.angle_target[1], quad.speed[1], quad.speed_target[1]);
-				fprintf(gpso, ",%d,%d,%d,%d,%d,%d,%d,", quad.angle_pos[0],quad.angle_target[0],quad.speed[0],quad.speed_target[0], quad2.climb_rate, quad2.altitude_inertia, quad3.altitude_target);
-				fprintf(gpso, "%d,%d,%d", quad3.climb_target, quad2.altitude_baro_raw, quad2.accel_z);
+				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[2], quad.angle_target[2], quad.speed[2], quad.speed_target[2]);
+				fprintf(gpso, ",%d,%d,%d,%d,%d,%f,%f,", quad.angle_pos[0],quad.angle_target[0],quad.speed[0],quad.speed_target[0], quad2.climb_rate, meter_raw.longtitude, meter_raw.latitude);
+				fprintf(gpso, "%f,%f,%f", gps.DOP[0]/100.0f, meter.longtitude, meter.latitude);
 				fprintf(gpso, "\r\n");
 			}
 		}
