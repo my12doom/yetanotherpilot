@@ -8,8 +8,12 @@
 #include "../common/vector.h"
 #include "../common/build.h"
 #include "OwnerDraw.h"
+#include "common.h"
 
 #define ACC_Z_1G -2048
+#define GYRO_MAX_BIAS 160				// ~1.2degree/s, if we have bias more than this, then calibration warning is shown
+#define ACCEL_STABLE_THRESHOLD  205		// ~0.1g, if we have vibration more than this, we consider it vibrating
+#define TILT_MAX_BIAS 200				// if we have tilt more than this, then calibration warning is shown
 
 extern Comm test;
 vector imu_statics[2][4] = {0};		//	[accel, gyro][min, current, max, avg][x,y,z]
@@ -25,6 +29,9 @@ float trim[2];
 float acc_bias_z = 0;
 
 float client_accel[3] = {0, 0, 0};
+float stable_accel[3] = {0, 0, 0};
+float stable_gyro[3] = {0, 0, 0};
+int last_stable_tick = 0x7fffffff;
 vector client_tilt;
 
 HWND hWnd;
@@ -156,7 +163,7 @@ int calibration_OnEvent(int code, void *extra_data)
 
 DWORD CALLBACK calibration_update_thread(LPVOID p)
 {
-while(true)
+	while(true)
 	{
 		char cmd[] = "imustates\n";
 		char output[20480] = {0};
@@ -186,11 +193,15 @@ while(true)
 
 			sscanf(p, "%f,%d,", &mpu6050_temperature, &avg_count);
 		}
+		else
+			continue;
 
 
 
+		goto imu_read_ok;
 fail:
-
+		continue;
+imu_read_ok:
 
 		// update
 		DWORD IDtable[] = {IDC_GYRO0, IDC_GYRO1, IDC_GYRO2};
@@ -219,6 +230,56 @@ fail:
 
 			// client side accel low pass for tile display
 			client_accel[i] = client_accel[i] * 0 + imu_statics[0][1].array[i] * 1;
+
+			// calculate stable accelerometer/gyrometer readings
+			bool stable = true;
+			for(int i=0; i<3; i++)
+			{
+				if (fabs(stable_accel[i] - imu_statics[0][1].array[i]) > ACCEL_STABLE_THRESHOLD)
+					stable = false;
+				if (fabs(stable_gyro[i] - imu_statics[1][1].array[i]) > GYRO_MAX_BIAS/3)
+					stable = false;
+			}
+
+			
+			if (stable)
+			{
+				// do nothing ,reserve latest value
+			}
+			else
+			{
+				last_stable_tick = GetTickCount();
+				for(int i=0; i<3; i++)
+				{
+					stable_accel[i] = imu_statics[0][1].array[i];
+					stable_gyro[i] = imu_statics[1][1].array[i];
+				}
+			}
+
+			// show IMU calibration result
+			if (GetTickCount() - last_stable_tick > 1000)
+			{
+				vector accel = {stable_accel[0], stable_accel[1], stable_accel[2]};
+				vector tilt_reading = {0};
+				accel_vector_to_euler_angle(accel, &tilt_reading);
+
+				bool tilt_ok = fabs(tilt_reading.array[0] + trim[0]) < 5.0f*PI/180 && fabs(tilt_reading.array[1] + trim[1]) < 5.0f*PI/180;
+				bool gyro_ok = fabs(stable_gyro[0] - gyro_zero_raw[0]) < GYRO_MAX_BIAS && fabs(stable_gyro[1] - gyro_zero_raw[1]) < GYRO_MAX_BIAS && fabs(stable_gyro[2] - gyro_zero_raw[2]) < GYRO_MAX_BIAS;
+
+				float total_gforce = sqrt(stable_accel[0]*stable_accel[0]+stable_accel[1]*stable_accel[1]+stable_accel[2]*stable_accel[2])/2048.0f;
+				if (fabs(total_gforce - 1.0f) > 0.5f)
+					SetDlgItemTextW(hWnd, IDC_IMUSTATE, L"传感器有显著问题，请校准");
+				else if (tilt_ok && gyro_ok)
+					SetDlgItemTextW(hWnd, IDC_IMUSTATE, L"传感器状态良好");
+				else
+					SetDlgItemTextW(hWnd, IDC_IMUSTATE, L"传感器需要校准");
+
+			}
+			else
+			{
+				SetDlgItemTextW(hWnd, IDC_IMUSTATE, L"请将装有飞控的飞机放在水平面上以获得传感器状态");
+			}				
+
 		}
 
 		if(log)
@@ -255,6 +316,7 @@ fail:
 				int to = calibrating;
 				calibrating = 0;
 				SetDlgItemTextW(hWnd, calibrating == 1 ? IDC_CAL_T1 : IDC_CAL_T2, calibrating == 1 ? L"Cal1" : L"Cal2");
+				bool save = true;
 
 				// check for vibration
 				float vibration[6];
@@ -265,9 +327,10 @@ fail:
 				float accel_vibration = sqrt(vibration[0]*vibration[0]+vibration[1]*vibration[1]+vibration[2]*vibration[2]);
 				float gyro_vibration = sqrt(vibration[3]*vibration[3]+vibration[4]*vibration[4]+vibration[5]*vibration[5]);
 
-				if (accel_vibration > 204 || gyro_vibration > 160)		// 0.1g, 10degree/s
+				if (accel_vibration > ACCEL_STABLE_THRESHOLD/* || gyro_vibration > GYRO_MAX_BIAS*/)	
 				{
-					MessageBoxW(hWnd, L"stay still please!", L"", MB_OK | MB_ICONERROR);
+					MessageBoxW(hWnd, L"校准时请保持飞控处于静止状态!", L"", MB_OK | MB_ICONERROR);
+					save = false;
 				}
 
 				// calculate
@@ -277,15 +340,13 @@ fail:
 				// check for extreme tilt
 				vector accel = {imu_statics[0][3].array[0], imu_statics[0][3].array[1], imu_statics[0][3].array[2]+dz};
 				vector new_trim = {0};
-				if (accel_vector_to_euler_angle(accel, &new_trim) < 0)
-				{
-					// TODO : error message
-				}
+				accel_vector_to_euler_angle(accel, &new_trim);
 
 				if (fabs(new_trim.array[0]) > PI/18 || fabs(new_trim.array[1]) > PI/18)
 				{
 					// TODO : error message
-					MessageBoxW(hWnd, L"stay flat please!", L"", MB_OK | MB_ICONERROR);
+					MessageBoxW(hWnd, L"检测到飞控总倾斜角度大于10度，请将飞机水平放置再进行校准。", L"", MB_OK | MB_ICONERROR);
+					save = false;
 				}
 				
 				trim[0] = -new_trim.array[0];
@@ -294,9 +355,15 @@ fail:
 
 
 				// save
-				write_gyro_bias(to);
-				swprintf(test, L"%f,%f,%f,%f", imu_statics[1][3].array[0], imu_statics[1][3].array[1], imu_statics[1][3].array[2], mpu6050_temperature);
-				MessageBoxW(hWnd, test, L"info", MB_OK);
+				if (save)
+				{
+					write_gyro_bias(to);
+// 					swprintf(test, L"%f,%f,%f,%f", imu_statics[1][3].array[0], imu_statics[1][3].array[1], imu_statics[1][3].array[2], mpu6050_temperature);
+// 					MessageBoxW(hWnd, test, L"info", MB_OK);
+				}
+
+				SetDlgItemTextW(hWnd, IDC_CAL_T1, L"开始校准");
+				SetDlgItemTextW(hWnd, IDC_CAL_T2, L"开始校准");
 			}
 		}
 
@@ -311,6 +378,7 @@ INT_PTR CALLBACK WndProcCalibration(HWND hWnd, UINT message, WPARAM wParam, LPAR
 
 	switch (message)
 	{
+	HANDLE_CTLCOLORSTATIC;
 	case WM_LBUTTONDOWN:
 		SendMessage(GetParent(GetParent(hWnd)), WM_NCLBUTTONDOWN, HTCAPTION, 0);
 		break;
@@ -352,29 +420,33 @@ INT_PTR CALLBACK WndProcCalibration(HWND hWnd, UINT message, WPARAM wParam, LPAR
 
 			if (to>0)
 			{
-				int previous_avg_count = avg_count;		
-				int tick = GetTickCount();
-				while (previous_avg_count <= avg_count && GetTickCount()-tick<1000)
+				if (MessageBoxW(hWnd, L"请将飞机平稳放置在水平面上，然后点击确定开始校准传感器", L"平放", MB_OKCANCEL) == IDOK)
 				{
-					char cmd[] = "imureset\n";
-					char output[20480] = {0};
-					char *p = output;
-
-					int len = test.command(cmd, strlen(cmd), output);
-					if (strstr(output,"ok") != output)
+					int previous_avg_count = avg_count;		
+					int tick = GetTickCount();
+					while (previous_avg_count <= avg_count && GetTickCount()-tick<10000)
 					{
-						to = -1;
-						break;
+						char cmd[] = "imureset\n";
+						char output[20480] = {0};
+						char *p = output;
+
+						int len = test.command(cmd, strlen(cmd), output);
+						if (strstr(output,"ok") != output)
+						{
+							to = -1;
+							break;
+						}
+						DoEvents();
+						Sleep(1);
 					}
-					DoEvents();
-					Sleep(1);
+					if (previous_avg_count<= avg_count)
+					{
+						// TODO: failed
+						MessageBoxW(hWnd, L"校准失败，请确定飞控与电脑连接良好", L"失败", MB_OK | MB_ICONERROR);
+						to = 0;
+					}
+					calibrating = to;
 				}
-				if (previous_avg_count<= avg_count)
-				{
-					// TODO: failed
-					to = 0;
-				}
-				calibrating = to;
 			}
 		}
 		break;

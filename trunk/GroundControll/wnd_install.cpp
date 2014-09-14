@@ -3,6 +3,7 @@
 #include "resource.h"
 #include "comm.h"
 #include "OwnerDraw.h"
+#include "common.h"
 
 extern Comm test;
 
@@ -55,6 +56,7 @@ INT_PTR CALLBACK WndProcInstall(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 
 	switch (message)
 	{
+	HANDLE_CTLCOLORSTATIC;
 	case WM_LBUTTONDOWN:
 		SendMessage(GetParent(GetParent(hWnd)), WM_NCLBUTTONDOWN, HTCAPTION, 0);
 		break;

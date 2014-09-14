@@ -6,6 +6,7 @@
 #include <float.h>
 #include "../common/vector.h"
 #include "OwnerDraw.h"
+#include "common.h"
 
 extern Comm test;
 
@@ -172,6 +173,7 @@ INT_PTR CALLBACK WndProcPid(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
 	switch (message)
 	{
+	HANDLE_CTLCOLORSTATIC;
 	case WM_LBUTTONDOWN:
 		SendMessage(GetParent(GetParent(hWnd)), WM_NCLBUTTONDOWN, HTCAPTION, 0);
 		break;

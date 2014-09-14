@@ -80,6 +80,7 @@
 #define IDC_EDIT3                       1008
 #define IDC_TAB1                        1008
 #define IDC_RATE_2                      1008
+#define IDC_SLIDER5                     1008
 #define IDC_EDIT4                       1009
 #define IDC_INSTALL                     1009
 #define IDC_VERTICAL                    1009
@@ -95,6 +96,7 @@
 #define IDC_EDIT7                       1012
 #define IDC_PAGES                       1012
 #define IDC_STABLIZE_2                  1012
+#define IDC_SLIDER6                     1012
 #define IDC_EDIT8                       1013
 #define IDC_CHECK1                      1013
 #define IDC_EDIT9                       1014
@@ -118,6 +120,10 @@
 #define IDC_TEMP                        1026
 #define IDC_ACCEL                       1027
 #define IDC_RESET                       1028
+#define IDC_IMUSTATE                    1029
+#define IDC_REVERT4                     1034
+#define IDC_CHECK7                      1035
+#define IDC_REVERT5                     1035
 #define IDC_LOAD                        51001
 
 // Next default values for new objects
@@ -126,7 +132,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        144
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1029
+#define _APS_NEXT_CONTROL_VALUE         1031
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
