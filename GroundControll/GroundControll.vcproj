@@ -203,11 +203,11 @@
 					>
 				</File>
 				<File
-					RelativePath=".\res\bitmap1.bmp"
+					RelativePath=".\bitmap1.bmp"
 					>
 				</File>
 				<File
-					RelativePath=".\bitmap1.bmp"
+					RelativePath=".\res\bitmap1.bmp"
 					>
 				</File>
 				<File
@@ -405,6 +405,14 @@
 			</File>
 			<File
 				RelativePath=".\comm.h"
+				>
+			</File>
+			<File
+				RelativePath=".\common.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\common.h"
 				>
 			</File>
 		</Filter>

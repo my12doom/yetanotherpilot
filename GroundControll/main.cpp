@@ -8,6 +8,7 @@
 #include "wnd_profile.h"
 #include "comm.h"
 #include "OwnerDraw.h"
+#include "common.h"
 
 INT_PTR CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK WndProc2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -44,6 +45,7 @@ INT_PTR CALLBACK WndProc2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	switch (message)
 	{
+	HANDLE_CTLCOLORSTATIC;
 	case WM_INITDIALOG:
 		SetTimer(hWnd, 1, 10, NULL);
 		break;

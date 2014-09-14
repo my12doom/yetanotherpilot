@@ -2,17 +2,21 @@
 #include "comm.h"
 #include "resource.h"
 #include <CommCtrl.h>
+#include <WindowsX.h>
 #include <stdio.h>
 #include "OwnerDraw.h"
+#include "common.h"
 
 extern Comm test;
-HWND sliders[4];
+static HWND wnd;
+HWND sliders[6];
 int ppm_states[8][3];
 int ppm_center[8] = {0};
 float rc[8];
 float rc_setting[8][4];
 
 static bool remote_calibrating = false;
+static bool need_update_revert_button = false;
 
 static float limit(float v, float low, float high)
 {
@@ -115,12 +119,20 @@ DWORD CALLBACK remote_update_thread(LPVOID p)
 		update_ppm();
 
 		// update UI
-		for(int i=0; i<4;i ++)
+		for(int i=0; i<6;i ++)
 		{
 			SendMessage(sliders[i], TBM_SETRANGEMIN, TRUE, 0);
 			SendMessage(sliders[i], TBM_SETPOS, TRUE, i==2 ? (rc[i]*65535) : ((rc[i]+1)*32767));
-			SendMessage(sliders[i], TBM_SETRANGEMAX, TRUE, 65535);				
+			SendMessage(sliders[i], TBM_SETRANGEMAX, TRUE, 65535);
 		}
+
+//  		if (need_update_revert_button)
+ 		{
+			DWORD revert_button_ids[] = {IDC_REVERT0, IDC_REVERT1, IDC_REVERT2, IDC_REVERT3, IDC_REVERT4, IDC_REVERT5};
+ 			for(int i=0; i<6;i ++)
+				Button_SetCheck(GetDlgItem(wnd, revert_button_ids[i]), rc_setting[i][3] > 0 ? BST_CHECKED : BST_UNCHECKED);
+ 			need_update_revert_button = false;
+ 		}
 
 		Sleep(17);
 	}
@@ -141,15 +153,17 @@ INT_PTR CALLBACK WndProcRemote(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 
 	switch (message)
 	{
+	HANDLE_CTLCOLORSTATIC;
 	case WM_LBUTTONDOWN:
 		SendMessage(GetParent(GetParent(hWnd)), WM_NCLBUTTONDOWN, HTCAPTION, 0);
 		break;
 	case WM_INITDIALOG:
 		{
+			wnd = hWnd;
 			test.add_callback(remote_OnEvent);
 			CreateThread(NULL, NULL, remote_update_thread, NULL, NULL, NULL);
-			DWORD slider_ids[4] = {IDC_SLIDER1, IDC_SLIDER2, IDC_SLIDER3, IDC_SLIDER4};
-			for(int i=0; i<4;i ++)
+			DWORD slider_ids[] = {IDC_SLIDER1, IDC_SLIDER2, IDC_SLIDER3, IDC_SLIDER4, IDC_SLIDER5, IDC_SLIDER6};
+			for(int i=0; i<6;i ++)
 				sliders[i] = GetDlgItem(hWnd, slider_ids[i]);
 		}
 		break;
@@ -171,12 +185,17 @@ INT_PTR CALLBACK WndProcRemote(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 					swprintf(test, L"%f,%f,%f", 0, 1, 2);
 					MessageBoxW(hWnd, test, L"info", MB_OK);
 					write_rc_settings();
+					SetDlgItemTextW(hWnd, IDC_RC, L"开始校准");
 				}
 				else
 				{
-					MessageBoxW(hWnd, L"..", L"::", MB_OK);
+					if (MessageBoxW(hWnd, L"请先将所有通道至于居中位置（包括油门），然后点击确定开始校准遥控器。"
+						L"开始校准后请将所有通道分别拨动到极限位置来回几次（包括停机开关和控制模式通道）。" 
+						L"或点击取消继续使用当前设定。", L"::", MB_OKCANCEL | MB_ICONINFORMATION) == IDCANCEL)
+						break;
 
 					remote_calibrating = true;
+					SetDlgItemTextW(hWnd, IDC_RC, L"完成校准");
 
 					char cmd[] = "rcreset\n";
 					char output[20480] = {0};
@@ -190,23 +209,16 @@ INT_PTR CALLBACK WndProcRemote(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 
 				}
 			}
-			else if (id == IDC_REVERT0 || id == IDC_REVERT1 || id == IDC_REVERT2 || id == IDC_REVERT3)
+			else if (id == IDC_REVERT0 || id == IDC_REVERT1 || id == IDC_REVERT2 || id == IDC_REVERT3 || id == IDC_REVERT4 || id == IDC_REVERT5)
 			{
-				int channel = -1;
-				if (id == IDC_REVERT0)
-					channel = 0;
-				if (id == IDC_REVERT1)
-					channel = 1;
-				if (id == IDC_REVERT2)
-					channel = 2;
-				if (id == IDC_REVERT3)
-					channel = 3;
-
-				rc_setting[channel][3] = rc_setting[channel][3] > 0 ? 0 : 1;
+				DWORD revert_button_ids[] = {IDC_REVERT0, IDC_REVERT1, IDC_REVERT2, IDC_REVERT3, IDC_REVERT4, IDC_REVERT5};
+				for(int i=0; i<6;i ++)
+					rc_setting[i][3] = Button_GetCheck(GetDlgItem(wnd, revert_button_ids[i])) == BST_CHECKED ? 1 : 0;
 
 				if (!remote_calibrating)
 					write_rc_settings();
 
+				need_update_revert_button = true;
 			}
 		}
 		break;
