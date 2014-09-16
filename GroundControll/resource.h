@@ -52,6 +52,7 @@
 #define IDC_CLOSE                       1001
 #define IDC_BUTTON2                     1002
 #define IDC_MINIMIZE                    1002
+#define IDC_DRIVER                      1002
 #define IDC_RADIO1                      1003
 #define IDC_BUTTON3                     1003
 #define IDC_IDLE_0                      1003
@@ -106,7 +107,7 @@
 #define IDC_GYRO1                       1015
 #define IDC_RATE_D1                     1015
 #define IDC_EDIT11                      1016
-#define IDC_GYRO2                       1016
+#define IDC_GYRO2                       1036
 #define IDC_RATE_D2                     1016
 #define IDC_CAL_T1                      1017
 #define IDC_CAL_T2                      1018
@@ -122,7 +123,6 @@
 #define IDC_RESET                       1028
 #define IDC_IMUSTATE                    1029
 #define IDC_REVERT4                     1034
-#define IDC_CHECK7                      1035
 #define IDC_REVERT5                     1035
 #define IDC_LOAD                        51001
 
@@ -132,7 +132,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        144
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1031
+#define _APS_NEXT_CONTROL_VALUE         1039
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

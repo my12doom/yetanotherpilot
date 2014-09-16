@@ -38,19 +38,57 @@ HBITMAP hBG = LoadBitmap(GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_BG));
 
 HWND last_wnd = NULL;
 
+// 安全的取得真实系统信息
+VOID SafeGetNativeSystemInfo(__out LPSYSTEM_INFO lpSystemInfo)
+{
+	if (NULL==lpSystemInfo)    return;
+	typedef VOID (WINAPI *LPFN_GetNativeSystemInfo)(LPSYSTEM_INFO lpSystemInfo);
+	LPFN_GetNativeSystemInfo fnGetNativeSystemInfo = (LPFN_GetNativeSystemInfo)GetProcAddress(GetModuleHandleW(L"kernel32"), "GetNativeSystemInfo");;
+	if (NULL != fnGetNativeSystemInfo)
+	{
+		fnGetNativeSystemInfo(lpSystemInfo);
+	}
+	else
+	{
+		GetSystemInfo(lpSystemInfo);
+	}
+}
 
 
 INT_PTR CALLBACK WndProc2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	const UINT BCM_SETSHIELD = 0x0000160C;
 
 	switch (message)
 	{
 	HANDLE_CTLCOLORSTATIC;
 	case WM_INITDIALOG:
 		SetTimer(hWnd, 1, 10, NULL);
+		SendMessage(GetDlgItem(hWnd, IDC_DRIVER), BCM_SETSHIELD, 0, TRUE);
 		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
+		break;
+	case WM_COMMAND:
+		if (LOWORD(wParam) == IDC_DRIVER)
+		{
+			SYSTEM_INFO si;
+			wchar_t path[MAX_PATH*2];
+			GetModuleFileNameW(NULL, path, MAX_PATH);
+			((wchar_t*)wcsrchr(path, L'\\'))[1] = NULL;
+			SafeGetNativeSystemInfo(&si);
+			if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64 ||
+				si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_IA64 )
+			{
+				wcscat(path, L"VCP_V1.3.1_Setup_x64.exe");
+			}
+			else
+			{
+				wcscat(path, L"VCP_V1.3.1_Setup.exe");
+			}
+
+			ShellExecuteW(NULL, L"open", path, NULL, NULL, SW_SHOWNORMAL);
+		}
 		break;
 	case WM_LBUTTONDOWN:
 		SendMessage(GetParent(GetParent(hWnd)), WM_NCLBUTTONDOWN, HTCAPTION, 0);
@@ -95,10 +133,10 @@ int show_page(int id)
 
 int main_OnEvent(int code, void *extra_data)
 {
-// 	if (code == WM_DISCONNECT)
-// 		show_page(0);
-// 	if (code == WM_CONNECT)
-// 		show_page(active_id = (active_id ? active_id : IDC_INSTALL));
+	if (code == WM_DISCONNECT)
+		show_page(0);
+	if (code == WM_CONNECT)
+		show_page(active_id = (active_id ? active_id : IDC_INSTALL));
 
 	return 0;
 }

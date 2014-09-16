@@ -24,12 +24,12 @@ int max(int a, int b)
 	return a>b?a:b;
 }
 
-float NDEG2DEG(float ndeg)
+double NDEG2DEG(double ndeg)
 {
 	int degree = ndeg / 100;
 	int minute = int(floor(ndeg)) % 100;	
 
-	return degree + minute/60.0f + modf(ndeg, &ndeg)/60.0f;
+	return degree + minute/60.0 + modf(ndeg, &ndeg)/60.0;
 }
 
 int main(int argc, char **argv)
@@ -188,7 +188,7 @@ int main(int argc, char **argv)
 
 		if (gps_ready && dt >0 && dt < 1)
 		{
-			double _time_constant_xy = 3.5f;
+			double _time_constant_xy = 2.5f;
 			double _k1_xy = 3 / _time_constant_xy;
 			double _k2_xy = 3 / (_time_constant_xy*_time_constant_xy);
 			double _k3_xy = 1 / (_time_constant_xy*_time_constant_xy*_time_constant_xy);
@@ -226,8 +226,12 @@ int main(int argc, char **argv)
 
 			meter.longtitude = (current.longtitude + pbias.longtitude - base.longtitude) * longtitude_to_meter;
 			meter.latitude = (current.latitude + pbias.latitude - base. latitude) * latitude_to_meter;
+			meter.vlongtitude = (current.vlongtitude) * longtitude_to_meter;
+			meter.vlatitude = (current.vlatitude) * latitude_to_meter;
 			meter_raw.longtitude = (gps_sample.longtitude - base.longtitude) * longtitude_to_meter;
 			meter_raw.latitude = (gps_sample.latitude - base. latitude) * latitude_to_meter;
+
+// 			printf("%.7f,%.8f\n", meter_raw.longtitude, gps_sample.longtitude);
 		}
 
 
@@ -303,14 +307,16 @@ int main(int argc, char **argv)
 		if (yaw_est<0)
 			yaw_est += 2*PI;
 
+		float mag_size = sqrt((double)sensor.mag[0]*sensor.mag[0]+sensor.mag[1]*sensor.mag[1]+sensor.mag[2]*sensor.mag[2]);
+
 // 		if (time > 300000000 && time < 400000000)
-		if (n++ %54 == 0)
-// 		if (time > 350000000 && time < 370000000)
+		if (n++ %24 == 0)
+		if (time > 0 && time < 100000000)
  		fprintf(fo, "%.4f,%.2f,%.2f,%2f,%.2f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d,%d\r\n",
-				float(time/1000000.0f), sensor.voltage/1000.0f, sensor.current/1000.0f, pilot.mah_consumed/1.0f, imu.temperature / 100.0f,
- 				ned.accel_NED1[0], ned.accel_NED1[1], ned.accel_NED1[2], ned.accel_NED2[0], ned.accel_NED2[1], ned.accel_NED2[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[0], pilot2.D[0],
+				float(time/1000000.0f), sensor.voltage/1000.0f, sensor.current/1000.0f, mag_size, imu.temperature / 100.0f,
+ 				ned.accel_NED1[0], ned.accel_NED1[1], ned.accel_NED1[2], sensor.gyro[0], sensor.gyro[1], sensor.gyro[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[0], pilot2.D[0],
 				roll*180/PI, pitch*180/PI, yaw_est*180/PI, pilot.target[0]/100.0, pilot.target[1]/100.0, pilot.target[2]/100.0, 
 				(ppm.in[2]-1113)/50, pilot.fly_mode,
 				ppm.in[0], ppm.in[1], ppm.in[2], ppm.in[3], ppm.out[0], ppm.out[1], ppm.out[2], ppm.out[3],
@@ -331,14 +337,14 @@ int main(int argc, char **argv)
 // 				pilot.fly_mode == quadcopter
 // 				gps.fix>1 && gps.longitude > 0 && gps.latitude > 0
 //  				)
-// 			if (time > 200000000 && time < 500000000)
+ 			if (time > 50000000 && time < 100000000)
 // 			if (m++ %3 == 0 && quad3.ultrasonic != 0xffff)
- 			if (m++ %50 == 0)
+ 			if (m++ %10 == 0)
 			{
 				fprintf(gpso, "%.4f", float(time/1000000.0f));
-				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[2], quad.angle_target[2], quad.speed[2], quad.speed_target[2]);
+				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[1], quad.angle_target[1], quad.speed[1], quad.speed_target[1]);
 				fprintf(gpso, ",%d,%d,%d,%d,%d,%f,%f,", quad.angle_pos[0],quad.angle_target[0],quad.speed[0],quad.speed_target[0], quad2.climb_rate, meter_raw.longtitude, meter_raw.latitude);
-				fprintf(gpso, "%f,%f,%f", gps.DOP[0]/100.0f, meter.longtitude, meter.latitude);
+				fprintf(gpso, "%.1f/%d,%f,%f", gps.DOP[0]/100.0f, gps.satelite_in_use, meter.longtitude, meter.latitude);
 				fprintf(gpso, "\r\n");
 			}
 		}
