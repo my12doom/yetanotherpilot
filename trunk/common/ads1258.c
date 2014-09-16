@@ -12,6 +12,8 @@
 #define LOW_THRESH 2
 #define HIGH_THRESH 3
 
+int channel_data[29];
+int last_update_channel = -1;
 
 void ads1258_begin()
 {
@@ -53,9 +55,8 @@ uint8_t ads1258_write_registers(uint8_t start, uint8_t n, void *data)
 	int i;
 	uint8_t *p = (uint8_t*)data;
 	ads1258_begin();
-	ads1258_tx_rx((start&0xf) | 0x50);
-	ads1258_tx_rx(n-1);
-	delayms(2);
+	i = (start&0xf) | (CMD_RegisterWrite<<5) | (n>1?0x10:0x00);
+	ads1258_tx_rx(i);
 	for(i=0; i<n; i++)
 		ads1258_tx_rx(p[i]);
 
@@ -119,8 +120,9 @@ int ads1258_init(void)
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 #endif
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_3;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	GPIO_ResetBits(GPIOA, GPIO_Pin_3);
 
 
 	ads1258_end();
@@ -177,4 +179,31 @@ short ads1258_convert(void)				// a simplfied version which start a new conversi
 	while (ads1258_getresult(&v)!=0)
 		;
 	return v;
+}
+
+static int t = 0;
+void ads1258_go(void)
+{
+	int i;
+	int channel;
+	char p[4];
+	ads1258_begin();
+	i = (1<<5) | 0x10;
+	ads1258_tx_rx(i);
+	for(i=0; i<4; i++)
+		p[i]=ads1258_tx_rx(0xff);
+
+	ads1258_end();
+
+
+	if (p[0] & 0x80)		// new data?
+	{
+		int state = p[0];
+		channel = p[0] & 0x1f;
+		p[0] = (p[1] & 0x80) ? 0xff : 0x00;
+		swap(p,4);
+
+		channel_data[channel] = *(int*)p;
+		last_update_channel = channel;
+	}
 }

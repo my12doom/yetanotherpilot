@@ -85,34 +85,5 @@ int read_MPU6050(short*data)
 	for(i=0; i<7; i++)
 		swap((uint8_t*)&data[i], 2);
 
-	// apply 5hz high pass filter for gyro data
-	/*
-	us = getus();
-
-	if (lastus == -1)
-	{
-		for(i=0; i<3; i++)
-			gyro_raw[i] = gyro_o[i] = data[i+4];
-	}
-	else
-	{
-		float dt = (us-lastus)/1000000.0f;
-		const float RC = 0.03183f;//1.0f/(2*3.1415926 * 5);	// 5hz High pass filter		
-		float alpha = RC / (dt + RC);
-
-		for(i=0; i<3; i++)
-		{
-			gyro_o[i] = alpha * (gyro_o[i] + data[i+4] - gyro_raw[i]);
-		}
-
-		for(i=0; i<3; i++)
-		{
-			gyro_raw[i] = data[i+4];
-			data[i+4] = gyro_o[i];
-		}
-	}
-	lastus = us;
-	*/
-	
 	return result;
 }

@@ -848,8 +848,12 @@ int prepare_pid()
 {
 	// calculate current core pid position
 #if QUADCOPTER == 1
-// 	float new_angle_pos[3] = {roll, pitch, gyroI.array[2]};
+
+#ifndef LITE
+	float new_angle_pos[3] = {euler[0], euler[1], gyroI.array[2]};
+#else
 	float new_angle_pos[3] = {euler[0], euler[1], -euler[2]};
+#endif
 
 	// the quadcopter's main pid lock on angle rate
 	for(int i=0; i<3; i++)
@@ -870,6 +874,7 @@ int prepare_pid()
 
 	switch (mode)
 	{
+#ifndef LITE
 	case acrobatic:
 		{
 			for(int i=0; i<3; i++)
@@ -967,7 +972,7 @@ int prepare_pid()
 		}
 
 		break;
-
+#endif
 #if QUADCOPTER == 1
 	case quadcopter:
 		{
@@ -1606,7 +1611,7 @@ int read_sensors()
 #else
 	vector acc = {p->accel[1], p->accel[0], -p->accel[2]};
 	vector gyro = {-p->gyro[0], p->gyro[1], p->gyro[2]};
-	vector mag = {(p->mag[2]-mag_zero.array[2]), -(p->mag[0]-mag_zero.array[0]), (p->mag[1]-mag_zero.array[1])};
+	vector mag = {0};
 #endif
 	acc.array[2] += acc_bias_z;
 	gyro_raw = gyro;
@@ -1621,7 +1626,7 @@ int read_sensors()
 	const float RC20 = 1.0f/(2*3.1415926 * 20.0f);
 	float alpha20 = interval / (interval + RC20);
 
-	if (isnan(accel.array[0]))
+	if (isnan(accel.array[0]) || interval == 0)
 		::accel = acc;
 	else
 	{
@@ -1752,9 +1757,6 @@ int inverse_matrix3x3(const float src[3][3], float dst[3][3])
 	return 0;
 }
 
-extern float bias0, bias1, bias2, bias3;
-extern float gyro_bias[3];
-
 int calculate_attitude()
 {
 	vector delta_rotation = gyro;
@@ -1765,7 +1767,6 @@ int calculate_attitude()
 	vector_rotate(&estAccGyro, delta_rotation.array);
 	vector_rotate(&estMagGyro, delta_rotation.array);
 
-
 	for(int i=0; i<3; i++)
 		gyroI.array[i] = radian_add(gyroI.array[i], delta_rotation.array[i]);
 
@@ -1773,7 +1774,6 @@ int calculate_attitude()
 	TRACE("\r          gyro:%.2f,%.2f, pos:%.2f,%.2f             ", ::gyro.array[0], ::gyro.array[1], pos[0], pos[1]);
 
 	static float mag_tolerate = 0.25f;
-	float pix_mag[3] = {mag.V.y, -mag.V.x, -mag.V.z};
 
 	vector acc_norm = accel;
 	vector_multiply(&acc_norm, 9.8065f/2048.0f);
@@ -1783,6 +1783,8 @@ int calculate_attitude()
 	if (pix_acc_g > 1.15f || pix_acc_g < 0.85f)
 		pix_acc2[0] = pix_acc2[1] = pix_acc2[2] = 0;
 
+#ifndef LITE
+	float pix_mag[3] = {mag.V.y, -mag.V.x, -mag.V.z};
 	if (fabs(vector_length(&mag) / vector_length(&groundM) - 1.0f) < mag_tolerate)
 	{
 		mag_tolerate = 0.25f;
@@ -1793,6 +1795,9 @@ int calculate_attitude()
 		mag_tolerate += 0.05f * interval;
 		ERROR("warning: possible magnetic interference");
 	}
+#else
+	float pix_mag[3] = {0, 0, 0};
+#endif
 	NonlinearSO3AHRSupdate(
 		gyro.array[0], gyro.array[1], -gyro.array[2],
 // 		0,0,0,
@@ -1856,7 +1861,7 @@ int calculate_attitude()
 	euler[0] = radian_add(euler[0], quadcopter_trim[0]);
 	euler[1] = radian_add(euler[1], quadcopter_trim[1]);
 
- 	ERROR("euler:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, gyroI:%.2f, time:%f \n ", euler[0]*PI180, euler[1]*PI180, euler[2]*PI180, roll*PI180, pitch*PI180, yaw_est*PI180, gyroI.array[2]*PI180, getus()/1000000.0f);
+  	ERROR("euler:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, gyroI:%.2f, time:%f \n ", euler[0]*PI180, euler[1]*PI180, euler[2]*PI180, roll*PI180, pitch*PI180, yaw_est*PI180, gyroI.array[2]*PI180, getus()/1000000.0f);
 
 // 	ERROR("angle target:%.2f,%.2f,%.2f\n", angle_target[0]*PI180, angle_target[1]*PI180, angle_target[2]*PI180);
 
@@ -1871,6 +1876,7 @@ int calculate_attitude()
 	vector_sub(&mag_delta, &mag);
 
 	// apply CF filter for Mag if delta is acceptable
+#ifndef LITE
 	if (fabs(vector_length(&mag) / vector_length(&estMagGyro) - 1.0f) < mag_tolerate)
 	{
 		vector mag_f = mag;
@@ -1884,6 +1890,7 @@ int calculate_attitude()
 		mag_tolerate += 0.05f * interval;
 		ERROR("warning: possible magnetic interference");
 	}
+#endif
 
 	// apply CF filter for Acc if g force is acceptable
 	float acc_g = vector_length(&accel)/ accel_1g;
@@ -2130,7 +2137,46 @@ mag_load:
 
 int sensor_calibration()
 {
+	// update gyro temperature compensation
+	if (!isnan((float)_gyro_bias[0][0]) && !isnan((float)_gyro_bias[1][0]))
+	{
+		float dt = _gyro_bias[1][0] - _gyro_bias[0][0];
+		if (dt > 1.0f)
+		{
+			for(int i=0; i<3; i++)
+			{
+				gyro_temp_a.array[i] = _gyro_bias[0][i+1];
+				gyro_temp_k.array[i] = (_gyro_bias[1][i+1] - _gyro_bias[0][i+1]) / dt;
+			}
+			temperature0 = _gyro_bias[0][0];
+		}
+		else
+		{
+			// treat as one point
+			int group = !isnan(_gyro_bias[0][0]) ? 0 : (!isnan(_gyro_bias[1][0]) ? 1: -1);
+			for(int i=0; i<3; i++)
+			{
+				gyro_temp_a.array[i] = group >= 0 ? _gyro_bias[group][i+1] : 0;
+				gyro_temp_k.array[i] = 0;
+			}
+			temperature0 = group != 0 ? _gyro_bias[group][0] : 0;
+		}
+	}
+	else
+	{
+		int group = !isnan(_gyro_bias[0][0]) ? 0 : (!isnan(_gyro_bias[1][0]) ? 1: -1);
+		for(int i=0; i<3; i++)
+		{
+			gyro_temp_a.array[i] = group >= 0 ? _gyro_bias[group][i+1] : 0;
+			gyro_temp_k.array[i] = 0;
+		}
+		temperature0 = group != 0 ? _gyro_bias[group][0] : 0;
+	}
+
+
+
 	// static base value detection
+	vector gyro_avg = {0};
 	for(int i=0; i<300; i++)
 	{
 		long us = getus();
@@ -2152,6 +2198,7 @@ int sensor_calibration()
 
 		vector_add(&accel_avg, &accel);
 		vector_add(&mag_avg, &mag);
+		vector_add(&gyro_avg, &gyro);
 
 
 
@@ -2223,6 +2270,7 @@ int sensor_calibration()
 
 	vector_divide(&accel_avg, 300);
 	vector_divide(&mag_avg, 300);
+	vector_divide(&gyro_avg, 300);
 	groundA = accel_avg;
 	groundM = mag_avg;
 	mpu6050_temperature /= 300;
@@ -2232,52 +2280,32 @@ int sensor_calibration()
 	estAccGyro = accel_avg;
 	estGyro= estMagGyro = mag_avg;
 	accel_1g = vector_length(&accel_avg);	
-
-	if (!isnan((float)_gyro_bias[0][0]) && !isnan((float)_gyro_bias[1][0]))
-	{
-		float dt = _gyro_bias[1][0] - _gyro_bias[0][0];
-		if (dt > 1.0f)
-		{
-			for(int i=0; i<3; i++)
-			{
-				gyro_temp_a.array[i] = _gyro_bias[0][i+1];
-				gyro_temp_k.array[i] = (_gyro_bias[1][i+1] - _gyro_bias[0][i+1]) / dt;
-			}
-			temperature0 = _gyro_bias[0][0];
-		}
-		else
-		{
-			// treat as one point
-			int group = !isnan(_gyro_bias[0][0]) ? 0 : (!isnan(_gyro_bias[1][0]) ? 1: -1);
-			for(int i=0; i<3; i++)
-			{
-				gyro_temp_a.array[i] = group >= 0 ? _gyro_bias[group][i+1] : 0;
-				gyro_temp_k.array[i] = 0;
-			}
-			temperature0 = group != 0 ? _gyro_bias[group][0] : 0;
-		}
-	}
-	else
-	{
-		int group = !isnan(_gyro_bias[0][0]) ? 0 : (!isnan(_gyro_bias[1][0]) ? 1: -1);
-		for(int i=0; i<3; i++)
-		{
-			gyro_temp_a.array[i] = group >= 0 ? _gyro_bias[group][i+1] : 0;
-			gyro_temp_k.array[i] = 0;
-		}
-		temperature0 = group != 0 ? _gyro_bias[group][0] : 0;
-	}
-
 	ERROR("base value measured\n");
+
+	// init ahrs gyro bias
+	vector pix_acc = {accel_avg.V.y, -accel_avg.V.x, -accel_avg.V.z};
+	float pix_gyro[3] = {gyro_avg.array[0], gyro_avg.array[1], -gyro_avg.array[2]};
+	vector_multiply(&pix_acc, 9.8065f / 2048.0f);
+#ifndef LITE
+	float pix_mag[3] = {mag_avg.V.y, -mag_avg.V.x, -mag_avg.V.z};
+#else
+	float pix_mag[3] = {0};
+#endif
+
+	NonlinearSO3AHRSinit(pix_acc.array[0], pix_acc.array[1], pix_acc.array[2],
+		pix_mag[0], pix_mag[1], pix_mag[2],
+		pix_gyro[0], pix_gyro[1], pix_gyro[2]);
 
 	return 0;
 }
 
 #ifndef LITE
 #else
+extern __IO uint32_t bDeviceState;
+#define UNCONNECTED 0
 int Mal_Accessed()
 {
-	return 0;
+	return bDeviceState == UNCONNECTED ? 0 : 1;
 }
 #endif
 
@@ -2324,8 +2352,12 @@ int check_mode()
 			ERROR("shutdown!\n");
 		}
 
-		// arm action check: throttle minimum, elevator stick down, rudder max or min, aileron max or min, for 0.5second
-		bool arm_action = rc[2] < 0.1f  && fabs(rc[0]) > 0.85f
+		// arm action check: RC first four channel active, throttle minimum, elevator stick down, rudder max or min, aileron max or min, for 0.5second
+		bool rc_fail = false;
+		for(int i=0; i<4; i++)
+			if (g_ppm_input_update[i] < getus() + 500000)
+				rc_fail = true;
+		bool arm_action = !rc_fail && rc[2] < 0.1f  && fabs(rc[0]) > 0.85f
 						&& fabs(rc[1]) > 0.85f && fabs(rc[3]) > 0.85f;
 		if (!arm_action)
 		{
@@ -2647,7 +2679,9 @@ int loop(void)
 	prepare_pid();
 	pid();
 	output();
+#ifndef LITE
 	save_logs();
+#endif
 
 	if (mode == quadcopter)
 	{
@@ -2787,207 +2821,6 @@ int main(void)
  	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN2_AIN3, ads1115_gain_2V, &ads1115_airspeed);
  	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN3, ads1115_gain_4V, &ads1115_2_5V);
 	
-	//ads1115_new_work(ads1115_speed_8sps, ads1115_channnel_AIN3, ads1115_gain_6V, &power);
-	//ads1115_new_work(ads1115_speed_8sps, ads1115_channnel_AIN1, ads1115_gain_4V, &int61152);
-	//ads1115_new_work(ads1115_speed_8sps, ads1115_channnel_AIN1_AIN3, ads1115_gain_1V, &int6115);
-	//ads1115_new_work(ads1115_speed_8sps, ads1115_channnel_AIN2, ads1115_gain_4V, &int288);
-
-	if(0)
-	{
-		init_hp203b();
-
-		while(1)
-		{
-			int data[2];
-			if (read_hp203b(data) == 0)
-			{
-				printf("data=%d(%08x),%f\n", data[0], data[0], data[1]/256.0f);
-			}
-		}
-	}
-	#endif
-
-
-	if(0)
-	{
-		space_init();
-
-		char test[200] = "world";
-		char key[200] = "hello";
-		char test2[200];
-		char key2[200];
-
-		int got = 0;
-		int write_result;
-		int read_result;
-
-		read_result = space_read(key, strlen(key), test2, sizeof(test2), &got);
-		ERROR("read:%d, %s", read_result, test2);
-		write_result = space_write(key, strlen(key), test, strlen(test), &got); 
-		read_result = space_read(key, strlen(key), test2, sizeof(test2), &got);
-		read_result = space_read(key, strlen(key), test2, sizeof(test2), &got); 
-
-		strcpy(test, "world2");
-
-		for(int i=0; i<100; i++)
-			write_result = space_write("key2", 4, "k345", 4, &got);
-		write_result = space_write(key, strlen(key), test, strlen(test), &got); 
-		space_init();
-		// 	write_result = space_delete(key, strlen(key));
-		// 	read_result = space_read(key, strlen(key), test2, sizeof(test2), &got); 
-
- 		//int resort_result = space_resort();
-
-		space_init();
-
-		read_result = space_read("key2", 4, test2, sizeof(test2), &got); 
-		read_result = space_read(key, strlen(key), test2, sizeof(test2), &got); 
-		ERROR("read:%d, %s", read_result, test2);
-	}
-
-	#if !defined(LITE) && !defined(STM32F4) && 0
-	ads1256_init();
-
-	ads1256_begin();
-	ads1256_tx_rx(CMD_Reset);
-	ads1256_end();
-	delayms(100);
-	
-	
-	ads1256_status status;
-	ads1256_read_registers(REG_Status, 1, &status);
-	status.BufferEnable = 0;
-	status.AutoCalibration = 1;
-	ads1256_write_registers(REG_Status, 1, &status);
-
-	uint8_t speed = 0;
-// 	ads1256_mux mux = {ads1256_channnel_AIN6, ads1256_channnel_AIN7};
-// 	ads1256_write_registers(REG_MUX, 1, &mux);
-// 	ads1256_read_registers(REG_MUX, 1, &mux);
-// 	ERROR("1256:mux register = %02x\n", *(uint8_t*)&mux);
-
-	delayms(50);
-	ads1256_read_registers(REG_DataRate, 1, &speed);
-	delayms(50);
-	ERROR("1256:speed register = %02x\n", speed);
-	speed = ads1256_speed_100sps;
-	ERROR("1256:speed register writing %02x\n", speed);
-	ads1256_write_registers(REG_DataRate, 1, &speed);
-	delayms(50);
-	ads1256_read_registers(REG_DataRate, 1, &speed);
-	ERROR("1256:speed register = %02x\n", speed);
-
-	ERROR("time,vpower,v6115,v288,Pa6115,Pa288,ms5611,m\r\n");
-
-// 	ads1256_begin();
-// 	ads1256_tx_rx(CMD_SystemOffsetCalibration);
-// 	ads1256_end();
-// 	delayms(15);
-
-
-	ads1256_begin();
-	ads1256_tx_rx(CMD_OffsetGainCalibration);
-	ads1256_end();
-	delayms(150);
-
-	while(1)
-	{
-		status.DataReady = 1;
-
-		while(status.DataReady == 1)		
-			ads1256_read_registers(REG_Status, 1, &status);
-
-		status.DataReady = 1;
-		ads1256_begin();
-		ads1256_tx_rx(CMD_Sync);
-		ads1256_tx_rx(CMD_WakeUp);
-		ads1256_end();
-
-		while(status.DataReady == 1)
-		{
-			//ERROR("wait..\n");
-			ads1256_read_registers(REG_Status, 1, &status);
-		}
-
-		//ERROR("ads1256 status=%02x, d=%d\n", *(uint8_t*)&status, status.DataReady);
-
-
-		if (status.DataReady == 0)
-		{
-			uint8_t data[4];
-			ads1256_begin();
-			ads1256_tx_rx(CMD_ReadData);
-			delayus(15);
-			for(int i=0; i<3; i++)
-				data[i+1] = ads1256_tx_rx(0);
-			data[0] = (data[1] & 0x80) ? 0xff : 0x00;
-			swap(data, 4);
-			ads1256_end();
-
-// 			ERROR("data=%08x(%fV)\n", *(int*)data, *(int*)data * 5.0f / 8388607.0f);
-// 			ads1256_read_register(REG_Status, 1, &status);
-// 			ERROR("ads1256 status=%d, d=%d\n", *(uint8_t*)&status, status.DataReady);
-
-
-			float v6115 = *(int*)data * 5.0f / 8388607.0f;
-			float pa_6115 = 15000 + (v6115-5.0*0.05f)/(0.9f*5.0)*100000.0f;
-			ERROR("%.2f,%f\n", pa_6115, v6115);
-
-		}
-
-		/*
-		//int adc = ads1115_go_on();
-		int oss = 64;
-		power = 0;
-		ads1115_config(ads1115_speed_250sps, ads1115_channnel_AIN3, ads1115_gain_6V, ads1115_mode_singleshot);
-		for(int i=0; i<oss; i++)
-			power += ads1115_convert();
-
-		int61152 = 0;
-		ads1115_config(ads1115_speed_250sps, ads1115_channnel_AIN1, ads1115_gain_4V, ads1115_mode_singleshot);
-		for(int i=0; i<oss; i++)
-			int61152 += ads1115_convert();
-
-
-		int288 = 0;
-		ads1115_config(ads1115_speed_250sps, ads1115_channnel_AIN2, ads1115_gain_4V, ads1115_mode_singleshot);
-		for(int i=0; i<oss; i++)
-			int288 += ads1115_convert();
-
-		int2882 = 0;
-		ads1115_config(ads1115_speed_250sps, ads1115_channnel_AIN2, ads1115_gain_6V, ads1115_mode_singleshot);
-		for(int i=0; i<oss; i++)
-			int2882 += ads1115_convert();
-
-
-
-		vpower = power/32767.0f*6.0f/oss;
-		float vpower2 = power/32767.0f*6.0f/oss;
-		v6115 = vpower + int6115*1.0f/32767.0f;
-		v288 = int2882*6.0f/oss/32767.0f;
-		v61152 = int61152/32767.0f*4.0f/oss;
-
-
-
-		float pa_6115 = 15000 + (v6115-vpower*0.05f)/(0.9f*vpower)*100000.0f;
-		float pa_61152 = 15000 + (v61152-vpower*0.05f)/(0.9f*vpower)*100000.0f;
-		float pa_288 = 50000.0f + (v288-vpower*0.06f)/(0.9f*vpower)*65000.0f;
-		pa_288 = ((v288/vpower) +0.095f)/0.009f*1000.0f;
-
-		read_baro(ms5611);
-		delayms(20);
-		read_baro(ms5611);
-		delayms(20);
-		read_baro(ms5611);
-		delayms(20);
-		read_baro(ms5611);
-
-		//ERROR("%.3f,%f,%f,%f,%.3f,%.3f,%d,%f\r\n", getus()/1000000.0f, vpower2, v61152, v288, pa_6115, pa_288,ms5611[0], pa_61152);
-		*/
-
-	}
-	
-	delayms(100);
 	#endif
 	
 	#ifndef LITE
@@ -3001,8 +2834,9 @@ int main(void)
 	p->voltage = -32768;
 	p->current = -32768;
 
-			
+#ifndef LITE
 	magnet_calibration();
+#endif
 	sensor_calibration();
 
 	has_5th_channel = g_ppm_input_update[4] > getus();
@@ -3147,6 +2981,8 @@ void TIM8_BRK_TIM12_IRQHandler(void)
 {
 	TIM_ClearITPendingBit(TIM12 , TIM_FLAG_Update);
 
+#ifndef LITE
+
 	int dt=getus()-tick;
 	if (dt > 15000)
 		TRACE("long log interval:%d\n", dt);
@@ -3161,6 +2997,7 @@ void TIM8_BRK_TIM12_IRQHandler(void)
 
 	if (res == 0)
 		tick = getus();
+#endif
 }
 }
 

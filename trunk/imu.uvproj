@@ -7,7 +7,7 @@
 
   <Targets>
     <Target>
-      <TargetName>pilotF4</TargetName>
+      <TargetName>imu</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
       <TargetOption>

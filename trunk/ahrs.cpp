@@ -3,12 +3,6 @@
 #include <math.h>
 
 //---------------------------------------------------------------------------------------------------
-// Variable definitions
-
-static bool thread_should_exit = false;		/**< Deamon exit flag */
-static bool thread_running = false;		/**< Deamon status flag */
-static int attitude_estimator_so3_task;				/**< Handle of deamon task / thread */
-
 //! Auxiliary variables to reduce number of repeated operations
 float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;	/** quaternion of sensor frame relative to auxiliary frame */
 static float dq0 = 0.0f, dq1 = 0.0f, dq2 = 0.0f, dq3 = 0.0f;	/** quaternion of sensor frame relative to auxiliary frame */
@@ -31,12 +25,16 @@ float invSqrt(float x);
 // AHRS algorithm initialization
 //! Using accelerometer, sense the gravity vector.
 //! Using magnetometer, sense yaw.
-void NonlinearSO3AHRSinit(float ax, float ay, float az, float mx, float my, float mz)
+void NonlinearSO3AHRSinit(float ax, float ay, float az, float mx, float my, float mz, float gx, float gy, float gz)
 {
     float initialRoll, initialPitch;
     float cosRoll, sinRoll, cosPitch, sinPitch;
     float magX, magY;
     float initialHdg, cosHeading, sinHeading;
+
+	gyro_bias[0] = -gx;
+	gyro_bias[1] = -gy;
+	gyro_bias[2] = -gz;
 
     initialRoll = atan2(-ay, -az);
     initialPitch = atan2(ax, -az);
@@ -89,7 +87,7 @@ void NonlinearSO3AHRSupdate(float gx, float gy, float gz, float ax, float ay, fl
 	// This function assumes you are in static position.
 	// WARNING : in case air reboot, this can cause problem. But this is very unlikely happen.
 	if(bFilterInit == false) {
-		NonlinearSO3AHRSinit(ax,ay,az,mx,my,mz);
+		NonlinearSO3AHRSinit(ax,ay,az,mx,my,mz, gx, gy, gz);
 		bFilterInit = true;
 	}
         	

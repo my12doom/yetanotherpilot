@@ -2,6 +2,9 @@
 
 #include "../mcu.h"
 
+extern int channel_data[29];		// data read in auto-scan mode
+extern int last_update_channel;
+
 typedef enum
 {
 	ads1258_speed_30000sps = 0xf0,
@@ -91,7 +94,7 @@ typedef struct
 	unsigned GAIN:1;
 	unsigned REF:1;
 	unsigned zero1:2;
-} ads1258_SYSRED;						// CONFIG1 register(0)
+} ads1258_SYSRED;						// SYSRED register(0)
 
 
 typedef enum
@@ -135,6 +138,7 @@ int ads1258_init(void);
 int ads1258_startconvert(void);
 int ads1258_getresult(short *result);		// return -1 if still converting, 0 if conversion completed or continuous mode, further calls return the last conversion result.
 short ads1258_convert(void);				// a simplfied version which start a new conversion ,wait it to complete and returns the result directly
+void ads1258_go(void);
 
 #ifdef __cplusplus
 }

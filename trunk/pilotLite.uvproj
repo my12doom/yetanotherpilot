@@ -436,6 +436,11 @@
                 </FileArmAds>
               </FileOption>
             </File>
+            <File>
+              <FileName>ahrs.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\ahrs.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
