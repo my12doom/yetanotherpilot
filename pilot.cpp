@@ -1848,9 +1848,6 @@ int calculate_attitude()
 
 //   	ERROR("accz=%f/%f, acc=%f,%f,%f, raw=%f,%f,%f\n", accz_NED, accelz, acc[0], acc[1], acc[2], BODY2NED[0][0], BODY2NED[0][1], BODY2NED[0][2]);
 
-
-// 	matrix_()
-
 	//1-2-3 Representation.
 	//Equation (290) 
 	//Representing Attitude: Euler Angles, Unit Quaternions, and Rotation Vectors, James Diebel.
@@ -1861,7 +1858,7 @@ int calculate_attitude()
 	euler[0] = radian_add(euler[0], quadcopter_trim[0]);
 	euler[1] = radian_add(euler[1], quadcopter_trim[1]);
 
-  	ERROR("euler:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, gyroI:%.2f, time:%f \n ", euler[0]*PI180, euler[1]*PI180, euler[2]*PI180, roll*PI180, pitch*PI180, yaw_est*PI180, gyroI.array[2]*PI180, getus()/1000000.0f);
+  	TRACE("euler:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, gyroI:%.2f, time:%f \n ", euler[0]*PI180, euler[1]*PI180, euler[2]*PI180, roll*PI180, pitch*PI180, yaw_est*PI180, gyroI.array[2]*PI180, getus()/1000000.0f);
 
 // 	ERROR("angle target:%.2f,%.2f,%.2f\n", angle_target[0]*PI180, angle_target[1]*PI180, angle_target[2]*PI180);
 
@@ -2355,7 +2352,7 @@ int check_mode()
 		// arm action check: RC first four channel active, throttle minimum, elevator stick down, rudder max or min, aileron max or min, for 0.5second
 		bool rc_fail = false;
 		for(int i=0; i<4; i++)
-			if (g_ppm_input_update[i] < getus() + 500000)
+			if (g_ppm_input_update[i] < getus() - RC_TIMEOUT)
 				rc_fail = true;
 		bool arm_action = !rc_fail && rc[2] < 0.1f  && fabs(rc[0]) > 0.85f
 						&& fabs(rc[1]) > 0.85f && fabs(rc[3]) > 0.85f;
