@@ -348,15 +348,15 @@ imu_read_ok:
 					MessageBoxW(hWnd, L"检测到飞控总倾斜角度大于10度，请将飞机水平放置再进行校准。", L"", MB_OK | MB_ICONERROR);
 					save = false;
 				}
-				
-				trim[0] = -new_trim.array[0];
-				trim[1] = -new_trim.array[1];
-				
 
 
 				// save
 				if (save)
 				{
+
+					trim[0] = -new_trim.array[0];
+					trim[1] = -new_trim.array[1];
+
 					write_gyro_bias(to);
 // 					swprintf(test, L"%f,%f,%f,%f", imu_statics[1][3].array[0], imu_statics[1][3].array[1], imu_statics[1][3].array[2], mpu6050_temperature);
 // 					MessageBoxW(hWnd, test, L"info", MB_OK);
