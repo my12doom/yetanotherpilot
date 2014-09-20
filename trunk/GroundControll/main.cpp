@@ -9,6 +9,8 @@
 #include "comm.h"
 #include "OwnerDraw.h"
 #include "common.h"
+#include <tchar.h>
+#include <ShellAPI.h>
 
 INT_PTR CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK WndProc2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -55,6 +57,27 @@ VOID SafeGetNativeSystemInfo(__out LPSYSTEM_INFO lpSystemInfo)
 }
 
 
+int install_driver()
+{
+	SYSTEM_INFO si;
+	wchar_t path[MAX_PATH*2];
+	GetModuleFileNameW(NULL, path, MAX_PATH);
+	((wchar_t*)wcsrchr(path, L'\\'))[1] = NULL;
+	SafeGetNativeSystemInfo(&si);
+	if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64 ||
+		si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_IA64 )
+	{
+		wcscat(path, L"VCP_V1.3.1_Setup_x64.exe");
+	}
+	else
+	{
+		wcscat(path, L"VCP_V1.3.1_Setup.exe");
+	}
+
+	ShellExecuteW(NULL, L"open", path, NULL, NULL, SW_SHOWNORMAL);
+	return 0;
+}
+
 INT_PTR CALLBACK WndProc2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	const UINT BCM_SETSHIELD = 0x0000160C;
@@ -71,24 +94,7 @@ INT_PTR CALLBACK WndProc2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_COMMAND:
 		if (LOWORD(wParam) == IDC_DRIVER)
-		{
-			SYSTEM_INFO si;
-			wchar_t path[MAX_PATH*2];
-			GetModuleFileNameW(NULL, path, MAX_PATH);
-			((wchar_t*)wcsrchr(path, L'\\'))[1] = NULL;
-			SafeGetNativeSystemInfo(&si);
-			if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64 ||
-				si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_IA64 )
-			{
-				wcscat(path, L"VCP_V1.3.1_Setup_x64.exe");
-			}
-			else
-			{
-				wcscat(path, L"VCP_V1.3.1_Setup.exe");
-			}
-
-			ShellExecuteW(NULL, L"open", path, NULL, NULL, SW_SHOWNORMAL);
-		}
+			install_driver();
 		break;
 	case WM_LBUTTONDOWN:
 		SendMessage(GetParent(GetParent(hWnd)), WM_NCLBUTTONDOWN, HTCAPTION, 0);
@@ -255,12 +261,19 @@ INT_PTR CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return TRUE;
 }
 
-int main()
+int _wmain(int argc, TCHAR *argv[])
 {
+	if (argc>1 && argv && wcscmp(argv[1], _T("driver")) == 0)
+	{
+		return install_driver();
+	}
+
 	return DialogBoxW(GetModuleHandle(NULL), MAKEINTRESOURCE(IDD_MAIN), NULL, WndProc);
 }
 
 int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) 
 {
-	return main();
+	int argc;
+	wchar_t ** argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+	return _wmain(argc, argv);
 }

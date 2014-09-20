@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;UNICODE;_UNICODE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -203,11 +203,11 @@
 					>
 				</File>
 				<File
-					RelativePath=".\bitmap1.bmp"
+					RelativePath=".\res\bitmap1.bmp"
 					>
 				</File>
 				<File
-					RelativePath=".\res\bitmap1.bmp"
+					RelativePath=".\bitmap1.bmp"
 					>
 				</File>
 				<File
