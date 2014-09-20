@@ -831,6 +831,11 @@
               <FileType>5</FileType>
               <FilePath>.\common\ads1258.h</FilePath>
             </File>
+            <File>
+              <FileName>HMC5883.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\sensors\HMC5883.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1669,6 +1674,11 @@
               <FileName>ads1258.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\common\ads1258.h</FilePath>
+            </File>
+            <File>
+              <FileName>HMC5883.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\sensors\HMC5883.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -2509,6 +2519,11 @@
               <FileType>5</FileType>
               <FilePath>.\common\ads1258.h</FilePath>
             </File>
+            <File>
+              <FileName>HMC5883.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\sensors\HMC5883.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -3347,6 +3362,11 @@
               <FileName>ads1258.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\common\ads1258.h</FilePath>
+            </File>
+            <File>
+              <FileName>HMC5883.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\sensors\HMC5883.c</FilePath>
             </File>
           </Files>
         </Group>

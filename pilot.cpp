@@ -189,7 +189,7 @@ static param rc_setting[8][4] =
 };
 
 static param motor_matrix("mat", 0);
-static param THROTTLE_IDLE("idle", 1200);
+static param THROTTLE_IDLE("idle", 1176);
 static param acc_bias_z("abiz", 0);
 #define MAX_MOTOR_COUNT 8
 static int quadcopter_mixing_matrix[2][MAX_MOTOR_COUNT][3] = // the motor mixing matrix, [motor number] [roll, pitch, yaw]
