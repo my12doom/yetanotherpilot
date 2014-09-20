@@ -26,19 +26,14 @@ int SDA_STATE2()
 	volatile int v;
 // 	SDA_PORT->MODER  &= ~(GPIO_MODER_MODER0 << 28);
 // 	SDA_PORT->MODER |= GPIO_Mode_IN<<28;
-GPIOC->MODER|=GPIO_Mode_IN<<28;
+SDA_PORT->MODER|=GPIO_Mode_IN<<28;
 v = SDA_PORT->IDR  & SDA_PIN;
-GPIOC->MODER|=GPIO_Mode_OUT<<28;
+SDA_PORT->MODER|=GPIO_Mode_OUT<<28;
 // 	SDA_PORT->MODER  &= ~(GPIO_MODER_MODER0 << 28);
 // 	SDA_PORT->MODER |= GPIO_Mode_OUT<<28;
 	return v;
 }
 #define SDA_STATE SDA_STATE2()
-// #define SCL_HI GPIO_SetBits(SCL_PORT, SCL_PIN)
-// #define SCL_LO GPIO_ResetBits(SCL_PORT, SCL_PIN)
-// #define SDA_HI GPIO_SetBits(SDA_PORT, SDA_PIN)
-// #define SDA_LO GPIO_ResetBits(SDA_PORT, SDA_PIN)
-//#define SDA_STATE  GPIO_ReadInputDataBit(SDA_PORT, SDA_PIN)
 #endif
 
 void I2C2_SW_Configuration(void)
@@ -52,6 +47,7 @@ void I2C2_SW_Configuration(void)
 #endif
 #ifdef STM32F4
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 #endif
 
