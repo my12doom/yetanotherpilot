@@ -16,6 +16,11 @@ extern float mpu6050_temperature;
 
 #define SIGNATURE_ADDRESS 0x0800E800
 
+static int min(int a, int b)
+{
+	return a>b?b:a;
+}
+
 extern "C" int parse_command_line(const char *line, char *out)
 {
 
@@ -41,8 +46,11 @@ extern "C" int parse_command_line(const char *line, char *out)
 		const char *fourcc = param::enum_params(atoi(line+1));
 		if (fourcc)
 		{
-			param v(fourcc, 0);
-			sprintf(out, "%s=%f\n", fourcc, (float)v);
+			char strout[5] = {0};
+			memcpy(strout, fourcc, min(strlen(fourcc),4));
+
+			param v(strout, 0);
+			sprintf(out, "%s=%f\n", strout, (float)v);
 		}
 		else
 			strcpy(out, "null\n");
