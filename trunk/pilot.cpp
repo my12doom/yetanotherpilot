@@ -1064,7 +1064,7 @@ int prepare_pid()
 			TRACE("angle pos,target=%f,%f, air=%s\r\n", angle_pos[2] * PI180, angle_target[2] * PI180, airborne ? "true" : "false");
 
 			// check takeoff
-			float active_throttle = (g_ppm_input[5] > RC_CENTER) ? throttle_result : rc[2];
+			float active_throttle = (rc[5] > 0) ? throttle_result : rc[2];
 			if ( (state[0] > takeoff_ground_altitude + 1.0f) ||
 				(state[0] > takeoff_ground_altitude && active_throttle > throttle_real_crusing) ||
 				(active_throttle > throttle_real_crusing + QUADCOPTER_THROTTLE_RESERVE))
@@ -1212,7 +1212,7 @@ int output()
 			}
 			else
 			{
-				float mix = g_ppm_input[5] > RC_CENTER ? throttle_result : (rc[2] * 0.7f);
+				float mix = (rc[5] > 0) ? throttle_result : rc[2];
 
 				for(int j=0; j<3; j++)
 					mix += quadcopter_mixing_matrix[matrix][i][j] * pid_result[j] * QUADCOPTER_THROTTLE_RESERVE;
@@ -2342,7 +2342,7 @@ int check_mode()
 			mode = shutdown;
 
 		// emergency switch
-		if (fabs(rc[4]-last_ch4) > 0.33f)
+		if (fabs(rc[4]-last_ch4) > 0.20f)
 		{
 			mode = shutdown;
 			last_ch4 = rc[4];
