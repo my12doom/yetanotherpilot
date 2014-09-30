@@ -94,7 +94,7 @@ int Comm::hand_shake()
 {
 	char cmd[] = "hello\n";
 	char out[500] = {0};
-	if (command(cmd, strlen(cmd), out) >= 3  && strstr(out, "yap") == out)
+	if (command(cmd, strlen(cmd), out, sizeof(out)) >= 3  && strstr(out, "yap") == out)
 		return 0;
 
 	return -1;
@@ -118,7 +118,7 @@ DWORD CALLBACK Comm::find_device_thread(LPVOID p)
 	return 0;
 }
 
-int Comm::command(const char *input, int input_count, char*output)
+int Comm::command(const char *input, int input_count, char*output, int output_buffer_size)
 {
 	DWORD got=0;
 	EnterCriticalSection(&cs);
@@ -156,6 +156,13 @@ int Comm::command(const char *input, int input_count, char*output)
 				output[count++] = p;
 			}
 
+			if (count >= output_buffer_size)
+			{
+				count = -3;
+				disconnect();
+				break;
+			}
+
 			start = GetTickCount();
 		}
 		else if (GetTickCount() - start > HANDSHAKE_TIMEOUT)
@@ -182,7 +189,7 @@ int Comm::read_float(const char* id, float *out)
 	memset(output, 0, sizeof(output));
 	sprintf(cmd, "?%s\n", id);
 
-	if (command(cmd, strlen(cmd), output) <= 0)
+	if (command(cmd, strlen(cmd), output, sizeof(output)) <= 0)
 		return -1;
 
 	if (sscanf(output, "%f", out) != 1)
@@ -202,7 +209,7 @@ int Comm::enum_float(int pos, char *id, float *out)
 	memset(output, 0, sizeof(output));
 	sprintf(cmd, "!%d\n", pos);
 
-	if (command(cmd, strlen(cmd), output) <= 0)
+	if (command(cmd, strlen(cmd), output, sizeof(output)) <= 0)
 		return -1;
 
 	if (strstr(output, "null") == output)
@@ -226,7 +233,7 @@ int Comm::write_float(const char* id, float newdata)
 	memset(output, 0, sizeof(output));
 	sprintf(cmd, "%s=%f\n", id, newdata);
 
-	if (command(cmd, strlen(cmd), output) <= 0)
+	if (command(cmd, strlen(cmd), output, sizeof(output)) <= 0)
 		return -1;
 
 	if (strstr(output, "ok") != output)

@@ -108,7 +108,7 @@ int read_pid()
 	{
 		memset(output, 0, sizeof(output));
 		sprintf(cmd, "?%s\n", name_table[i]);
-		if (test.command(cmd, strlen(cmd), output) <= 0)
+		if (test.command(cmd, strlen(cmd), output, sizeof(output)) <= 0)
 			return -1;
 
 		if (sscanf(output, "%f", variable_table[i]) != 1)
@@ -151,7 +151,7 @@ int write_pid()
 	{
 		memset(output, 0, sizeof(output));
 		sprintf(cmd, "%s=%f\n", name_table[i], *variable_table[i]);
-		if (test.command(cmd, strlen(cmd), output) <= 0)
+		if (test.command(cmd, strlen(cmd), output, sizeof(output)) <= 0)
 			return -1;
 
 		if (strstr(output, "ok") != output)

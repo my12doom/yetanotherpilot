@@ -21,7 +21,7 @@ public:
 	~Comm();
 
 	int states();
-	int command(const char *input, int input_count, char*output);
+	int command(const char *input, int input_count, char*output, int output_buffer_size);
 	int add_callback(ICommEvent * cb);
 	int add_callback(CommEventProc cb);
 	int add_callback(HWND cb);
