@@ -45,7 +45,7 @@ int update_ppm()
 	char output[20480] = {0};
 	char *p = output;
 
-	int len = test.command(cmd, strlen(cmd), output);
+	int len = test.command(cmd, strlen(cmd), output, sizeof(output));
 
 	// parse result
 	p = strstr(p, "rc:");
@@ -200,7 +200,7 @@ INT_PTR CALLBACK WndProcRemote(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 					char cmd[] = "rcreset\n";
 					char output[20480] = {0};
 
-					int len = test.command(cmd, strlen(cmd), output);
+					int len = test.command(cmd, strlen(cmd), output, sizeof(output));
 
 					Sleep(100);
 					update_ppm();

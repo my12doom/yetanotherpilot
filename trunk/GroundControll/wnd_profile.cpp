@@ -44,7 +44,7 @@ INT_PTR CALLBACK WndProcProfile(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 			{
 				char cmd[] = "resetmc\n";
 				char output[1024] = {0};
-				test.command(cmd, strlen(cmd), output);
+				test.command(cmd, strlen(cmd), output, sizeof(output));
 			}
 
 			else if (id == IDC_SAVE)
@@ -111,7 +111,7 @@ INT_PTR CALLBACK WndProcProfile(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 								if (!p)
 									continue;
 
-								test.command(cmd, strlen(cmd), output);
+								test.command(cmd, strlen(cmd), output, sizeof(output));
 							}
 
 							fclose(f);

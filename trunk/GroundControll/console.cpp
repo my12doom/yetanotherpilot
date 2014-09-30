@@ -30,7 +30,7 @@ int main()
 	{
 		fgets(input, 1024, stdin);
 		p = strlen(input);
-		int count = con.command(input, p, output);
+		int count = con.command(input, p, output, sizeof(output));
 		p = 0;
 
 		if (count > 0)
