@@ -61,6 +61,25 @@ public:
 		return 0;
 	}
 
+	// return max continuous elements from the top of the queue, *out is modified to pointer of the first element
+	// return 0 if there is no elements left, and *out is modified to NULL
+	int peak2(int max_count, T**out)
+	{
+		if (!out)
+			return 0;
+
+		if(_count == 0)
+		{
+			*out = 0;
+			return 0;
+		}
+
+		int continuous_count = (_count + start < max_count) ? _count : (max_count - start);
+
+		*out = &elements[start];
+		return continuous_count;
+	}
+
 
 	// pop and discards n elements at the top of the queue.
 	// return number of elements removed.

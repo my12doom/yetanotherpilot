@@ -20,6 +20,12 @@
 #define page_size 0x20000
 #define buffer_size 0x40000
 #endif
+
+#ifdef WIN32
+#define page_size 1024
+#define buffer_size 4096
+#endif
+
 int space_raw_write(int address, const void *data, int size);
 int space_raw_read(int address, void *data, int size);
 int space_raw_erase(int address);

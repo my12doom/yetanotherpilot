@@ -149,11 +149,7 @@ int ads1258_init(void)
 
 	for(i=0; i<10; i++)
 	{
-		delayms(50);
-
 		ads1258_read_registers(i, 1, &data);
-
-
 		ERROR("reg(%d)=0x%02x\n", i, data);
 	}
 
@@ -182,7 +178,7 @@ short ads1258_convert(void)				// a simplfied version which start a new conversi
 }
 
 static int t = 0;
-void ads1258_go(void)
+int ads1258_go(void)
 {
 	int i;
 	int channel;
@@ -195,7 +191,6 @@ void ads1258_go(void)
 
 	ads1258_end();
 
-
 	if (p[0] & 0x80)		// new data?
 	{
 		int state = p[0];
@@ -205,5 +200,9 @@ void ads1258_go(void)
 
 		channel_data[channel] = *(int*)p;
 		last_update_channel = channel;
+		
+		return channel;
 	}
+	
+	return -1;
 }

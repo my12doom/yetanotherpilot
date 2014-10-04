@@ -37,8 +37,8 @@
 #define hall_sensor_sensitivity	0.0666		// unit: mV / mA
 #define VOLTAGE_DIVIDER_BASE 6		// uncalibrated voltage divider ratio
 #define MAX_GYRO_BIAS_DRIFT 30
-#define THROTTLE_STOP ((int)(rc_setting[2][0]-20))
-#define THROTTLE_MAX 1888
+#define THROTTLE_STOP (max((int)(rc_setting[2][0]-20),1000))
+#define THROTTLE_MAX (min((int)(rc_setting[2][2]-20),2000))
 #define THROTTLE_CRUISE 0.45f
 
 #define ACRO_ROLL_RATE (PI*3/2)				// 270 degree/s
