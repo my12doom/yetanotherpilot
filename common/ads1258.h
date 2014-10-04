@@ -138,7 +138,7 @@ int ads1258_init(void);
 int ads1258_startconvert(void);
 int ads1258_getresult(short *result);		// return -1 if still converting, 0 if conversion completed or continuous mode, further calls return the last conversion result.
 short ads1258_convert(void);				// a simplfied version which start a new conversion ,wait it to complete and returns the result directly
-void ads1258_go(void);
+int ads1258_go(void);
 
 #ifdef __cplusplus
 }

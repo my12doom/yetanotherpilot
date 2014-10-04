@@ -18,6 +18,44 @@ int64_t g_ppm_input_update[6] = {0};
 #else
 #endif
 
+static float ppm_channels[6];
+int last_high_tim = -1;
+int ppm_channel_id = 0;
+int ppm_channel_count = 0;
+int handle_ppm(int now)
+{
+	float delta = 0;
+	if (last_high_tim < 0)
+	{
+		last_high_tim = now;
+		return 0;
+	}
+	
+	if (now > last_high_tim)
+		delta = (now - last_high_tim)/(float)OC;
+	else
+#if QUADCOPTER == 1
+		delta = (now + 3000*OC - last_high_tim)/(float)OC;
+#else
+		delta = now + 10000 - last_high_tim;
+#endif
+	
+	last_high_tim = now;
+
+	if (delta > 2100)
+	{
+		ppm_channel_count = ppm_channel_id;
+		ppm_channel_id = 0;
+		printf("        %.0f\r", delta);
+	}
+	else if (ppm_channel_id < 6)
+	{
+		ppm_channels[ppm_channel_id++] = delta;	
+		printf("%.0f,", ppm_channels[ppm_channel_id-1]);
+	}
+		
+	return 0;
+}
 // initialize this before calling ppm_init()!
 uint16_t g_ppm_output[8] = {0};
 
@@ -29,6 +67,8 @@ static float f_max(float a, float b)
 {
 	return a > b ? a : b;
 }
+
+
 // PPM input handler
 static void PPM_EXTI_Handler(void)
 {
@@ -70,7 +110,10 @@ static void PPM_EXTI_Handler(void)
 			break;
 	
 		if(GPIOB->IDR & pin_tbl[channel])
+		{
 			g_ppm_input_start[channel] = TIM_GetCounter(TIM4);
+			handle_ppm(g_ppm_input_start[channel]);
+		}
 		else
 		{
 			uint32_t now = TIM_GetCounter(TIM4);
