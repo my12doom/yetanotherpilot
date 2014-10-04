@@ -8,6 +8,7 @@
 #include <string.h>
 #include "param.h"
 #include "space.h"
+#include <math.h>
 
 extern volatile vector imu_statics[2][4];		//	[accel, gyro][min, current, max, avg]
 extern volatile int avg_count;
@@ -19,6 +20,67 @@ extern float mpu6050_temperature;
 static int min(int a, int b)
 {
 	return a>b?b:a;
+}
+
+// reverses a string 'str' of length 'len'
+void reverse(char *str, int len)
+{
+    int i=0, j=len-1, temp;
+    while (i<j)
+    {
+        temp = str[i];
+        str[i] = str[j];
+        str[j] = temp;
+        i++; j--;
+    }
+}
+
+ // Converts a given integer x to string str[].  d is the number
+ // of digits required in output. If d is more than the number
+ // of digits in x, then 0s are added at the beginning.
+int intToStr(int x, char str[], int d)
+{
+    int i = 0;
+    while (x)
+    {
+        str[i++] = (x%10) + '0';
+        x = x/10;
+    }
+
+    // If number of digits required is more, then
+    // add 0s at the beginning
+    while (i < d)
+        str[i++] = '0';
+
+    reverse(str, i);
+    str[i] = '\0';
+    return i;
+}
+
+// Converts a floating point number to string.
+void ftoa(float n, char *res, int afterpoint)
+{
+    // Extract integer part
+    int ipart = (int)n;
+
+    // Extract floating part
+    float fpart = n - (float)ipart;
+
+    // convert integer part to string
+    int i = intToStr(ipart, res, 0);
+
+    // check for display option after point
+    if (afterpoint != 0)
+    {
+        res[i] = '.';  // add dot
+
+        // Get the value of fraction part upto given no.
+        // of points after dot. The third parameter is needed
+        // to handle cases like 233.007
+        fpart = fpart * pow(10.0f, afterpoint);
+
+        intToStr((int)fpart, res + i + 1, afterpoint);
+    }
 }
 
 extern "C" int parse_command_line(const char *line, char *out)
@@ -36,7 +98,11 @@ extern "C" int parse_command_line(const char *line, char *out)
 	{
 		float *v = param::find_param(line+1);
 		if (v)
-			sprintf(out, "%f\n", *v);
+		{
+			ftoa(*v, out, 6);
+			strcat(out, "\n");
+		}
+			//sprintf(out, "%f\n", *v);
 		else
 			strcpy(out, "null\n");
 		return strlen(out);

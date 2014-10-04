@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <conio.h>
 #include "comm.h"
-
+#include "../common/space.h"
 
 int console_OnEvent(int code, void *extra_data)
 {
@@ -17,8 +17,27 @@ int console_OnEvent(int code, void *extra_data)
 	return 0;
 }
 
+int spaceiotest()
+{
+	space_init(true);
+	for(int i=0; i<102400; i++)
+	{
+		float test[30] = {4.8f};
+		float read[30] = {0};
+	space_write("hi", 2, test, sizeof(test), NULL);
+	space_read("hi", 2, read, sizeof(read), NULL);
+
+	if (memcmp(test, read, sizeof(test)))
+		break;
+	}
+
+	return 0;
+}
+
 int main()
 {
+	spaceiotest();
+
 	Comm con;
 	con.add_callback(console_OnEvent);
 
@@ -26,8 +45,31 @@ int main()
 	char input[1024];
 	char output[20480];
 
+	Sleep(2000);
+
+	for(int i=1; i<10000; i++)
+	{
+		float vt = float(i)/1;
+		while(con.write_float("altP", vt)<0)
+			;
+
+		float r = 0;
+		while(con.read_float("altP", &r)<0)
+			;
+
+		if (abs(r-vt)>0.0001f)
+		{
+			printf("(ERROR)");
+		}
+		Sleep(10);
+
+		printf("%d=%f\n", i, r);
+	}
+
 	while(true)
 	{
+		memset(input, 0, sizeof(input));
+		memset(output, 0, sizeof(output));
 		fgets(input, 1024, stdin);
 		p = strlen(input);
 		int count = con.command(input, p, output, sizeof(output));

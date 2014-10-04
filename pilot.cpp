@@ -642,6 +642,8 @@ int kalman()
 	
 	TRACE("\rtime=%.3f,state:%.2f,%.2f,%.2f,%.2f, ref=%.2f/%.2f/%.2f, accelz:%.3f, temp:%.1f, ouler:%.2f,%.2f/%.2f,%.2f  ", getus()/1000000.0f, state[0], state[1], state[2], state[3], _position, a_raw_altitude, _velocity, accelz, mpu6050_temperature, euler[0]*PI180, euler[1]*PI180, roll * PI180, pitch * PI180);
 
+	TRACE("pressure=%.2f\r", a_raw_pressure);
+
 	return 0;
 }
 
@@ -1064,7 +1066,7 @@ int prepare_pid()
 			TRACE("angle pos,target=%f,%f, air=%s\r\n", angle_pos[2] * PI180, angle_target[2] * PI180, airborne ? "true" : "false");
 
 			// check takeoff
-			float active_throttle = (rc[5] > 0) ? throttle_result : rc[2];
+			float active_throttle = (rc[5] > 0 || g_ppm_input_update[5] < getus()-500000 ) ? throttle_result : rc[2];
 			if ( (state[0] > takeoff_ground_altitude + 1.0f) ||
 				(state[0] > takeoff_ground_altitude && active_throttle > throttle_real_crusing) ||
 				(active_throttle > throttle_real_crusing + QUADCOPTER_THROTTLE_RESERVE))
@@ -1212,7 +1214,7 @@ int output()
 			}
 			else
 			{
-				float mix = (rc[5] > 0) ? throttle_result : rc[2];
+				float mix = (rc[5] > 0 || g_ppm_input_update[5] < getus()-500000 ) ? throttle_result : rc[2];
 
 				for(int j=0; j<3; j++)
 					mix += quadcopter_mixing_matrix[matrix][i][j] * pid_result[j] * QUADCOPTER_THROTTLE_RESERVE;
