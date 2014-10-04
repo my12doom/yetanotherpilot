@@ -3,6 +3,9 @@
 #include "comm.h"
 #include "../common/space.h"
 
+static unsigned long pnan[2]={0xffffffff, 0x7fffffff};
+static double NAN = *( double* )pnan;
+
 int console_OnEvent(int code, void *extra_data)
 {
 	if (code == WM_CONNECT)
@@ -49,7 +52,7 @@ int main()
 
 	for(int i=1; i<10000; i++)
 	{
-		float vt = float(i)/1;
+		float vt = -float(i)/1000;
 		while(con.write_float("altP", vt)<0)
 			;
 
@@ -65,6 +68,10 @@ int main()
 
 		printf("%d=%f\n", i, r);
 	}
+
+	char test[5];
+	float v;
+	con.enum_float(2, test, &v);
 
 	while(true)
 	{

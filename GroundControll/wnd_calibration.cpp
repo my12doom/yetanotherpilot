@@ -71,15 +71,8 @@ int read_gyro_bias()
 	char cmd[200];
 	char output[20480] = {0};
 	for(int i=0; i<11; i++)
-	{
-		memset(output, 0, sizeof(output));
-		sprintf(cmd, "?%s\n", name_table[i]);
-		if (test.command(cmd, strlen(cmd), output, sizeof(output)) <= 0)
+		if (test.read_float(name_table[i], variable_table[i]) < 0)
 			return -1;
-
-		if (sscanf(output, "%f", variable_table[i]) != 1)
-			return -2;
-	}
 
 	// update k & a
 	if (!isnan((float)gyro_bias[0][0]) && !isnan((float)gyro_bias[1][0]))

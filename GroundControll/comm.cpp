@@ -3,6 +3,8 @@
 
 #define HANDSHAKE_TIMEOUT 200
 #define safe_close_handle(x) {if(x!=INVALID_HANDLE_VALUE)CloseHandle(x);x=INVALID_HANDLE_VALUE;}
+static unsigned long pnan[2]={0xffffffff, 0x7fffffff};
+static double NAN = *( double* )pnan;
 
 Comm::Comm()
 :m_states(-1)
@@ -192,7 +194,9 @@ int Comm::read_float(const char* id, float *out)
 	if (command(cmd, strlen(cmd), output, sizeof(output)) <= 0)
 		return -1;
 
-	if (sscanf(output, "%f", out) != 1)
+	if (strstr(output, "NAN") == output)
+		*out = NAN;
+	else if (sscanf(output, "%f", out) != 1)
 		return -2;
 
 	return 0;
@@ -221,7 +225,11 @@ int Comm::enum_float(int pos, char *id, float *out)
 	*(char*)p = NULL;
 	strncpy(id, output, 4);
 	id[4] = NULL;
-	*out = atof(p+1);
+
+	if (strstr(p+1, "NAN") == p+1)
+		*out = NAN;
+	else
+		*out = atof(p+1);
 
 	return 0;
 }

@@ -60,6 +60,13 @@ int intToStr(int x, char str[], int d)
 // Converts a floating point number to string.
 void ftoa(float n, char *res, int afterpoint)
 {
+	if (n<0)
+	{
+		*res = '-';
+		res++;
+		n = -n;
+	}
+	
     // Extract integer part
     int ipart = (int)n;
 
@@ -99,10 +106,12 @@ extern "C" int parse_command_line(const char *line, char *out)
 		float *v = param::find_param(line+1);
 		if (v)
 		{
-			ftoa(*v, out, 6);
+			if (isnan(*v))
+				strcpy(out, "NAN");
+			else
+				ftoa(*v, out, 6);
 			strcat(out, "\n");
 		}
-			//sprintf(out, "%f\n", *v);
 		else
 			strcpy(out, "null\n");
 		return strlen(out);
@@ -116,7 +125,21 @@ extern "C" int parse_command_line(const char *line, char *out)
 			memcpy(strout, fourcc, min(strlen(fourcc),4));
 
 			param v(strout, 0);
-			sprintf(out, "%s=%f\n", strout, (float)v);
+			
+			out[0] = strout[0];
+			out[1] = strout[1];
+			out[2] = strout[2];
+			out[3] = strout[3];
+			out[4] = 0;
+			strcat(out, "=");
+			
+			if (isnan(float(v)))
+				strcpy(out+strlen(out), "NAN");
+			else
+			{
+				ftoa(v, out+strlen(out), 6);
+			}
+			strcat(out, "\n");
 		}
 		else
 			strcpy(out, "null\n");
