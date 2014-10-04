@@ -43,14 +43,14 @@
             <NotGenerated>0</NotGenerated>
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
-          <OutputDirectory>.\output\pilotF4\</OutputDirectory>
-          <OutputName>pilotF4</OutputName>
+          <OutputDirectory>.\output\imu\</OutputDirectory>
+          <OutputName>imu</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
-          <CreateHexFile>0</CreateHexFile>
+          <CreateHexFile>1</CreateHexFile>
           <DebugInformation>1</DebugInformation>
           <BrowseInformation>1</BrowseInformation>
-          <ListingPath>.\output\pilotF4\</ListingPath>
+          <ListingPath>.\output\imu\</ListingPath>
           <HexFormatSelection>1</HexFormatSelection>
           <Merge32K>0</Merge32K>
           <CreateBatchFile>0</CreateBatchFile>
@@ -836,6 +836,11 @@
               <FileType>1</FileType>
               <FilePath>.\sensors\HMC5883.c</FilePath>
             </File>
+            <File>
+              <FileName>fifo.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\fifo.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -845,6 +850,16 @@
               <FileName>imu.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\imu.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>crc32.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\crc32.h</FilePath>
+            </File>
+            <File>
+              <FileName>imu_packet.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\imu_packet.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -1680,6 +1695,11 @@
               <FileType>1</FileType>
               <FilePath>.\sensors\HMC5883.c</FilePath>
             </File>
+            <File>
+              <FileName>fifo.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\fifo.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1689,6 +1709,16 @@
               <FileName>imu.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\imu.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>crc32.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\crc32.h</FilePath>
+            </File>
+            <File>
+              <FileName>imu_packet.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\imu_packet.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -2524,6 +2554,11 @@
               <FileType>1</FileType>
               <FilePath>.\sensors\HMC5883.c</FilePath>
             </File>
+            <File>
+              <FileName>fifo.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\fifo.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -2533,6 +2568,16 @@
               <FileName>imu.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\imu.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>crc32.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\crc32.h</FilePath>
+            </File>
+            <File>
+              <FileName>imu_packet.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\imu_packet.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -3368,6 +3413,11 @@
               <FileType>1</FileType>
               <FilePath>.\sensors\HMC5883.c</FilePath>
             </File>
+            <File>
+              <FileName>fifo.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\common\fifo.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -3377,6 +3427,16 @@
               <FileName>imu.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\imu.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>crc32.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\crc32.h</FilePath>
+            </File>
+            <File>
+              <FileName>imu_packet.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\imu_packet.h</FilePath>
             </File>
           </Files>
         </Group>

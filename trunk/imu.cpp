@@ -7,6 +7,16 @@
 #include "common/ads1258.h"
 #include "common/i2c.h"
 #include "sensors/hmc5883.h"
+#include "common/fifo.h"
+#include "stm32f4xx_dma.h"
+#include "crc32.h"
+#include "imu_packet.h"
+
+
+
+CircularQueue<unsigned char, 512> tx_queue;
+imu_packet packet = {0};
+imu_packet tx;
 
 void UART4_init(uint32_t baud_rate)
 {
@@ -34,7 +44,7 @@ void UART4_init(uint32_t baud_rate)
     GPIO_PinAFConfig(GPIOC,GPIO_PinSource11,GPIO_AF_UART4);
 
 	  
-	// USART1 mode config
+	// UART4 mode config
 	USART_InitStructure.USART_BaudRate = baud_rate;
 	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
 	USART_InitStructure.USART_StopBits = USART_StopBits_1;
@@ -42,26 +52,91 @@ void UART4_init(uint32_t baud_rate)
 	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
 	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
 	USART_Init(UART4, &USART_InitStructure); 
-	USART_Cmd(UART4, ENABLE);
+	USART_DMACmd(UART4, USART_DMAReq_Tx, ENABLE);
 	USART_ITConfig(UART4, USART_IT_RXNE, ENABLE);
+	USART_Cmd(UART4, ENABLE);
+	
+	USART_ClockInitTypeDef USART_ClockInitStruct;
+	USART_ClockStructInit(&USART_ClockInitStruct);
+	USART_ClockInit(UART4, &USART_ClockInitStruct);
+
+
 }
 
+// DMA test
+char tx_buffer[512] = "HelloWorld!!12345678";
+
+extern "C"
+void DMA1_Stream4_IRQHandler()
+{
+	DMA_ClearFlag(DMA1_Stream4, DMA_FLAG_TCIF4) ;
+	//ERROR("HI %d       \r", int(getus()));
+}
+
+int dma_init()
+{
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1, ENABLE);
+	NVIC_InitTypeDef NVIC_InitStructure;
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);  
+
+
+	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Stream4_IRQn;  
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;  
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;  
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;  
+	NVIC_Init(&NVIC_InitStructure);
+
+
+	DMA_InitTypeDef DMA_InitStructure = {0};
+	DMA_DeInit(DMA1_Stream4);  
+
+	DMA_InitStructure.DMA_Channel = DMA_Channel_4; 
+	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)(&(UART4->DR));
+	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)&tx;
+	DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;
+	DMA_InitStructure.DMA_BufferSize = sizeof(tx);
+	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+	DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
+	DMA_InitStructure.DMA_Priority = DMA_Priority_VeryHigh;
+	DMA_InitStructure.DMA_FIFOMode = DMA_FIFOMode_Disable;
+	DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_HalfFull; 
+	DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single; 
+	DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single; 
+	DMA_Init(DMA1_Stream4, &DMA_InitStructure);
+	DMA_ITConfig(DMA1_Stream4,DMA_IT_TC,ENABLE);
+
+	USART_DMACmd(UART4, USART_DMAReq_Tx, ENABLE); 
+	
+ 	return 0;
+}
+
+int dma_go()
+{
+	DMA_Cmd(DMA1_Stream4, DISABLE);
+	DMA_ClearFlag(DMA1_Stream4, DMA_FLAG_TCIF4);
+	DMA_Cmd(DMA1_Stream4, ENABLE);
+
+	return 0;
+}
 
 int main()
 {
 	init_timer();
 	printf_init();
 	space_init();
-	delayms(400);
 	ads1258_init();
 	I2C_init(0);
-	UART4_init(115200);
+	UART4_init(256000);
+	dma_init();
 	
 	int hmc5883 = init_HMC5883();
 
 	ads1258_config1 config1;
 	ads1258_read_registers(REG_CONFIG1, 1, &config1);
-	config1.DRATE = 0;
+	config1.DRATE = 1;
 	config1.DLY = 0;
 	ads1258_write_registers(REG_CONFIG1, 1, &config1);
 	ads1258_read_registers(REG_CONFIG1, 1, &config1);
@@ -101,17 +176,51 @@ int main()
 	float avg_gyro=0;
 	int avg_gyro_count = 0;
 
+	
+	while(0)
+	{
+		dma_go();
+		delayms(200);
+		sprintf(tx_buffer, "HelloWorld!!12345678%d%d%d%d", (int)getus(), (int)getus(), (int)getus(), (int)getus());
+	}
+
 	while(1)
 	{
-		ads1258_go();
+		int channel = ads1258_go();
 
+		if (channel >= 0 && channel >= 8 && channel <24)
+		{
+			packet.data[channel-8] = channel_data[channel] * 5.3f / 8388607.0f;
+			
+			if (channel == 23)
+			{
+				packet.endcode = 0x85a3;
+				//packet.timestamp = getus();
+				packet.crc = crc32(0, (uint8_t*)&packet + 4, sizeof(packet)-4);
+
+				tx = packet;
+				dma_go();
+			}
+		}
 
 		if (last_update_channel == 22)
 		{
 			float v = 5.3f * channel_data[8]/ 8388607.0f;
 			float v50 = 5.3f * 1 * channel_data[11]/ 8388607.0f;
+			float pa_6115 = 15000 + (v-v50*0.05f)/(0.9f*v50)*100000.0f;
+			
+			ERROR("pa=%.2f\n", pa_6115);
+		}
+
+		/*
+		if (last_update_channel == 22)
+		{
+			// AIN0 = channel 8
+			
+			float v = 5.3f * channel_data[8]/ 8388607.0f;
+			float v50 = 5.3f * 1 * channel_data[11]/ 8388607.0f;
 			float vaccel = 5.3f * 1 * channel_data[22]/ 8388607.0f;
-			float vgyro = 5.3f * channel_data[9]/ 8388607.0f;
+			float vgyro = 5.3f * channel_data[18]/ 8388607.0f;
 			float pa_6115;
 			float a = (vaccel - 2.50f) * 9.805f;
 			float gyro_degree = (vgyro-2.50f)/0.006f;
@@ -130,7 +239,7 @@ int main()
 			avg_gyro += gyro_degree;
 
 
-			if (counter == 8)
+			if (counter == 8 && false)
 			{
 				char tmp[200];
 				sprintf(tmp, "%f,%.3f\n", getus()/1000000.0f, pa/8);
@@ -144,12 +253,16 @@ int main()
 				pa = counter = 0;
 			}
 
-			ERROR("%f,%.3f, %f\n", getus()/1000000.0f, a, avg_gyro/avg_gyro_count);
+			//ERROR("%f,%.3f, %f\n", getus()/1000000.0f, gyro_degree, avg_gyro/avg_gyro_count);
+			for(int i=0; i<16; i++)
+				ERROR("(%d)%01.4f,", i, 5.3f * channel_data[8+i]/ 8388607.0f);
+			ERROR(",%.3f\n", getus()/1000000.0f);
 
 
 			t = getus();
 			
 			last_update_channel = -1;
 		}
+		*/
 	}
 }
