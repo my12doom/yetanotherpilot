@@ -195,6 +195,10 @@
 				RelativePath=".\main.rc"
 				>
 			</File>
+			<File
+				RelativePath=".\res\yap.ico"
+				>
+			</File>
 			<Filter
 				Name="bitmap"
 				>
@@ -203,11 +207,11 @@
 					>
 				</File>
 				<File
-					RelativePath=".\bitmap1.bmp"
+					RelativePath=".\res\bitmap1.bmp"
 					>
 				</File>
 				<File
-					RelativePath=".\res\bitmap1.bmp"
+					RelativePath=".\bitmap1.bmp"
 					>
 				</File>
 				<File
