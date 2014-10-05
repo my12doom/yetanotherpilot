@@ -156,7 +156,7 @@ SectionEnd
 Section "开始菜单快捷方式"
 
   CreateDirectory "$SMPROGRAMS\YAP飞控"
-  CreateShortCut "$SMPROGRAMS\YAP飞控\YAP飞控设置软件.lnk" "$INSTDIR\GroundControll.exe" "" "$INSTDIR\StereoPlayer.exe" 0
+  CreateShortCut "$SMPROGRAMS\YAP飞控\YAP飞控设置软件.lnk" "$INSTDIR\GroundControll.exe" "" "$INSTDIR\GroundControll.exe" 0
   CreateShortCut "$SMPROGRAMS\YAP飞控\卸载.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
   
 SectionEnd

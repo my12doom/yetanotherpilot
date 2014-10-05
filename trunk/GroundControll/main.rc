@@ -289,6 +289,15 @@ IDB_MENU3_NORMAL        BITMAP                  "res\\menu_3_normal.bmp"
 IDB_MENU4_DOWN          BITMAP                  "res\\menu_4_down.bmp"
 IDB_MENU4_HOVER         BITMAP                  "res\\menu_4_hover.bmp"
 IDB_MENU4_NORMAL        BITMAP                  "res\\menu_4_normal.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_ICON1               ICON                    "res\\yap.ico"
 #endif    // 中文(中华人民共和国) resources
 /////////////////////////////////////////////////////////////////////////////
 

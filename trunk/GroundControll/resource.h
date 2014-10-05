@@ -46,6 +46,7 @@
 #define IDB_MENU4_DOWN                  141
 #define IDB_MENU4_HOVER                 142
 #define IDB_MENU4_NORMAL                143
+#define IDI_ICON1                       144
 #define IDC_BUTTON1                     1001
 #define IDC_OD                          1001
 #define IDC_BYE                         1001
@@ -107,7 +108,6 @@
 #define IDC_GYRO1                       1015
 #define IDC_RATE_D1                     1015
 #define IDC_EDIT11                      1016
-#define IDC_GYRO2                       1036
 #define IDC_RATE_D2                     1016
 #define IDC_CAL_T1                      1017
 #define IDC_CAL_T2                      1018
@@ -124,13 +124,14 @@
 #define IDC_IMUSTATE                    1029
 #define IDC_REVERT4                     1034
 #define IDC_REVERT5                     1035
+#define IDC_GYRO2                       1036
 #define IDC_LOAD                        51001
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        144
+#define _APS_NEXT_RESOURCE_VALUE        145
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1039
 #define _APS_NEXT_SYMED_VALUE           101
