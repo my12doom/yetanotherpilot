@@ -263,20 +263,6 @@ INT_PTR CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 int _wmain(int argc, TCHAR *argv[])
 {
-	FILE * f = fopen("Z:\\b.csv", "rb");
-	FILE * fo = fopen("Z:\\c.csv", "wb");
-	char tmp[1000];
-	int i = 0;
-	float time;
-	float v;
-	while(fscanf(f, "%f,%f", &time, &v) == 2)
-	{
-		if (i++ % 7 == 0)
-			fprintf(fo, "%f,%f\n", time, v);
-	}
-	fclose(fo);
-	fclose(f);
-
 	if (argc>1 && argv && wcscmp(argv[1], _T("driver")) == 0)
 	{
 		return install_driver();
