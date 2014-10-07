@@ -22,6 +22,7 @@
 
 #ifndef LITE
 #include "common/gps.h"
+#include "common/uart4.h"
 #include "common/ads1115.h"
 #include "common/ads1256.h"
 #include "sensors/sonar.h"
@@ -1281,22 +1282,19 @@ int real_log_packet(void *data, int size)
 	if (LOG_LEVEL & LOG_USART1)
 	{
 		const char *string = (const char*)data;
-		int i,j;
+		char escaped[256];
+		int i,j;		// j = escaped size
 		for(i=0,j=0; i<size; i++,j++)
 		{
-			USART_SendData(USART1, (unsigned char) string[i]);
-			while (!(USART1->SR & USART_FLAG_TXE));
+			escaped[j] = string[i];
 			if (string[i] == '\r')
-			{
-				USART_SendData(USART1, (unsigned char) string[i]);
-				while (!(USART1->SR & USART_FLAG_TXE));
-				j++;
-			}
+				escaped[j++] = '\r';
 		}
-		USART_SendData(USART1, (unsigned char) '\r');
-		while (!(USART1->SR & USART_FLAG_TXE));
-		USART_SendData(USART1, (unsigned char) '\n');
-		while (!(USART1->SR & USART_FLAG_TXE));
+		
+		escaped[j++] = '\r';
+		escaped[j++] = '\n';
+
+		UART4_Send(escaped, j);
 	}
 
 	// fatfs
@@ -2671,6 +2669,7 @@ int loop(void)
 	#ifndef LITE
 	if (GPS_ParseBuffer() > 0)
 		last_gps_tick = getus();
+	UART4_ParseBuffer();
 	#endif
 
 
@@ -2798,10 +2797,11 @@ int main(void)
 	if (init_HMC5883() < 0)
 		critical_errors |= error_magnet;	
 	GPS_Init(115200);
+	UART4_Init(115200);
 	NRF_Init();
  	MAX7456_SYS_Init();
  	Max7456_Set_System(1);
-	sonar_init();
+	//sonar_init();
 	#else
 	if (init_BMP085() < 0)
 		critical_errors |= error_baro;

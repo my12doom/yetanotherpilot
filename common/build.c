@@ -1,6 +1,6 @@
 #include "build.h"
 
-int LOG_LEVEL = LOG_SDCARD;
+int LOG_LEVEL = 0xff;
 
 
 
