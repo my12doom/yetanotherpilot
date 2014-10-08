@@ -134,6 +134,22 @@ OWNERDRAW_BUTTON_DEFINE od_buttons[] =
 		IDB_IMPORT_HOVER,
 		IDB_IMPORT_DOWN,
 	},
+	{
+		IDC_MATRIX_0,
+		0,0,250,250,
+		{},
+		IDB_I_NORMAL,
+		IDB_I_MOUSEOVER,
+		IDB_I_DOWN,
+	},
+	{
+		IDC_MATRIX_1,
+		0,0,250,250,
+		{},
+		IDB_X_NORMAL,
+		IDB_X_mouseover,
+		IDB_X_DOWN,
+	},
 };
 
 

@@ -355,6 +355,8 @@ imu_read_ok:
 // 					MessageBoxW(hWnd, test, L"info", MB_OK);
 				}
 
+				MessageBoxW(hWnd, L"校准完成", L"info", MB_ICONINFORMATION);
+
 				SetDlgItemTextW(hWnd, IDC_CAL_T1, L"开始校准");
 				SetDlgItemTextW(hWnd, IDC_CAL_T2, L"开始校准");
 			}

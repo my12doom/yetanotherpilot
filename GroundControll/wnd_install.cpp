@@ -69,6 +69,9 @@ INT_PTR CALLBACK WndProcInstall(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 		EndDialog(hWnd, 0);
 		break;
 
+	case WM_DRAWITEM:
+		return draw_window((LPDRAWITEMSTRUCT)lParam);
+
 	case WM_COMMAND:
 		{
 			int id = LOWORD(wParam);

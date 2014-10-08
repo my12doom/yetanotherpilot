@@ -47,6 +47,14 @@
 #define IDB_MENU4_HOVER                 142
 #define IDB_MENU4_NORMAL                143
 #define IDI_ICON1                       144
+#define IDB_I_NORMAL                    145
+#define IDB_BITMAP3                     146
+#define IDB_X_NORMAL                    146
+#define IDB_I_DOWN                      147
+#define IDB_I_                          148
+#define IDB_I_MOUSEOVER                 148
+#define IDB_X_DOWN                      149
+#define IDB_X_mouseover                 150
 #define IDC_BUTTON1                     1001
 #define IDC_OD                          1001
 #define IDC_BYE                         1001
@@ -116,8 +124,6 @@
 #define IDC_REVERT1                     1021
 #define IDC_RADIO_MATRIX0               1022
 #define IDC_RADIO_MATRIX1               1023
-#define IDC_MATRIX_0                    1024
-#define IDC_MATRIX_1                    1025
 #define IDC_TEMP                        1026
 #define IDC_ACCEL                       1027
 #define IDC_RESET                       1028
@@ -125,15 +131,17 @@
 #define IDC_REVERT4                     1034
 #define IDC_REVERT5                     1035
 #define IDC_GYRO2                       1036
+#define IDC_MATRIX_0                    1039
+#define IDC_MATRIX_1                    1040
 #define IDC_LOAD                        51001
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        145
+#define _APS_NEXT_RESOURCE_VALUE        151
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1039
+#define _APS_NEXT_CONTROL_VALUE         1044
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
