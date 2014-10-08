@@ -192,7 +192,31 @@
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
 			<File
+				RelativePath=".\res\I.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\res\I_down.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\res\I_mouseover.bmp"
+				>
+			</File>
+			<File
 				RelativePath=".\main.rc"
+				>
+			</File>
+			<File
+				RelativePath=".\res\X.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\res\X_down.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\res\X_mouseover.bmp"
 				>
 			</File>
 			<File
@@ -207,11 +231,11 @@
 					>
 				</File>
 				<File
-					RelativePath=".\res\bitmap1.bmp"
+					RelativePath=".\bitmap1.bmp"
 					>
 				</File>
 				<File
-					RelativePath=".\bitmap1.bmp"
+					RelativePath=".\res\bitmap1.bmp"
 					>
 				</File>
 				<File

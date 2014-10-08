@@ -181,9 +181,7 @@ INT_PTR CALLBACK WndProcRemote(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 
 					// save
 					// 
-					wchar_t test[2048];
-					swprintf(test, L"%f,%f,%f", 0, 1, 2);
-					MessageBoxW(hWnd, test, L"info", MB_OK);
+					MessageBoxW(hWnd, L"校准完成", L"info", MB_ICONINFORMATION);
 					write_rc_settings();
 					SetDlgItemTextW(hWnd, IDC_RC, L"开始校准");
 				}
