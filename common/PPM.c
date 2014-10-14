@@ -1,4 +1,5 @@
 #include "PPM.h"
+#include "common.h"
 #include "timer.h"
 #include "build.h"
 #include "../mcu.h"
@@ -46,12 +47,12 @@ int handle_ppm(int now)
 	{
 		ppm_channel_count = ppm_channel_id;
 		ppm_channel_id = 0;
-		printf("        %.0f\r", delta);
+		TRACE("        %.0f\r", delta);
 	}
 	else if (ppm_channel_id < 6)
 	{
 		ppm_channels[ppm_channel_id++] = delta;	
-		printf("%.0f,", ppm_channels[ppm_channel_id-1]);
+		TRACE("%.0f,", ppm_channels[ppm_channel_id-1]);
 	}
 		
 	return 0;

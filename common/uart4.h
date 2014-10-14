@@ -7,8 +7,9 @@
 extern "C" {
 #endif
 void UART4_Init(uint32_t baud_rate);
-int UART4_ParseBuffer(void);			// return number of valid sentences parsed.
-int UART4_Send(void *buf, int size);
+int UART4_ReadPacket(void *out, int max_size);			// return size of packet read, 
+														// -1 when not enough data, -2 if packet exceeded buffer size, -3 on other errors.
+int UART4_SendPacket(const void *buf, int size);
 
 #ifdef __cplusplus
 }

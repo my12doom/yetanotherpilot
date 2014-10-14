@@ -1,7 +1,10 @@
+#include <Windows.h>
 #include <stdio.h>
 #include <conio.h>
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
+#include <iostream>
 
 typedef __int64 int64_t;
 #include "..\RFData.h"
@@ -10,19 +13,28 @@ typedef __int64 int64_t;
 #include "..\common\matrix.h"
 #include "..\common\fifo.h"
 
+#include "../pos_estimator.h"
+
+#define TIMES 1000000000
+
 typedef struct
 {
-	double longtitude;
-	double latitude;
-	double vlongtitude;
-	double vlatitude;
+	int64_t longtitude;			// unit: 1/10000000 degree
+	int64_t latitude;			// unit: 1/10000000 degree
+	int64_t vlongtitude;		// unit: 1/10000000 degree/s
+	int64_t vlatitude;			// unit: 1/10000000 degree/s, ~1cm/s
 	int64_t time;
-}position;
+}position2;
 
-int max(int a, int b)
+typedef struct  
 {
-	return a>b?a:b;
-}
+	int isAccel;
+	COORDTYPE lat;
+	COORDTYPE lon;
+	float alat;
+	float alon;
+	int64_t timestamp;
+} sanity_test_packet;
 
 double NDEG2DEG(double ndeg)
 {
@@ -32,21 +44,61 @@ double NDEG2DEG(double ndeg)
 	return degree + minute/60.0 + modf(ndeg, &ndeg)/60.0;
 }
 
+int sanity_test()
+{
+	FILE * sanity = fopen("Z:\\sanity.dat", "rb");;
+
+	pos_estimator estimator;
+
+	sanity_test_packet packet;
+	while(fread(&packet, 1, sizeof(packet), sanity) == sizeof(packet))
+	{
+		if (packet.isAccel)
+			estimator.update_accel(packet.alat, packet.alon, packet.timestamp);
+		else
+			estimator.update_gps(packet.lat, packet.lon, packet.timestamp);
+	}
+
+	fclose(sanity);
+
+
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
-	CircularQueue<position, 50> pos_hist;
-	position gps_sample = {0};
-	position current = {0};
-	position abias = {0};
-	position pbias = {0};
-	position base = {0};
-	position meter = {0};
-	position meter_raw = {0};
+// 	sanity_test();
+
+	FILE * sanity = fopen("Z:\\sanity.dat", "wb");;
+
+	CircularQueue<position2, 50> pos_hist;
+	position2 gps_sample = {0};
+	position2 est = {0};
+	position2 abias = {0};
+	position2 pbias = {0};
+	position2 home = {0};
+	position_meter meter = {0};
+	position_meter meter_raw = {0};
+	position_meter meter_est = {0};
+	position_meter meter_est2 = {0};
+
+	pos_estimator estimator;
+	pos_estimator estimator2;
+	estimator2.set_gps_latency(200);
+	for(int i=0; i<10000; i++)
+	{
+		static int ii = 0;
+		estimator.update_gps(ii++, ii++, (int64_t)i*1000000/333);
+		estimator2.update_gps(ii++, ii++, (int64_t)i*1000000/333);
+
+		estimator.update_accel(0, 0, (int64_t)i*1000000/333);
+		estimator2.update_accel(0, 0, (int64_t)i*1000000/333);
+	}
 
 
 	float o;
 	int res;
-	bool gps_ready = 0;
+	bool home_set = 0;
 
 	
 	CircularQueue<float, 5> q;
@@ -59,9 +111,9 @@ int main(int argc, char **argv)
 	q.push(5.0f+i);
 	q.push(6.0f);
 
-	res = q.peak(2, &o);
+	res = q.peek(2, &o);
 	res = q.pop_n(3);
-	res = q.peak(2, &o);
+	res = q.peek(2, &o);
 
 	res = q.pop(&o);
 	res = q.pop(&o);
@@ -74,7 +126,7 @@ int main(int argc, char **argv)
 
 	double a_raw_altitude;
 	{
-		double scaling = (double)1014.001 / 1014;
+		double scaling = (double)1014.01 / 1014;
 		float temp = ((float)25) + 273.15f;
 		a_raw_altitude = 153.8462f * temp * (1.0f - exp(0.190259f * log(scaling)));
 
@@ -111,12 +163,15 @@ int main(int argc, char **argv)
 	imu_data imu = {0};
 	sensor_data sensor = {0};
 	ppm_data ppm = {0};
+	gps_data_v2 gps_v2 = {0};
 	gps_data_v1 gps_v1 = {0};
 	gps_data gps = {0};
 	quadcopter_data quad = {0};
 	quadcopter_data2 quad2 = {0};
 	quadcopter_data3 quad3 = {0};
-	ned_data ned = {0};
+	ned_data ned[3] = {0};
+	ned_data &ned0 = ned[0];
+	ned_data &ned1 = ned[1];
 
 
 	FILE * f = fopen(argv[1], "rb");
@@ -130,6 +185,9 @@ int main(int argc, char **argv)
 	char tmp[200];
 	int64_t lasttime = 9999999999;
 	int max_time_delta = 0;
+	estimator.reset();
+	estimator2.reset();
+// 	estimator.set_gps_latency(0);
 	while (fread(&rf, 1, 32, f) == 32)
 	{
 		int64_t time = rf.time & ~TAG_MASK;
@@ -142,20 +200,37 @@ int main(int argc, char **argv)
 		else if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA)
 		{
 			gps = rf.data.gps;
-			position s = {NDEG2DEG(gps.longitude), NDEG2DEG(gps.latitude), 0, 0, time};
+			position2 s = {gps.longitude*double(TIMES/10000000), gps.latitude*double(TIMES/10000000), 0, 0, time};
 			gps_sample = s;
 
-			if (gps.DOP[1] > 0 && gps.DOP[1] < 500 && !gps_ready)
+			if (gps.DOP[1] > 0 && gps.DOP[1] < 500 && gps.fix>1 && !home_set)
 			{
-				gps_ready = true;
-				base = current = s;
+				home_set = true;
+				home = est = s;
 			}
 
 		}
 		else if ((rf.time & TAG_MASK) ==  TAG_NED_DATA)
-			ned = rf.data.ned;
+		{
+			ned[rf.data.ned.id] = rf.data.ned;
+
+		}
 // 		else if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA_V1)
 // 			gps_v1 = rf.data.gps_v1;
+		else if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA_V2)
+		{
+			gps_v2 = rf.data.gps_v2;
+
+			position2 s = {NDEG2DEG(gps_v2.longitude)*TIMES, NDEG2DEG(gps_v2.latitude)*TIMES, 0, 0, time};
+			gps_sample = s;
+
+			if (gps_v2.DOP[1] > 0 && gps_v2.DOP[1] < 500 && !home_set)
+			{
+				home_set = true;
+				home = est = s;
+			}
+
+		}
 		else if ((rf.time & TAG_MASK) ==  TAG_SENSOR_DATA)
 		{
 			sensor = rf.data.sensor;
@@ -183,58 +258,108 @@ int main(int argc, char **argv)
 		// test
 
 		static int64_t last_time = time;
-		double dt = (time - last_time) / 1000000.0f;
+		float dt = (time - last_time) / 1000000.0f;
 		last_time = time;
 
-		if (gps_ready && dt >0 && dt < 1)
+		if (home_set && dt >0 && dt < 1)
 		{
-			double _time_constant_xy = 2.5f;
-			double _k1_xy = 3 / _time_constant_xy;
-			double _k2_xy = 3 / (_time_constant_xy*_time_constant_xy);
-			double _k3_xy = 1 / (_time_constant_xy*_time_constant_xy*_time_constant_xy);
+			if (gps.DOP[1] > 0 && gps.DOP[1] < 500 && gps.fix>1)
+			{
 
-			double longtitude_to_meter = (40007000.0f/360*cos(current.latitude * PI / 180));
-			double latitude_to_meter = (40007000.0f/360);
-			//double 
-			double accel_x = ned.accel_NED2[1] / 1000.0f / longtitude_to_meter;
-			double accel_y = ned.accel_NED2[0] / 1000.0f / latitude_to_meter;
+			}
+			else
+			{
+				printf("WTF");
+// 				ExitProcess(0);
+			}
 
-			double error_x = (gps_sample.longtitude - (current.longtitude + pbias.longtitude));
-			double error_y = (gps_sample.latitude - (current.latitude + pbias.latitude));
 
-			abias.longtitude += error_x * _k3_xy * dt;		// accel bias
-			abias.latitude += error_y * _k3_xy * dt;		// accel bias
+			float _time_constant_xy = 2.5f;
+			float _k1_xy = 3 / _time_constant_xy;
+			float _k2_xy = 3 / (_time_constant_xy*_time_constant_xy);
+			float _k3_xy = 1 / (_time_constant_xy*_time_constant_xy*_time_constant_xy);
 
-			current.vlongtitude += error_x * _k2_xy * dt;
-			current.vlatitude += error_y * _k2_xy * dt;
+			float longtitude_to_meter = (40007000.0f/TIMES/360*cos(est.latitude * PI/TIMES / 180));
+			float latitude_to_meter = (40007000.0f/TIMES/360);
 
-			pbias.longtitude += error_x * _k1_xy * dt;
-			pbias.latitude += error_y * _k1_xy * dt;
+			//float 
+			float accel_lon = ned0.accel_NED2[1] / 1000.0f / longtitude_to_meter;
+			float accel_lat = ned0.accel_NED2[0] / 1000.0f / latitude_to_meter;
 
-			double v_increase_x = (accel_x + abias.longtitude) * dt;
-			double v_increase_y = (accel_y + abias.latitude) * dt;
+			float error_lon = (gps_sample.longtitude - (est.longtitude + pbias.longtitude));
+			float error_lat = (gps_sample.latitude - (est.latitude + pbias.latitude));
 
-			current.longtitude += (current.vlongtitude + v_increase_x*0.5) * dt;
-			current.latitude += (current.vlatitude + v_increase_y*0.5) * dt;
+			abias.longtitude += error_lon * _k3_xy * dt;		// accel bias
+			abias.latitude += error_lat * _k3_xy * dt;		// accel bias
 
-			current.vlongtitude += v_increase_x;
-			current.vlatitude += v_increase_y;
+			est.vlongtitude += error_lon * _k2_xy * dt;
+			est.vlatitude += error_lat * _k2_xy * dt;
+
+			pbias.longtitude += error_lon * _k1_xy * dt;
+			pbias.latitude += error_lat * _k1_xy * dt;
+
+			float v_increase_lon = (accel_lon + abias.longtitude) * dt;
+			float v_increase_lat = (accel_lat + abias.latitude) * dt;
+
+			est.longtitude += (est.vlongtitude + v_increase_lon*0.5) * dt;
+			est.latitude += (est.vlatitude + v_increase_lat*0.5) * dt;
+
+			est.vlongtitude += v_increase_lon;
+			est.vlatitude += v_increase_lat;
+
+			static int bid = 0;
+			if (bid != gps.id)
+			{
+				estimator.update_gps(gps_sample.latitude*double(COORDTIMES/TIMES), gps_sample.longtitude*double(COORDTIMES/TIMES), time);
+				// 			estimator2.update_gps(gps_sample.latitude*double(COORDTIMES/TIMES), gps_sample.longtitude*double(COORDTIMES/TIMES), time);
+				bid = gps.id;
+
+
+				sanity_test_packet packet = {0, gps_sample.latitude*double(COORDTIMES/TIMES), gps_sample.longtitude*double(COORDTIMES/TIMES),0,0,time};
+				fwrite(&packet, 1, sizeof(packet), sanity);
+				fflush(sanity);
+			}
+			estimator.update_accel(ned0.accel_NED2[0] / 1000.0f, ned0.accel_NED2[1] / 1000.0f, time);
+			// 			estimator2.update_accel(ned.accel_NED2[0] / 1000.0f, ned.accel_NED2[1] / 1000.0f, time);
+			sanity_test_packet packet = {1, 0, 0,ned0.accel_NED2[0] / 1000.0f,ned0.accel_NED2[1] / 1000.0f,time};
+			fwrite(&packet, 1, sizeof(packet), sanity);
+			fflush(sanity);
 
 			static int i = 0;
 			if (i++%150==0)
-				printf("v=%.2f/%.2f,time%.2f,p=%f / %f\n", current.vlongtitude*longtitude_to_meter, current.vlatitude*latitude_to_meter, time/1000000.0f, current.longtitude, current.latitude);
+				printf("v=%.2f/%.2f,time%.2f,p=%f / %f\n", est.vlongtitude*longtitude_to_meter, est.vlatitude*latitude_to_meter, time/1000000.0f, est.longtitude, est.latitude);
 
-			meter.longtitude = (current.longtitude + pbias.longtitude - base.longtitude) * longtitude_to_meter;
-			meter.latitude = (current.latitude + pbias.latitude - base. latitude) * latitude_to_meter;
-			meter.vlongtitude = (current.vlongtitude) * longtitude_to_meter;
-			meter.vlatitude = (current.vlatitude) * latitude_to_meter;
-			meter_raw.longtitude = (gps_sample.longtitude - base.longtitude) * longtitude_to_meter;
-			meter_raw.latitude = (gps_sample.latitude - base. latitude) * latitude_to_meter;
+			meter.vlongtitude = (est.vlongtitude) * longtitude_to_meter;
+			meter.vlatitude = (est.vlatitude) * latitude_to_meter;
+
+			meter_raw.longtitude = (gps_sample.longtitude - home.longtitude) * longtitude_to_meter;
+			meter_raw.latitude = (gps_sample.latitude - home. latitude) * latitude_to_meter;
+
+			meter.longtitude = (est.longtitude + pbias.longtitude - home.longtitude) * longtitude_to_meter;
+			meter.latitude = (est.latitude + pbias.latitude - home. latitude) * latitude_to_meter;
+
+			position est = estimator.get_estimation();
+			meter.longtitude = (est.longtitude - home.longtitude) * longtitude_to_meter;
+			meter.latitude = (est.latitude - home. latitude) * latitude_to_meter;
+
+			meter_est.longtitude = (ned0.lon/10000000.0 * TIMES- home.longtitude) * longtitude_to_meter;
+			meter_est.latitude = (ned0.lat/10000000.0  * TIMES- home. latitude) * latitude_to_meter;
+// 			meter_est2.longtitude = (ned.lon2/10000000.0 * TIMES- home.longtitude) * longtitude_to_meter;
+// 			meter_est2.latitude = (ned.lat2/10000000.0  * TIMES- home. latitude) * latitude_to_meter;
 
 // 			printf("%.7f,%.8f\n", meter_raw.longtitude, gps_sample.longtitude);
 		}
 
+// 		float longtitude_to_meter = (40007000.0f/TIMES/360);
+// 		float latitude_to_meter = (40007000.0f/TIMES/360);
+// 		meter_est.longtitude = (ned.lon/10000000.0 * TIMES- home.longtitude) * longtitude_to_meter;
+// 		meter_est.latitude = (ned.lat/10000000.0  * TIMES- home. latitude) * latitude_to_meter;
+// 		meter_est2.longtitude = (ned.lon2/10000000.0 * TIMES- home.longtitude) * longtitude_to_meter;
+// 		meter_est2.latitude = (ned.lat2/10000000.0  * TIMES- home. latitude) * latitude_to_meter;
 
+		int64_t a = 0;
+		float b = 1;
+// 		std::cout << typeid(a+(COORDTYPE)b).name();
 
 		if (time < lasttime)
 		{
@@ -311,12 +436,12 @@ int main(int argc, char **argv)
 
 // 		if (time > 300000000 && time < 400000000)
 		if (n++ %24 == 0)
-		if (time > 0 && time < 100000000)
+//		if (time > 160000000 && time < 190000000)
  		fprintf(fo, "%.4f,%.2f,%.2f,%2f,%.2f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d,%d\r\n",
 				float(time/1000000.0f), sensor.voltage/1000.0f, sensor.current/1000.0f, mag_size, imu.temperature / 100.0f,
- 				ned.accel_NED1[0], ned.accel_NED1[1], ned.accel_NED1[2], sensor.gyro[0], sensor.gyro[1], sensor.gyro[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[0], pilot2.D[0],
+ 				ned0.accel_NED2[0], ned0.accel_NED2[1], ned0.accel_NED2[2], sensor.gyro[0], sensor.gyro[1], sensor.gyro[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[0], pilot2.D[0],
 				roll*180/PI, pitch*180/PI, yaw_est*180/PI, pilot.target[0]/100.0, pilot.target[1]/100.0, pilot.target[2]/100.0, 
 				(ppm.in[2]-1113)/50, pilot.fly_mode,
 				ppm.in[0], ppm.in[1], ppm.in[2], ppm.in[3], ppm.out[0], ppm.out[1], ppm.out[2], ppm.out[3],
@@ -337,14 +462,15 @@ int main(int argc, char **argv)
 // 				pilot.fly_mode == quadcopter
 // 				gps.fix>1 && gps.longitude > 0 && gps.latitude > 0
 //  				)
- 			if (time > 50000000 && time < 100000000)
+//  			if (time > 160000000 && time < 190000000)
 // 			if (m++ %3 == 0 && quad3.ultrasonic != 0xffff)
- 			if (m++ %10 == 0)
+// 			if (home_set)
+ 			if (m++ %15 == 0)
 			{
 				fprintf(gpso, "%.4f", float(time/1000000.0f));
-				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[1], quad.angle_target[1], quad.speed[1], quad.speed_target[1]);
-				fprintf(gpso, ",%d,%d,%d,%d,%d,%f,%f,", quad.angle_pos[0],quad.angle_target[0],quad.speed[0],quad.speed_target[0], quad2.climb_rate, meter_raw.longtitude, meter_raw.latitude);
-				fprintf(gpso, "%.1f/%d,%f,%f", gps.DOP[0]/100.0f, gps.satelite_in_use, meter.longtitude, meter.latitude);
+				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[1], quad.angle_target[1], quad2.accel_z, quad3.accel_target);
+				fprintf(gpso, ",%d,%d,%d,%f,%f,%f,%f,", quad.angle_pos[0],quad.angle_target[0],quad.speed[0], meter_raw.longtitude, meter_raw.latitude, meter.longtitude, meter.latitude);
+				fprintf(gpso, "%.1f/%d/%d/%d,%f,%f,%f,%f,%f", gps.DOP[0]/100.0f, gps.satelite_in_use, gps.fix, gps.id, gps.speed/100.0f*3.6f, meter_est.longtitude, quad3.altitude_target/100.0f, quad3.altitude/100.0f, quad2.altitude_baro_raw/100.0f);
 				fprintf(gpso, "\r\n");
 			}
 		}
