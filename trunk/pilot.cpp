@@ -21,6 +21,7 @@
 #include "ahrs.h"
 
 #ifndef LITE
+#include "pos_estimator.h"
 #include "common/gps.h"
 #include "common/uart4.h"
 #include "common/ads1115.h"
@@ -331,6 +332,12 @@ float rc_zero[] = {1520, 1520, 1520, 1520, 1520, 1520};
 float error_pid[3][3] = {0};		// error_pid[roll, pitch, yaw][p,i,d]
 int64_t last_tick = getus();
 int64_t last_gps_tick = 0;
+static unsigned short gps_id = 0;
+#ifndef LITE
+pos_estimator estimator;
+pos_estimator estimator2;
+pos_estimator estimator3;
+#endif
 float airspeed_sensor_data;
 int adc_voltage = 0;
 int adc_current = 0;
@@ -400,6 +407,7 @@ bool has_5th_channel = true;
 vector gyro_temp_k = {0};		// gyro temperature compensating curve (linear)
 vector gyro_temp_a = {0};
 float temperature0 = 0;
+int loop_hz = 0;
 
 void matrix_error(const char*msg)
 {
@@ -458,6 +466,15 @@ int inverse_matrix2x2(float *m)
 
 	return 0;
 }
+
+double NDEG2DEG(double ndeg)
+{
+	int degree = ndeg / 100;
+	int minute = int(floor(ndeg)) % 100;	
+
+	return degree + minute/60.0 + modf(ndeg, &ndeg)/60.0;
+}
+
 // kalman test
 float state[4] = {0};	// 4x1 matrix, altitude, climb, accel, accel_bias
 
@@ -474,11 +491,11 @@ float Q[16] =
 	4e-6, 0, 0, 0,
 	0, 1e-6, 0, 0,
 	0, 0, 1e-6, 0,
-	0, 0, 0, 1e-7,
+	0, 0, 0, 1e-6,
 };
 float R[4] = 
 {
-	15, 0,
+	4.8, 0,
 	0, 0.0063,
 };
 
@@ -641,7 +658,7 @@ int kalman()
 	matrix_sub(I, tmp, 4, 4);
 	matrix_mul(P, I, 4, 4, P1, 4, 4);
 	
-	TRACE("\rtime=%.3f,state:%.2f,%.2f,%.2f,%.2f, ref=%.2f/%.2f/%.2f, accelz:%.3f, temp:%.1f, ouler:%.2f,%.2f/%.2f,%.2f  ", getus()/1000000.0f, state[0], state[1], state[2], state[3], _position, a_raw_altitude, _velocity, accelz, mpu6050_temperature, euler[0]*PI180, euler[1]*PI180, roll * PI180, pitch * PI180);
+	TRACE("\rtime=%.3f,state:%.2f,%.2f,%.2f,%.2f, ref=%.2f/%.2f/%.2f, accelz:%.3f/%.3f, temp:%.1f, ouler:%.2f,%.2f/%.2f,%.2f  ", getus()/1000000.0f, state[0], state[1], state[2], state[3], _position, a_raw_altitude, _velocity, accelz, accelz_mwc, mpu6050_temperature, euler[0]*PI180, euler[1]*PI180, roll * PI180, pitch * PI180);
 
 	TRACE("pressure=%.2f\r", a_raw_pressure);
 
@@ -697,7 +714,7 @@ int auto_throttle(float user_climb_rate)
 	// TODO: apply pid instead of P only, and add feed forward
 	// reference: get_throttle_rate()
 	bool ground_ops = !airborne && climb_rate_error_pid[0]<0;
-	float accel_factor_ground = throttle_real_crusing*1.1/(quadcopter_max_descend_rate)/pid_quad_accel[0];
+	float accel_factor_ground = throttle_real_crusing*1.1f/(quadcopter_max_descend_rate)/pid_quad_accel[0];
 
 	climb_rate_error_pid[0] = climb_rate_error_pid[0] * (1-alpha) + alpha * climb_rate_error;
 // 	climb_rate_error_pid[0] = climb_rate_error;
@@ -980,7 +997,7 @@ int prepare_pid()
 	case quadcopter:
 		{
 			// auto throttle
-			float v = rc[2] - 0.5;
+			float v = rc[2] - 0.5f;
 			float user_rate;
 			if (fabs(v)<0.05f)
 				user_rate = 0;
@@ -1253,7 +1270,7 @@ int output()
 		}
 	}
 
-	if (mode == shutdown || mode == initializing)
+	if (mode == _shutdown || mode == initializing)
 	{
 		for(int i=0; i<6; i++)
 #if QUADCOPTER == 1
@@ -1272,12 +1289,10 @@ int real_log_packet(void *data, int size)
 {
 	int64_t us = getus();
 
-#ifndef LITE
+#ifdef STM32F4
 	// NRF
 	if (nrf_ok && size <= 32 && LOG_LEVEL & LOG_NRF)
 		NRF_Tx_Dat((uint8_t*)data);
-#endif
-	
 	// USART, "\r" are escaped into "\r\r"
 	if (LOG_LEVEL & LOG_USART1)
 	{
@@ -1294,8 +1309,11 @@ int real_log_packet(void *data, int size)
 		escaped[j++] = '\r';
 		escaped[j++] = '\n';
 
-		UART4_Send(escaped, j);
+		UART4_SendPacket(escaped, j);
 	}
+#endif
+	
+
 
 	// fatfs
 	#ifndef LITE
@@ -1323,7 +1341,7 @@ int real_log_packet(void *data, int size)
 		if (sd_ok && file)
 		{
 			unsigned int done;
-			if (f_write(file, data, size, &done) != FR_OK)
+			if (f_write(file, data, size, &done) != FR_OK || done !=size)
 			{
 				ERROR("\r\nSDCARD ERROR\r\n");
 				sd_ok = false;
@@ -1397,17 +1415,53 @@ int save_logs()
 	memcpy(log_buffer[0]+c*32, &to_send, 32);
 	c++;
 
+	#ifndef LITE
+	position p = estimator.get_estimation();
+	position p2 = estimator2.get_estimation();
+	position p3 = estimator3.get_estimation();
 	ned_data ned = 
 	{
-		{accel_earth_frame_mwc.array[0] * 1000* 9.8f/2048, accel_earth_frame_mwc.array[1] * 1000* 9.8f/2048, -accel_earth_frame_mwc.array[2] * 1000* 9.8f/2048-9800.0f},
+// 		{accel_earth_frame_mwc.array[0] * 1000* 9.8f/2048, accel_earth_frame_mwc.array[1] * 1000* 9.8f/2048, -accel_earth_frame_mwc.array[2] * 1000* 9.8f/2048-9800.0f},
+		0,
 		{accel_earth_frame.array[0] * 1000, accel_earth_frame.array[1] * 1000, accel_earth_frame.array[2] * 1000},
+		p.latitude * double(10000000.0/COORDTIMES), 
+		p.longtitude * double(10000000.0/COORDTIMES), 
+		estimator.error_lat, 
+		estimator.error_lon, 
+	};
+	ned_data ned2 = 
+	{
+		1,
+		{accel_earth_frame_mwc.array[0] * 1000* 9.8f/2048, accel_earth_frame_mwc.array[1] * 1000* 9.8f/2048, -accel_earth_frame_mwc.array[2] * 1000* 9.8f/2048-9800.0f},
+		p2.latitude * double(10000000.0/COORDTIMES), 
+		p2.longtitude * double(10000000.0/COORDTIMES), 
+		estimator2.error_lat, 
+		estimator2.error_lon, 
+	};
+	ned_data ned3 = 
+	{
+		2,
+		{accel_earth_frame_mwc.array[0] * 1000* 9.8f/2048, accel_earth_frame_mwc.array[1] * 1000* 9.8f/2048, -accel_earth_frame_mwc.array[2] * 1000* 9.8f/2048-9800.0f},
+		p3.latitude * double(10000000.0/COORDTIMES), 
+		p3.longtitude * double(10000000.0/COORDTIMES), 
+		estimator3.error_lat, 
+		estimator3.error_lon, 
 	};
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_NED_DATA;
 	to_send.data.ned = ned;
-
 	memcpy(log_buffer[0]+c*32, &to_send, 32);
 	c++;
+
+	to_send.data.ned = ned2;
+	memcpy(log_buffer[0]+c*32, &to_send, 32);
+	c++;
+
+	to_send.data.ned = ned3;
+	memcpy(log_buffer[0]+c*32, &to_send, 32);
+	c++;
+
+	#endif
 
 
 	pilot_data pilot = 
@@ -1469,6 +1523,7 @@ int save_logs()
 		state[2] * 100,
 		a_raw_altitude * 100,
 		accelz_mwc * 100,
+		loop_hz,
 	};
 
 	to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA2;
@@ -1528,9 +1583,10 @@ int save_logs()
 		{
 			{info.PDOP*100, info.HDOP*100, info.VDOP*100},
 			info.speed/3.6*100,
-			info.lon, info.lat, info.elv,
+			NDEG2DEG(info.lon) * 10000000, NDEG2DEG(info.lat) * 10000000, info.elv,
 			info.satinfo.inview, info.satinfo.inuse,
 			info.sig, info.fix,
+			gps_id,
 		};
 
 		to_send.time = (time & (~TAG_MASK)) | TAG_GPS_DATA;
@@ -1854,7 +1910,7 @@ int calculate_attitude()
 	// Existing PX4 EKF code was generated by MATLAB which uses coloum major order matrix.
 	euler[0] = atan2f(Rot_matrix[5], Rot_matrix[8]);	//! Roll
 	euler[1] = -asinf(Rot_matrix[2]);	//! Pitch
-	euler[2] = atan2f(Rot_matrix[1], Rot_matrix[0]);		//! Yaw
+	euler[2] = atan2f(Rot_matrix[1], Rot_matrix[0]);		//! Yaw, 0 = south, PI/-PI = north, PI/2 = west, -PI/2 = east
 	euler[0] = radian_add(euler[0], quadcopter_trim[0]);
 	euler[1] = radian_add(euler[1], quadcopter_trim[1]);
 
@@ -2339,12 +2395,12 @@ int check_mode()
 	{
 #if QUADCOPTER == 1
 		if (mode == initializing)
-			mode = shutdown;
+			mode = _shutdown;
 
 		// emergency switch
 		if (fabs(rc[4]-last_ch4) > 0.20f)
 		{
-			mode = shutdown;
+			mode = _shutdown;
 			last_ch4 = rc[4];
 			ERROR("shutdown!\n");
 		}
@@ -2540,7 +2596,7 @@ int land_detector()
 
 		if (getus() - land_detect_us > (airborne ? 1000000 : 3000000))		// 2 seconds for before take off, 1 senconds for landing
 		{
-			mode = shutdown;
+			mode = _shutdown;
 			ERROR("landing detected");
 		}
 	}
@@ -2571,7 +2627,7 @@ int crash_detector()
 	if (gforce > 3.0f)
 	{
 		ERROR("very high G force (%.2f) detected (%.0f,%.0f,%.0f)\n", gforce, accel.array[0], accel.array[1], accel.array[2]);
-		mode = shutdown;
+		mode = _shutdown;
 	}
 
 	int prot = (float)::crash_protect;
@@ -2590,7 +2646,7 @@ int crash_detector()
 	{
 		ERROR("crash landing detected(%s)\n", (collision_detected > 0 && getus() - collision_detected < 5000000) ? "collision" : "tilt");
 
-		mode = shutdown;
+		mode = _shutdown;
 	}
 
 	return 0;
@@ -2641,6 +2697,7 @@ int loop(void)
 	{
 		tic = getus();
 		ERROR("speed: %d\r\n", cycle_counter);
+		loop_hz = cycle_counter;
 		cycle_counter = 0;
 	}
 
@@ -2666,11 +2723,46 @@ int loop(void)
 	calculate_attitude();
 
 	// gps		
-	#ifndef LITE
+#ifndef LITE
 	if (GPS_ParseBuffer() > 0)
+	{
 		last_gps_tick = getus();
-	UART4_ParseBuffer();
-	#endif
+		gps_id++;
+
+		nmeaINFO *info = GPS_GetInfo();
+		if (info->HDOP > 0 && info->HDOP < 5.0 && info->fix>1)
+		{
+			estimator.update_gps(COORDTIMES * NDEG2DEG(info->lat), COORDTIMES * NDEG2DEG(info->lon), getus());
+			estimator2.update_gps(COORDTIMES * NDEG2DEG(info->lat), COORDTIMES * NDEG2DEG(info->lon), getus());
+			estimator3.update_gps(COORDTIMES * NDEG2DEG(info->lat), COORDTIMES * NDEG2DEG(info->lon), getus());
+		}
+		else
+		{
+			//estimator.reset();
+			//estimator2.reset();
+		}
+	}
+
+	static int ii = 0;
+	if (ii == 0)
+	{
+// 		estimator.update_gps(ii++, ii++, getus());
+// 		estimator2.update_gps(ii++, ii++, getus());
+// 		estimator3.update_gps(ii++, ii++, getus());
+		//ii++;
+	}
+
+	estimator.update_accel(accel_earth_frame.array[0], accel_earth_frame.array[1], getus());
+	estimator2.update_accel(accel_earth_frame.array[0], accel_earth_frame.array[1], getus());
+	estimator3.update_accel(accel_earth_frame.array[0], accel_earth_frame.array[1], getus());
+
+#ifdef STM32F4
+	char uart4_packet[512];
+	int packet_size = UART4_ReadPacket(uart4_packet, sizeof(uart4_packet));
+	if (packet_size > 0)
+		ERROR("packet:%s\n", uart4_packet);
+#endif
+#endif
 
 
 	osd();
@@ -2707,6 +2799,14 @@ int loop(void)
 
 	led_all_on();
 
+	if (sd_ok)
+	{
+		// flash one of the LED(A4) at 10hz
+		if ((getus() % 100000) < 50000)
+			GPIO_SetBits(GPIOC, GPIO_Pin_4);
+
+	}
+
 	if (ms5611_result == 0)
 	{
 // 		ERROR("%.2f    %.2f    %.2f    %.2f\n", getus()/1000000.0f, a_raw_altitude, state[0], mpu6050_temperature);
@@ -2729,12 +2829,50 @@ int loop(void)
 	return 0;
 }
 
-int int288 = 0;
-int power = 0;
-int int61152 = 0;
-int int2882 = 0;
 
-#include "common/space.h"
+typedef struct  
+{
+	int isAccel;
+	COORDTYPE lat;
+	COORDTYPE lon;
+	float alat;
+	float alon;
+	int64_t timestamp;
+} sanity_test_packet;
+
+int sanity_test()
+{
+	FIL file;
+	FIL *f = &file;
+	res = f_open(f, "sanity.dat", FA_OPEN_EXISTING | FA_WRITE | FA_READ);
+
+	pos_estimator est;
+
+	sanity_test_packet packet;
+	printf("sizeof(packet)=%d", sizeof(packet));
+	while(true)
+	{
+		UINT br = 0;
+		f_read(f, &packet, sizeof(packet), &br);
+		if (br != sizeof(packet))
+		{
+			f_close(f);
+			break;
+		}
+		if (packet.isAccel)
+			est.update_accel(packet.alat, packet.alon, packet.timestamp);
+		else
+		{
+			est.update_gps(packet.lat, packet.lon, packet.timestamp);
+			printf("err=%f,%f", est.error_lat, est.error_lon);
+		}
+	}
+
+
+
+	return 0;
+}
+
 int main(void)
 {
 // #ifdef LITE
@@ -2783,6 +2921,9 @@ int main(void)
 		g_ppm_output[i] = i == 2 ? THROTTLE_STOP : RC_CENTER;
 #endif
 
+	estimator2.set_gps_latency(0);
+	estimator3.set_gps_latency(250);
+
 	ADC1_Init();
 	SysTick_Config(720);
 	PPM_init();
@@ -2797,7 +2938,9 @@ int main(void)
 	if (init_HMC5883() < 0)
 		critical_errors |= error_magnet;	
 	GPS_Init(115200);
+#ifdef STM32F4
 	UART4_Init(115200);
+#endif
 	NRF_Init();
  	MAX7456_SYS_Init();
  	Max7456_Set_System(1);
@@ -2809,17 +2952,11 @@ int main(void)
 	flashlight_on();
 
 	#if PCB_VERSION == 3 && !defined(LITE)
-	int16_t int6115 = 0;
-	float vpower = NAN;
-	float v6115;
-	float v288;
-	float v61152;
 	ads1115_init();	
  	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN0, ads1115_gain_4V, &ads1115_voltage);
  	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN1_AIN3, ads1115_gain_4V, &ads1115_current);
  	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN2_AIN3, ads1115_gain_2V, &ads1115_airspeed);
- 	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN3, ads1115_gain_4V, &ads1115_2_5V);
-	
+ 	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN3, ads1115_gain_4V, &ads1115_2_5V);	
 	#endif
 	
 	#ifndef LITE

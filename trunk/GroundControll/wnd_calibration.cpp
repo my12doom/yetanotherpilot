@@ -380,6 +380,9 @@ INT_PTR CALLBACK WndProcCalibration(HWND hWnd, UINT message, WPARAM wParam, LPAR
 	case WM_INITDIALOG:
 		::hWnd = hWnd;
 		CreateThread(NULL, NULL, calibration_update_thread, NULL, NULL, NULL);
+#ifdef _DEBUG
+		ShowWindow(GetDlgItem(hWnd, IDC_ACCEL), SW_SHOW);
+#endif
 
 		test.add_callback(calibration_OnEvent);
 		SetTimer(hWnd, 1, 25, NULL);

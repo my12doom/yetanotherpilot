@@ -5,15 +5,18 @@
 #include "../mcu.h"
 #include "common.h"
 
-static char buffer[GPS_BUFFER_BLOCK];		// circular buffer
+#define TX_BUFFER_SIZE 1024
+#define RX_BUFFER_SIZE 512
+
+static char buffer[RX_BUFFER_SIZE];		// circular buffer
 static int start = 0;						// valid data start in circular
-static int end = 0;						// valid data length in circular buffer
-static int end_sentence = 0;				// valid sentence length in circular buffer
+static int end = 0;							// valid data endl in circular buffer
+static int end_sentence = 0;				// valid sentence endl in circular buffer
+static int lastR = 0;
 
-
-static char tx_buffer[GPS_BUFFER_BLOCK];
+static char tx_buffer[TX_BUFFER_SIZE];
 static int tx_start = 0;					// valid data start in circular
-static int tx_end = 0;						// valid data length in circular buffer
+static int tx_end = 0;						// valid data endl in circular buffer
 static int ongoing_tx_size = 0;
 static int dma_running = 0;
 
@@ -26,29 +29,86 @@ void UART4_IRQHandler(void)
 		USART_ClearITPendingBit(UART4, USART_IT_RXNE);
 	}
 	
-	if (c>0)
+	if (c>0 && 0)
 	{
-		buffer[end] = c;
-		end++;
-		end %= GPS_BUFFER_BLOCK;
-		if (c == '\n')
-			end_sentence = end;
+		if (lastR)
+		{
+			lastR = 0;
+			if (c == '\n')
+				end_sentence = end;
+			if (c == '\r')
+			{
+				buffer[end] = c;
+				end++;
+				end %= sizeof(buffer);
+			}
+			// other escapes are ignored here
+		}
+		else
+		{
+			if (c == '\r')
+				lastR = 1;
+			else
+			{
+				buffer[end] = c;
+				end++;
+				end %= sizeof(buffer);
+			}
+		}
 		buffer[end] = 0;
 	}
 }
 
-int UART4_Send(void *buf, int size)
+int dma_handle_queue()
+{
+	if (dma_running)
+		return 0;
+
+	DMA_Cmd(DMA1_Stream4, DISABLE);
+
+	ongoing_tx_size = tx_end - tx_start;
+	if (ongoing_tx_size == 0)
+		return 0;
+	if (ongoing_tx_size < 0)
+		ongoing_tx_size = sizeof(tx_buffer) - tx_start;
+	
+	DMA1_Stream4->NDTR = ongoing_tx_size;
+	DMA1_Stream4->M0AR = (uint32_t)tx_buffer + tx_start;
+
+	DMA_Cmd(DMA1_Stream4, ENABLE);
+
+	dma_running = 1;
+
+	//ERROR("!!%d!!", ongoing_tx_size);
+
+	return 0;
+}
+
+int UART4_SendPacket(const void *buf, int size)
 {
 	int i;
 	const char *p = (const char*)buf;
-	if ((tx_end + size) > sizeof(tx_buffer) && ((tx_end + size)%sizeof(tx_buffer))>= tx_start)
+	int new_pos = (tx_end + size) % sizeof(tx_buffer);
+	int old_size = tx_end-tx_start < 0 ? tx_end-tx_start + sizeof(tx_buffer) : tx_end-tx_start;
+	if (size + old_size > sizeof(tx_buffer))
+	{
+		dma_handle_queue();
 		return 0;		// reject all data if buffer overrun
+	}
 
 	for(i=0; i<size; i++)
 		tx_buffer[(tx_end+i)%sizeof(tx_buffer)] = p[i];
 
 	tx_end = (tx_end+size)%sizeof(tx_buffer);
+	
+	size = tx_end-tx_start;
+	if (size<0)
+		size += sizeof(tx_buffer);
 
+	//if (old_size > size)
+	//	ERROR("holy");
+	//ERROR("(%d)", size);
+	
 	dma_handle_queue();
 	
 	return size;
@@ -140,30 +200,6 @@ void UART4_Init(uint32_t baud_rate)
 	dma_init();
 }
 
-int dma_handle_queue()
-{
-	if (dma_running)
-		return 0;
-
-	DMA_Cmd(DMA1_Stream4, DISABLE);
-
-	ongoing_tx_size = tx_end - tx_start;
-	if (ongoing_tx_size == 0)
-		return 0;
-	if (ongoing_tx_size < 0)
-		ongoing_tx_size = sizeof(tx_buffer) - tx_start;
-
-
-	DMA1_Stream4->NDTR = ongoing_tx_size;
-	DMA1_Stream4->M0AR = (uint32_t)tx_buffer + tx_start;
-
-	DMA_Cmd(DMA1_Stream4, ENABLE);
-
-	dma_running = 1;
-
-	return 0;
-}
-
 void DMA1_Stream4_IRQHandler()
 {
 	tx_start = (tx_start + ongoing_tx_size) % sizeof(tx_buffer);
@@ -172,45 +208,32 @@ void DMA1_Stream4_IRQHandler()
 	dma_handle_queue();
 }
 
-extern int parse_command_line(const char *line, char *out);
-static int parse_command(char *cmd)
+
+
+int UART4_ReadPacket(void *out, int maxsize)
 {
-	int response_size;
-	char response[200];
-	int i;
-	do
-	{
-		char *next = (char*)strchr(cmd, '\n');
-		if (next)
-			next[0] = 0;
-
-		response_size = parse_command_line(cmd, response);
-
-		cmd = next+1;
-
-		if (!next)
-			break;
-	}while (1);
-
-	return 0;
-}
-
-static char to_parse[GPS_BUFFER_BLOCK];
-int UART4_ParseBuffer()
-{
+	char *p = (char*)out;
 	int _end_sentence = end_sentence;
 	int j=0;
 	int i;
+	int size;
 	
 	if (_end_sentence == start)
-		return 0;
-	for(i=start; i!= _end_sentence; i=(i+1)%GPS_BUFFER_BLOCK, j++)
-		to_parse[j] = buffer[i];
+		return -1;
+
+	size = _end_sentence - start;
+	if (size<0)
+		size += sizeof(buffer);
+
+	if (size >= maxsize)
+		return -2;
+
+	for(i=start; i!= _end_sentence; i=(i+1)%sizeof(buffer), j++)
+		p[j] = buffer[i];
 	
-	to_parse[j] = 0;
-	ERROR("UART4:%s", to_parse);
+	p[j] = 0;
 	
 	start = _end_sentence;
 
-	return parse_command(to_parse);
+	return size;
 }

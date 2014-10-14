@@ -35,7 +35,7 @@ typedef struct
 
 typedef struct
 {
-	unsigned short DOP[3];				// DOP[3]: PDOP, HDOP, VOP, unit base: 0.01
+	unsigned short DOP[3];			// DOP[3]: PDOP, HDOP, VOP, unit base: 0.01
 	float longitude;				// longitude in NDEG - +/-[degree][min].[sec/60]
 	float latitude;					// latitude in NDEG - +/-[degree][min].[sec/60]
 	float altitude;					// meter
@@ -57,16 +57,30 @@ typedef struct
 	unsigned satelite_in_use	: 4;
 	unsigned sig				: 4;// GPS quality indicator (0 = Invalid; 1 = Fix; 2 = Differential, 3 = Sensitive)
 	unsigned fix				: 4;// Operating mode, used for navigation (1 = Fix not available; 2 = 2D; 3 = 3D)
+} gps_data_v2;
+
+typedef struct
+{
+	unsigned short DOP[3];			// DOP[3]: PDOP, HDOP, VOP, unit base: 0.01
+	short speed;					// unit: cm/s
+	int longitude;					// longitude in 1/10000000 degree
+	int latitude;					// latitude in 1/10000000 degree
+	float altitude;					// meter
+	unsigned satelite_in_view 	: 4;
+	unsigned satelite_in_use	: 4;
+	unsigned sig				: 4;// GPS quality indicator (0 = Invalid; 1 = Fix; 2 = Differential, 3 = Sensitive)
+	unsigned fix				: 4;// Operating mode, used for navigation (1 = Fix not available; 2 = 2D; 3 = 3D)
+	unsigned id					: 16;// incremental id for un-guaranteed telemetry channel
 } gps_data;
 
 typedef struct
 {
 	int altitude;							// 4 byte, unit base: 0.01 meter relative to launch ground.
-	float airspeed;			// unit base: pascal. not a speed unit but a differencial pressure.
+	float airspeed;							// unit base: pascal. not a speed unit but a differencial pressure.
 	short error[3];							// 6 byte, unit base: 0.01 degree, range: -18000 ~ 18000
 	short target[3];						// 6 byte, unit base: 0.01 degree, range: -18000 ~ 18000
 	unsigned char fly_mode;					// 1 byte
-	unsigned short mah_consumed;				// mah power consumed
+	unsigned short mah_consumed;			// mah power consumed
 } pilot_data;
 
 typedef struct
@@ -83,8 +97,12 @@ typedef struct
 
 typedef struct
 {
-	short accel_NED1[3];
+	short id;
 	short accel_NED2[3];
+	int lat;
+	int lon;
+	float error_lat;
+	float error_lon;
 } ned_data;
 
 typedef struct
@@ -111,6 +129,7 @@ typedef struct
 	short climb_rate_inertia;	// unit: cm/s
 	short altitude_baro_raw;	// unit: cm
 	short accel_z;			// unit: cm/s^2
+	short loop_hz;
 } quadcopter_data2;
 
 typedef struct
@@ -138,12 +157,13 @@ typedef struct
 // 		imu_data_v1 imu_v1;		// 24 bytes
 		imu_data imu;		// 24 bytes
 		ned_data ned;
-		pilot_data pilot;	// 21 bytes
+		pilot_data pilot;	// 23 bytes
 		pilot_data2 pilot2;	// 24 bytes
 		ppm_data ppm;		// 24 bytes
 		controll_data controll; // 24 bytes
 // 		gps_data_v1 gps_v1;		// 22 bytes
-		gps_data gps;		// 22 bytes
+ 		gps_data_v2 gps_v2;		// 22 bytes
+		gps_data gps;		// 23 bytes
 		quadcopter_data quadcopter;	// 24 byte
 		quadcopter_data2 quadcopter2;
 		quadcopter_data3 quadcopter3;
@@ -158,12 +178,13 @@ typedef struct
 #define TAG_PPM_DATA	0x3300000000000000
 #define TAG_CTRL_DATA	0x3400000000000000
 #define TAG_GPS_DATA_V1	0x3500000000000000
-#define TAG_GPS_DATA	0x3600000000000000
+#define TAG_GPS_DATA_V2	0x3600000000000000
 #define TAG_QUADCOPTER_DATA	0x3700000000000000
 #define TAG_QUADCOPTER_DATA2	0x3800000000000000
 #define TAG_QUADCOPTER_DATA3	0x3900000000000000
 #define TAG_IMU_DATA	0x3A00000000000000
 #define TAG_NED_DATA	0x3B00000000000000
+#define TAG_GPS_DATA	0x3C00000000000000
 
 #define CTRL_CMD_SET_VALUE 0
 #define CTRL_CMD_GET_VALUE 1

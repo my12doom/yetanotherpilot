@@ -84,11 +84,11 @@ int fputc(int ch, FILE *f)
 	while (!(USART1->SR & USART_FLAG_TXE));
 #endif
 #ifdef ITM_DBG
-  if (DEMCR & TRCENA) 
+	if (DEMCR & TRCENA) 
 	{
-    while (ITM_Port32(0) == 0);
-    ITM_Port8(0) = ch;
-  }
+		while (ITM_Port32(0) == 0);
+		ITM_Port8(0) = ch;
+	}
 #endif
 	return (ch);
 }

@@ -49,7 +49,7 @@ public:
 	// peak the elements at the specified index of queues.
 	// return 0 if success and *out if modified.
 	//        -1 if element not found and *out remain untouched or invaild out pointer.
-	int peak(int index, T*out)
+	int peek(int index, T*out)
 	{
 		if (index >= _count)
 			return -1;

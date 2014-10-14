@@ -79,6 +79,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\pos_estimator.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\priority.h"
 				>
 			</File>
