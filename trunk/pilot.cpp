@@ -192,7 +192,14 @@ static param rc_setting[8][4] =
 
 static param motor_matrix("mat", 0);
 static param THROTTLE_IDLE("idle", 1176);
-static param acc_bias_z("abiz", 0);
+static param acc_bias[3] = 
+{
+	param("abix", 0), param("abiy", 0), param("abiz", 0),
+};
+static param acc_scale[3] = 
+{
+	param("ascx", 1), param("ascy", 1), param("ascz", 1),
+};
 #define MAX_MOTOR_COUNT 8
 static int quadcopter_mixing_matrix[2][MAX_MOTOR_COUNT][3] = // the motor mixing matrix, [motor number] [roll, pitch, yaw]
 {
@@ -665,41 +672,88 @@ int kalman()
 	return 0;
 }
 
+/// calc_leash_length - calculates the horizontal leash length given a maximum speed, acceleration and position kP gain
+float calc_leash_length(float speed, float accel, float kP)
+{
+	float leash_length;
+
+	// sanity check acceleration and avoid divide by zero
+	if (accel <= 0.0f) {
+		accel = 5.0f;
+	}
+
+	// avoid divide by zero
+	if (kP <= 0.0f) {
+		return 1;
+	}
+
+	// calculate leash length
+	if(speed <= accel / kP) {
+		// linear leash length based on speed close in
+		leash_length = speed / kP;
+	}else{
+		// leash length grows at sqrt of speed further out
+		leash_length = (accel / (2.0f*kP*kP)) + (speed*speed / (2.0f*accel));
+	}
+
+	// ensure leash is at least 1m long
+	if( leash_length < 1 ) {
+		leash_length = 1;
+	}
+
+	return leash_length;
+}
+
+float leash_up;
+float leash_down;
 int auto_throttle(float user_climb_rate)
 {
 	// new target altitude
-	if (fabs(user_climb_rate) < 0.001f && airborne)
+// 	if (fabs(user_climb_rate) < 0.001f && airborne)
+// 	{
+// 		if (isnan(target_altitude))
+// 			target_altitude = state[0];
+// 	}
+// 	else
+// 	{
+// 		target_altitude = NAN;
+// 	}
+	if (isnan(target_altitude) && airborne)
 	{
-		if (isnan(target_altitude))
-			target_altitude = state[0];
-	}
-	else
-	{
-		target_altitude = NAN;
+		target_altitude = state[0];
 	}
 
-	// new altitude error
-	if (isnan(target_altitude))
+	if (!isnan(target_altitude))
 	{
-		target_climb_rate = user_climb_rate;
-	}
-	else
-	{
-		altitude_error_pid[0] = target_altitude - state[0];
-		altitude_error_pid[0] = limit(altitude_error_pid[0], -2.5f, 2.5f);
+		leash_up = calc_leash_length(quadcopter_max_climb_rate, quadcopter_max_acceleration, pid_quad_altitude[0]);
+		leash_down = calc_leash_length(quadcopter_max_descend_rate, quadcopter_max_acceleration, pid_quad_altitude[0]);
+		target_altitude += user_climb_rate * interval;
+		target_altitude = limit(target_altitude, state[0]-2.5f, state[0]+2.0f);
 
 		// new target rate, directly use linear approach since we use very tight limit 
 		// TODO: use sqrt approach on large errors (see get_throttle_althold() in Attitude.pde)
-		// TODO: apply pid instead of P only
+		altitude_error_pid[0] = target_altitude - state[0];
+		altitude_error_pid[0] = limit(altitude_error_pid[0], -2.5f, 2.5f);
 		target_climb_rate = pid_quad_altitude[0] * altitude_error_pid[0];
 		target_climb_rate = limit(target_climb_rate, -quadcopter_max_descend_rate, quadcopter_max_climb_rate);
 	}
+	else
+	{
+		target_climb_rate = 0;
+	}
 
-	TRACE("\rtarget_climb_rate=%.2f, out=%d", target_climb_rate, throttle_result);
+	user_climb_rate = 1.25f* (user_climb_rate > 0 ? (limit(user_climb_rate - quadcopter_max_climb_rate*0.2f, 0, quadcopter_max_climb_rate))
+							: (limit(user_climb_rate + quadcopter_max_descend_rate * 0.2f, -quadcopter_max_descend_rate, 0)));
+
+	target_climb_rate += user_climb_rate;
+
+
+	TRACE("\rtarget_climb_rate=%.2f/%.2f, user=%.2f, out=%2f.     ", target_climb_rate, target_climb_rate-user_climb_rate, user_climb_rate, throttle_result);
 
 
 	// new climb rate error
 	float climb_rate_error = target_climb_rate - state[1];
+	climb_rate_error = limit(climb_rate_error, -quadcopter_max_descend_rate, quadcopter_max_climb_rate);
 
 	// apply a 2Hz LPF to rate error
 	const float RC = 1.0f/(2*3.1415926 * 2.0f);
@@ -1669,7 +1723,11 @@ int read_sensors()
 	vector gyro = {-p->gyro[0], p->gyro[1], p->gyro[2]};
 	vector mag = {0};
 #endif
-	acc.array[2] += acc_bias_z;
+	for(int i=0; i<3; i++)
+	{
+		acc.array[i] += acc_bias[i];
+		acc.array[i] *= acc_scale[i];
+	}
 	gyro_raw = gyro;
 	vector_sub(&gyro, &gyro_bias);
 	vector_multiply(&gyro, GYRO_SCALE);
@@ -1813,8 +1871,44 @@ int inverse_matrix3x3(const float src[3][3], float dst[3][3])
 	return 0;
 }
 
+int test_accel2ned()
+{
+	float g = 9.8f;
+	float sin_roll = sin(euler[0]);
+	float cos_roll = cos(euler[0]);
+	float sin_pitch = sin(euler[1]);
+	float cos_pitch = cos(euler[1]);
+	float sin_yaw = sin(euler[2]);
+	float cos_yaw = cos(euler[2]);
+
+	// lean angle to accel
+	float accel_forward = g * (-sin_pitch/cos_pitch);		// lean forward = negetive pitch angle
+	float accel_right = g * (sin_roll/cos_roll);
+
+	// rotate accel from forward-right to north-east axis
+	float accel_north = cos_yaw * accel_forward - sin_yaw * accel_right;
+	float accel_east = sin_yaw * accel_forward + cos_yaw * accel_right;
+
+	// rotate from north-east to forward-right axis
+	float accel_forward2 = cos_yaw * accel_north + sin_yaw * accel_east;
+	float accel_right2 = -sin_yaw * accel_north + cos_yaw * accel_east;
+
+	// TODO: check and handle accel limitation
+
+	// accel to lean angle
+	float target_pitch = atan2(-accel_forward, g);
+	float target_roll = atan2(accel_right*cos(target_pitch), g);
+
+	TRACE("\raccelNE=%.2f,%.2f/%.2f,%.2f/%.2f,%.2f, heading:%.2f    ", accel_north, accel_east, target_pitch*PI180, target_roll*PI180, euler[1]*PI180, euler[0]*PI180, euler[2]*PI180);
+
+	return 0;
+}
+
 int calculate_attitude()
 {
+	if (interval <=0 || interval > 0.2f)
+		return -1;
+	
 	vector delta_rotation = gyro;
 	vector bias = {0};//-gyro_bias[0], gyro_bias[1], 0};
 	vector_add(&delta_rotation, &bias);
@@ -1859,7 +1953,7 @@ int calculate_attitude()
 // 		0,0,0,
 		pix_acc2[0], pix_acc2[1], pix_acc2[2],
 		pix_mag[0], pix_mag[1], pix_mag[2], 
-		1.5f, gyro_bias_estimating_end ? 0.05f : 0.16f, 1.5f, 0.15f, interval);
+		0.5f, 0.025f, 0.5f, 0.025f, interval);
 // 	MadgwickAHRSupdateIMU(gyro.array[0] /*+ (getus() > 15000000 ? PI*5.0f/180.0f : 0)*/, gyro.array[1], -gyro.array[2], -acc_norm.V.y, acc_norm.V.x, acc_norm.V.z, 1.5f, interval);
 
 	// Convert q->R, This R converts inertial frame to body frame.
@@ -1910,11 +2004,11 @@ int calculate_attitude()
 	// Existing PX4 EKF code was generated by MATLAB which uses coloum major order matrix.
 	euler[0] = atan2f(Rot_matrix[5], Rot_matrix[8]);	//! Roll
 	euler[1] = -asinf(Rot_matrix[2]);	//! Pitch
-	euler[2] = atan2f(Rot_matrix[1], Rot_matrix[0]);		//! Yaw, 0 = south, PI/-PI = north, PI/2 = west, -PI/2 = east
+	euler[2] = atan2f(-Rot_matrix[1], -Rot_matrix[0]);		//! Yaw, 0 = south, PI/-PI = north, PI/2 = west, -PI/2 = east
 	euler[0] = radian_add(euler[0], quadcopter_trim[0]);
 	euler[1] = radian_add(euler[1], quadcopter_trim[1]);
 
-  	TRACE("euler:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, gyroI:%.2f, time:%f \n ", euler[0]*PI180, euler[1]*PI180, euler[2]*PI180, roll*PI180, pitch*PI180, yaw_est*PI180, gyroI.array[2]*PI180, getus()/1000000.0f);
+	TRACE("euler:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, gyroI:%.2f, time:%f, bias:%.2f \n ", euler[0]*PI180, euler[1]*PI180, euler[2]*PI180, roll*PI180, pitch*PI180, yaw_est*PI180, gyroI.array[2]*PI180, getus()/1000000.0f, gyro_bias[1]*PI180);
 
 // 	ERROR("angle target:%.2f,%.2f,%.2f\n", angle_target[0]*PI180, angle_target[1]*PI180, angle_target[2]*PI180);
 
@@ -1976,10 +2070,10 @@ int calculate_attitude()
 	vector_divide(&estAccGyro16, 4);
 	float xxzz = (estAccGyro16.V.x*estAccGyro16.V.x + estAccGyro16.V.z * estAccGyro16.V.z);
 	float G = sqrt(xxzz+estAccGyro16.V.y*estAccGyro16.V.y);
-	yaw_est = atan2(estMagGyro.V.z * estAccGyro16.V.x - estMagGyro.V.x * estAccGyro16.V.z,
-		(estMagGyro.V.y * xxzz - (estMagGyro.V.x * estAccGyro16.V.x + estMagGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y )/G);
-	yaw_gyro = atan2(estGyro.V.z * estAccGyro16.V.x - estGyro.V.x * estAccGyro16.V.z,
-		(estGyro.V.y * xxzz - (estGyro.V.x * estAccGyro16.V.x + estGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y )/G);
+	yaw_est = atan2(estMagGyro.V.x * estAccGyro16.V.z - estMagGyro.V.z * estAccGyro16.V.x ,
+		((estMagGyro.V.x * estAccGyro16.V.x + estMagGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y  - estMagGyro.V.y * xxzz )/G);
+	yaw_gyro = atan2(estGyro.V.x * estAccGyro16.V.z - estGyro.V.z * estAccGyro16.V.x,
+		((estGyro.V.x * estAccGyro16.V.x + estGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y - estGyro.V.y * xxzz )/G);
 
 	roll = radian_add(roll, quadcopter_trim[0]);
 	pitch = radian_add(pitch, quadcopter_trim[1]);
@@ -1988,10 +2082,12 @@ int calculate_attitude()
 
 #ifndef LITE
 	accel_earth_frame_mwc = accel;
-	float attitude[3] = {roll, pitch, yaw_est};
+	float attitude[3] = {roll, pitch, radian_add(yaw_est, PI)};
 	vector_rotate2(&accel_earth_frame_mwc, attitude);
 
-// 	ERROR("\raccel_ef:%.1f, %.1f, %.1f, accelz:%.2f/%.2f, yaw=%.2f", accel_earth_frame_mwc.V.x, accel_earth_frame_mwc.V.y, accel_earth_frame_mwc.V.z, accelz, (accel_earth_frame_mwc.V.z+2085)/2085*9.80, yaw_est*180/PI);
+ 	TRACE("\raccel_ef:%.1f, %.1f, %.1f / %.1f,%.1f,%.1f, accelz:%.2f/%.2f, yaw=%.2f", accel_earth_frame_mwc.V.x*9.8f/2048.0f, accel_earth_frame_mwc.V.y*9.8f/2048.0f, accel_earth_frame_mwc.V.z*9.8f/2048.0f,
+		accel_earth_frame.V.x, accel_earth_frame.V.y, accel_earth_frame.V.z, accelz,
+		accelz_mwc, (accel_earth_frame_mwc.V.z+2085)/2085*9.80, yaw_est*180/PI);
 #endif
 
 
@@ -2009,6 +2105,8 @@ int calculate_attitude()
 	accelz = accz_NED;
 
 	altitude_estimation_inertial();
+
+	test_accel2ned();
 
 	return 0;
 }
@@ -2875,10 +2973,10 @@ int sanity_test()
 
 int main(void)
 {
-// #ifdef LITE
+#ifdef LITE
 	//if (FLASH_GetReadOutProtectionStatus() != SET)
 	//	FLASH_ReadOutProtection(ENABLE);
-// #endif
+#endif
 
 	//Basic Initialization
 	init_timer();

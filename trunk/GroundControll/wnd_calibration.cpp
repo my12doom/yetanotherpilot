@@ -292,7 +292,7 @@ imu_read_ok:
 		swprintf(str, L"%f\n%f\n%f\n%f\n%f\n%f\n%f\n%fg\n"
 			L"gyro:%.1f,%.1f,%.1f\n", client_accel[0], client_accel[1], client_accel[2],
 			(client_tilt.array[0]+trim[0])*180/PI, (client_tilt.array[1]+trim[1])*180/PI,
-			(trim[0])*180/PI, (trim[1])*180/PI, g/2048,
+			(trim[0])*180/PI, (trim[1])*180/PI, abs(1.0-g/2048),
 			imu_statics[1][1].array[0], imu_statics[1][1].array[1], imu_statics[1][1].array[2]);
 		SetDlgItemTextW(hWnd, IDC_ACCEL, str);
 

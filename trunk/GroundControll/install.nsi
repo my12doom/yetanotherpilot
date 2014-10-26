@@ -41,7 +41,7 @@ RequestExecutionLevel admin
 
   ;Remember the installer language
   !define MUI_LANGDLL_REGISTRY_ROOT "HKCU" 
-  !define MUI_LANGDLL_REGISTRY_KEY "Software\DWindow" 
+  !define MUI_LANGDLL_REGISTRY_KEY "Software\YAP" 
   !define MUI_LANGDLL_REGISTRY_VALUENAME "Installer Language"
 
 ;--------------------------------
@@ -134,7 +134,7 @@ Section "YAP飞控设置软件主程序"
   File "Release\VCP_V1.3.1_Setup_x64.exe"
 
   ; Write the installation path into the registry
-  WriteRegStr HKLM SOFTWARE\DWindow "Install_Dir" "$INSTDIR"
+  WriteRegStr HKLM SOFTWARE\YAP "Install_Dir" "$INSTDIR"
   
   ; Write the uninstall keys for Windows
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\YAP" "DisplayName" "YAP飞控设置软件"
@@ -167,7 +167,7 @@ SectionEnd
 Section "Uninstall"
   ; Remove registry keys
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\YAP"
-  DeleteRegKey HKCU "SOFTWARE\DWindow"
+  DeleteRegKey HKCU "SOFTWARE\YAP"
 
   ; Remove files and uninstaller
   Delete $INSTDIR\*.exe

@@ -39,7 +39,7 @@ int spaceiotest()
 
 int main()
 {
-	spaceiotest();
+// 	spaceiotest();
 
 	Comm con;
 	con.add_callback(console_OnEvent);
@@ -50,24 +50,24 @@ int main()
 
 	Sleep(2000);
 
-	for(int i=1; i<10000; i++)
-	{
-		float vt = -float(i)/1000;
-		while(con.write_float("altP", vt)<0)
-			;
-
-		float r = 0;
-		while(con.read_float("altP", &r)<0)
-			;
-
-		if (abs(r-vt)>0.0001f)
-		{
-			printf("(ERROR)");
-		}
-		Sleep(10);
-
-		printf("%d=%f\n", i, r);
-	}
+// 	for(int i=1; i<10000; i++)
+// 	{
+// 		float vt = -float(i)/1000;
+// 		while(con.write_float("altP", vt)<0)
+// 			;
+// 
+// 		float r = 0;
+// 		while(con.read_float("altP", &r)<0)
+// 			;
+// 
+// 		if (abs(r-vt)>0.0001f)
+// 		{
+// 			printf("(ERROR)");
+// 		}
+// 		Sleep(10);
+// 
+// 		printf("%d=%f\n", i, r);
+// 	}
 
 	char test[5];
 	float v;

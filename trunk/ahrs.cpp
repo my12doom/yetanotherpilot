@@ -37,7 +37,7 @@ void NonlinearSO3AHRSinit(float ax, float ay, float az, float mx, float my, floa
 	gyro_bias[2] = -gz;
 
     initialRoll = atan2(-ay, -az);
-    initialPitch = atan2(ax, -az);
+    initialPitch = atan2(-ax, -az);
 
     cosRoll = cosf(initialRoll);
     sinRoll = sinf(initialRoll);
@@ -75,6 +75,8 @@ void NonlinearSO3AHRSinit(float ax, float ay, float az, float mx, float my, floa
     q2q2 = q2 * q2;
     q2q3 = q2 * q3;
     q3q3 = q3 * q3;
+	
+	bFilterInit = true;
 }
 
 void NonlinearSO3AHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz, float twoKp, float twoKi, float twoKpMag, float twoKiMag, float dt) 
@@ -143,8 +145,8 @@ void NonlinearSO3AHRSupdate(float gx, float gy, float gz, float ax, float ay, fl
 	}
 
 	// Compute and apply integral feedback if enabled
-	gyro_bias[0] += (twoKi * halfexA + twoKiMag * halfexM) * dt;	// integral error scaled by Ki
-	gyro_bias[1] += (twoKi * halfeyA + twoKiMag * halfeyM) * dt;
+	gyro_bias[0] += (twoKi * halfexA /*+ twoKiMag * halfexM*/) * dt;	// integral error scaled by Ki
+	gyro_bias[1] += (twoKi * halfeyA /*+ twoKiMag * halfeyM*/) * dt;
 	gyro_bias[2] += (twoKi * halfezA + twoKiMag * halfezM) * dt;
 	
 	// apply integral feedback
