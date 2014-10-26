@@ -103,13 +103,4 @@ static int sensor_reverse[3] = 						// -1 = reverse, 1 = normal, 0 = disable, w
 
 
 
-// station configuration
-
-// EEPROM configuration
-#define EEPROM_MAG_ZERO 0 			// start 0 size 12
-#define EEPROM_VOLTAGE_DIVIDER 12 	// start 12 size 4
-#define EEPROM_MAG_ZERO2 16 		// start 16 size 12
-#define EEPROM_MAG_GAIN 28 		// start 28 size 12
-#define EEPROM_CONFIG 40		// start 40 size 128*8
-
 #endif
