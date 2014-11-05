@@ -139,10 +139,10 @@ int show_page(int id)
 
 int main_OnEvent(int code, void *extra_data)
 {
-	if (code == WM_DISCONNECT)
-		show_page(0);
-	if (code == WM_CONNECT)
-		show_page(active_id = (active_id ? active_id : IDC_INSTALL));
+// 	if (code == WM_DISCONNECT)
+// 		show_page(0);
+// 	if (code == WM_CONNECT)
+// 		show_page(active_id = (active_id ? active_id : IDC_INSTALL));
 
 	return 0;
 }
@@ -217,7 +217,7 @@ INT_PTR CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			HBITMAP bitmap = CreateCompatibleBitmap(hdc, rect.right, rect.bottom);
 			HGDIOBJ obj2 = SelectObject(memDC, bitmap);
 
-			HDC brushDC = CreateCompatibleDC(hdc);
+			HDC brushDC = CreateCompatibleDC(NULL);
 			HGDIOBJ obj = SelectObject(brushDC, hBG);
 
 			FillRect(hdc, &rect, (HBRUSH)GetStockObject(BLACK_BRUSH));
