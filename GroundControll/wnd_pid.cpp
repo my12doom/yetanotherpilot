@@ -12,7 +12,7 @@ extern Comm test;
 
 static HWND hWnd;
 #define PI 3.1415926
-#define PI_RATIO 0.75
+#define PI_RATIO 1.1
 
 static float default_pid_factor[3][4] = 			// pid_factor[roll,pitch,yaw][p,i,d,i_limit]
 {

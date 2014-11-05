@@ -85,7 +85,7 @@ STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_SYSMENU
 EXSTYLE WS_EX_TOOLWINDOW
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    LTEXT           "静态",IDC_STATIC,7,7,196,118,WS_BORDER
+    LTEXT           "",IDC_GRAPH,27,15,153,105
     PUSHBUTTON      "开始校准",IDC_RC,46,137,125,22
     CONTROL         "",IDC_SLIDER1,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,280,18,90,12
     LTEXT           "横滚",IDC_STATIC,210,17,36,14
@@ -296,6 +296,7 @@ IDB_I_DOWN              BITMAP                  "res\\I_down.bmp"
 IDB_I_MOUSEOVER         BITMAP                  "res\\I_mouseover.bmp"
 IDB_X_DOWN              BITMAP                  "res\\X_down.bmp"
 IDB_X_mouseover         BITMAP                  "res\\X_mouseover.bmp"
+IDB_RC_BG               BITMAP                  "res\\RC_BG.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -305,6 +306,21 @@ IDB_X_mouseover         BITMAP                  "res\\X_mouseover.bmp"
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_ICON1               ICON                    "res\\yap.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_GRAPH MENU 
+BEGIN
+    POPUP "remote"
+    BEGIN
+        MENUITEM "使用美国手图例",                     ID_MODE1
+        MENUITEM "使用日本手图例",                     ID_MODE2
+    END
+END
+
 #endif    // 中文(中华人民共和国) resources
 /////////////////////////////////////////////////////////////////////////////
 

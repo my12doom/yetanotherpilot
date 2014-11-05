@@ -55,6 +55,9 @@
 #define IDB_I_MOUSEOVER                 148
 #define IDB_X_DOWN                      149
 #define IDB_X_mouseover                 150
+#define IDB_RC_BG                       151
+#define IDR_MENU1                       152
+#define IDR_GRAPH                       152
 #define IDC_BUTTON1                     1001
 #define IDC_OD                          1001
 #define IDC_BYE                         1001
@@ -133,15 +136,20 @@
 #define IDC_GYRO2                       1036
 #define IDC_MATRIX_0                    1039
 #define IDC_MATRIX_1                    1040
+#define IDC_GRAPH                       1044
+#define ID_REMOTE_40001                 40001
+#define ID_REMOTE_40002                 40002
+#define ID_MODE1                        40003
+#define ID_MODE2                        40004
 #define IDC_LOAD                        51001
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        151
-#define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1044
+#define _APS_NEXT_RESOURCE_VALUE        153
+#define _APS_NEXT_COMMAND_VALUE         40005
+#define _APS_NEXT_CONTROL_VALUE         1045
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

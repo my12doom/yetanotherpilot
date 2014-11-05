@@ -12,11 +12,13 @@ static HWND wnd;
 HWND sliders[6];
 int ppm_states[8][3];
 int ppm_center[8] = {0};
-float rc[8];
+float rc[8] = {0};
 float rc_setting[8][4];
-
+bool mode1 = true;
 static bool remote_calibrating = false;
 static bool need_update_revert_button = false;
+HBITMAP bg = LoadBitmap(GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_RC_BG));
+HMENU menu = GetSubMenu(LoadMenu(GetModuleHandle(NULL), MAKEINTRESOURCE(IDR_GRAPH)), 0);
 
 static float limit(float v, float low, float high)
 {
@@ -46,6 +48,8 @@ int update_ppm()
 	char *p = output;
 
 	int len = test.command(cmd, strlen(cmd), output, sizeof(output));
+	if (len < 0)
+		return -1;
 
 	// parse result
 	p = strstr(p, "rc:");
@@ -134,6 +138,40 @@ DWORD CALLBACK remote_update_thread(LPVOID p)
  			need_update_revert_button = false;
  		}
 
+
+		// update controller graph
+		HWND graph_wnd = GetDlgItem(wnd, IDC_GRAPH);
+
+		RECT rect;
+		GetClientRect(graph_wnd, &rect);
+		HDC hdc = GetDC(graph_wnd);
+		HDC memDC = CreateCompatibleDC(hdc);
+		HPEN pen = CreatePen(PS_SOLID, 8, RGB(255, 0, 0));
+		HBITMAP bitmap = CreateCompatibleBitmap(hdc, rect.right, rect.bottom);
+		HGDIOBJ obj = SelectObject(memDC, bitmap);
+
+
+		FillRect(memDC, &rect, (HBRUSH)GetStockObject(GRAY_BRUSH));
+//  		BitBlt(memDC, 0, 0, rect.right, rect.bottom, brushDC, 0, 0, SRCCOPY);
+
+		HDC brushDC = CreateCompatibleDC(hdc);
+		HGDIOBJ obj2 = SelectObject(brushDC, bg);
+		StretchBlt(memDC, 0, 0, rect.right, rect.bottom, brushDC, 0, 0, 229, 171, SRCCOPY);
+		DeleteDC(brushDC);
+
+ 		SelectObject(memDC, pen);
+
+		int radius = 35;
+		MoveToEx(memDC, 47, 82, NULL);
+		LineTo(memDC, 47 + rc[3] * radius, 82 - (mode1?(rc[2]-0.5)*2:rc[1]) * radius);
+		MoveToEx(memDC, 183, 82, NULL);
+		LineTo(memDC, 183 + rc[0] * radius, 82 - (mode1?rc[1]:(rc[2]-0.5)*2) * radius);
+
+
+		BitBlt(hdc, 0, 0, rect.right, rect.bottom, memDC, 0, 0, SRCCOPY);
+		DeleteDC(memDC);
+		ReleaseDC(graph_wnd, hdc);
+
 		Sleep(17);
 	}
 
@@ -218,6 +256,17 @@ INT_PTR CALLBACK WndProcRemote(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 
 				need_update_revert_button = true;
 			}
+			else if (id == ID_MODE1)
+				mode1 = true;
+			else if (id == ID_MODE2)
+				mode1 = false;
+		}
+		break;
+	case WM_RBUTTONDOWN:
+		{
+			POINT mouse_pos;
+			GetCursorPos(&mouse_pos);
+			TrackPopupMenu(menu, TPM_TOPALIGN | TPM_LEFTALIGN, mouse_pos.x, mouse_pos.y, 0, hWnd, NULL);
 		}
 		break;
 
