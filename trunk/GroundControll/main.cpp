@@ -139,10 +139,10 @@ int show_page(int id)
 
 int main_OnEvent(int code, void *extra_data)
 {
-// 	if (code == WM_DISCONNECT)
-// 		show_page(0);
-// 	if (code == WM_CONNECT)
-// 		show_page(active_id = (active_id ? active_id : IDC_INSTALL));
+	if (code == WM_DISCONNECT)
+		show_page(0);
+	if (code == WM_CONNECT)
+		show_page(active_id = (active_id ? active_id : IDC_INSTALL));
 
 	return 0;
 }

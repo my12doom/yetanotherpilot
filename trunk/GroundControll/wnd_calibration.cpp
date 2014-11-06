@@ -17,7 +17,7 @@
 
 extern Comm test;
 vector imu_statics[2][4] = {0};		//	[accel, gyro][min, current, max, avg][x,y,z]
-int avg_count = 0;
+DWORD avg_count = 0;
 float mpu6050_temperature;
 int calibrating = 0;
 
@@ -210,7 +210,7 @@ imu_read_ok:
 		for(int i=0; i<3;i ++)
 		{
 			wchar_t str[100];
-			float v = (imu_statics[1][1].array[i] - gyro_zero_raw[i]) * 250 / 32767;
+			float v = (imu_statics[1][1].array[i] - gyro_zero_raw[i]) * 500 / 32767;
 			v = fabs(v) < 0.07 ? 0 : v;
 			sprintf(gyro_str+strlen(gyro_str), "%f,", v);
 			if (v>0)
@@ -351,11 +351,9 @@ imu_read_ok:
 					trim[1] = -new_trim.array[1];
 
 					write_gyro_bias(to);
-// 					swprintf(test, L"%f,%f,%f,%f", imu_statics[1][3].array[0], imu_statics[1][3].array[1], imu_statics[1][3].array[2], mpu6050_temperature);
-// 					MessageBoxW(hWnd, test, L"info", MB_OK);
+					MessageBoxW(hWnd, L"校准完成", L"info", MB_ICONINFORMATION);
 				}
 
-				MessageBoxW(hWnd, L"校准完成", L"info", MB_ICONINFORMATION);
 
 				SetDlgItemTextW(hWnd, IDC_CAL_T1, L"开始校准");
 				SetDlgItemTextW(hWnd, IDC_CAL_T2, L"开始校准");
@@ -382,6 +380,8 @@ INT_PTR CALLBACK WndProcCalibration(HWND hWnd, UINT message, WPARAM wParam, LPAR
 		CreateThread(NULL, NULL, calibration_update_thread, NULL, NULL, NULL);
 #ifdef _DEBUG
 		ShowWindow(GetDlgItem(hWnd, IDC_ACCEL), SW_SHOW);
+		ShowWindow(GetDlgItem(hWnd, IDC_CAL_T2), SW_SHOW);
+		ShowWindow(GetDlgItem(hWnd, IDC_STATIC_T2), SW_SHOW);
 #endif
 
 		test.add_callback(calibration_OnEvent);
@@ -420,8 +420,8 @@ INT_PTR CALLBACK WndProcCalibration(HWND hWnd, UINT message, WPARAM wParam, LPAR
 			{
 				if (MessageBoxW(hWnd, L"请将飞机平稳放置在水平面上，然后点击确定开始校准传感器", L"平放", MB_OKCANCEL) == IDOK)
 				{
-					int previous_avg_count = avg_count;		
-					int tick = GetTickCount();
+					DWORD previous_avg_count = avg_count;		
+					DWORD tick = GetTickCount();
 					while (previous_avg_count <= avg_count && GetTickCount()-tick<10000)
 					{
 						char cmd[] = "imureset\n";
