@@ -75,12 +75,21 @@ void ads1258_write_register(uint8_t reg, uint8_t data)
 	ads1258_write_registers(reg, 1, &data);
 }
 
+int irq = 0;
 
+void EXTI4_IRQHandler()
+{
+	irq++;
+	EXTI_ClearITPendingBit(EXTI_Line4);
+	ads1258_go();
+}
 
 int ads1258_init(void)
 {
 	SPI_InitTypeDef  SPI_InitStructure;
 	GPIO_InitTypeDef GPIO_InitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
+	EXTI_InitTypeDef   EXTI_InitStructure;
 	uint8_t data = 55;
 	int i = 0;
 
@@ -152,6 +161,21 @@ int ads1258_init(void)
 		ads1258_read_registers(i, 1, &data);
 		ERROR("reg(%d)=0x%02x\n", i, data);
 	}
+
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+	EXTI_ClearITPendingBit(EXTI_Line4);
+	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOA, GPIO_PinSource4);
+	EXTI_InitStructure.EXTI_Line = EXTI_Line4;
+	EXTI_Init(&EXTI_InitStructure);
+
+	NVIC_InitStructure.NVIC_IRQChannel = EXTI4_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
 
 	return 0;
 }

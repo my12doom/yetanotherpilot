@@ -11,9 +11,10 @@
 #include "stm32f4xx_dma.h"
 #include "crc32.h"
 #include "imu_packet.h"
+#include "common/uart4.h"
 
 
-
+/*
 CircularQueue<unsigned char, 512> tx_queue;
 imu_packet packet = {0};
 imu_packet tx;
@@ -34,7 +35,7 @@ void UART4_init(uint32_t baud_rate)
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOC, &GPIO_InitStructure);
 	
-	// Configure PC11(RX) as input floating */
+	// Configure PC11(RX) as input floating
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
@@ -70,14 +71,14 @@ extern "C"
 void DMA1_Stream4_IRQHandler()
 {
 	DMA_ClearFlag(DMA1_Stream4, DMA_FLAG_TCIF4) ;
-	//ERROR("HI %d       \r", int(getus()));
+	//ERROR("HI %d       \n", int(getus()));
 }
 
 int dma_init()
 {
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1, ENABLE);
 	NVIC_InitTypeDef NVIC_InitStructure;
-	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);  
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_3);
 
 
 	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Stream4_IRQn;  
@@ -115,12 +116,16 @@ int dma_init()
 
 int dma_go()
 {
+	DMA_ITConfig(DMA1_Stream4,DMA_IT_TC,DISABLE);
 	DMA_Cmd(DMA1_Stream4, DISABLE);
 	DMA_ClearFlag(DMA1_Stream4, DMA_FLAG_TCIF4);
+	DMA_ITConfig(DMA1_Stream4,DMA_IT_TC,ENABLE);
 	DMA_Cmd(DMA1_Stream4, ENABLE);
+
 
 	return 0;
 }
+*/
 
 int main()
 {
@@ -129,14 +134,13 @@ int main()
 	space_init();
 	ads1258_init();
 	I2C_init(0);
-	UART4_init(256000);
-	dma_init();
+	UART4_Init(384000, 1);
 	
 	int hmc5883 = init_HMC5883();
 
 	ads1258_config1 config1;
 	ads1258_read_registers(REG_CONFIG1, 1, &config1);
-	config1.DRATE = 1;
+	config1.DRATE = 2;
 	config1.DLY = 0;
 	ads1258_write_registers(REG_CONFIG1, 1, &config1);
 	ads1258_read_registers(REG_CONFIG1, 1, &config1);
@@ -145,7 +149,7 @@ int main()
 	ads1258_config0 config0;
 	ads1258_read_registers(REG_CONFIG0, 1, &config0);
 	config0.BYPAS = 1;
-	config0.CHOP = 1;
+	config0.CHOP = 0;
 	ads1258_write_registers(REG_CONFIG0, 1, &config0);
 	ads1258_read_registers(REG_CONFIG0, 1, &config0);
 	
@@ -176,44 +180,40 @@ int main()
 	float avg_gyro=0;
 	int avg_gyro_count = 0;
 
-	
-	while(0)
+	struct
 	{
-		dma_go();
-		delayms(200);
-		sprintf(tx_buffer, "HelloWorld!!12345678%d%d%d%d", (int)getus(), (int)getus(), (int)getus(), (int)getus());
-	}
-
+		float data[16];
+		unsigned long crc;
+		char N;
+	} packet;
+	packet.N = '\n';
 	while(1)
 	{
-		int channel = ads1258_go();
-
+		int channel = last_update_channel;
 		if (channel >= 0 && channel >= 8 && channel <24)
 		{
+			last_update_channel = -1;
 			packet.data[channel-8] = channel_data[channel] * 5.3f / 8388607.0f;
 			
 			if (channel == 23)
 			{
-				packet.endcode = 0x85a3;
-				//packet.timestamp = getus();
-				packet.crc = crc32(0, (uint8_t*)&packet + 4, sizeof(packet)-4);
-
-				tx = packet;
-				dma_go();
+				packet.crc = crc32(0, (uint8_t*)&packet, sizeof(packet.data));
+				UART4_SendPacket(&packet, sizeof(packet));
 			}
 		}
+		
 
+		/*
 		if (last_update_channel == 22)
 		{
 			float v = 5.3f * channel_data[8]/ 8388607.0f;
 			float v50 = 5.3f * 1 * channel_data[11]/ 8388607.0f;
 			float pa_6115 = 15000 + (v-v50*0.05f)/(0.9f*v50)*100000.0f;
 			
-			ERROR("pa=%.2f\n", pa_6115);
+			//ERROR("pa=%.2f", pa_6115);
 		}
 
-		/*
-		if (last_update_channel == 22)
+		if (last_update_channel == 15)
 		{
 			// AIN0 = channel 8
 			
@@ -239,11 +239,11 @@ int main()
 			avg_gyro += gyro_degree;
 
 
-			if (counter == 8 && false)
+			if (counter == 8 && true)
 			{
 				char tmp[200];
 				sprintf(tmp, "%f,%.3f\n", getus()/1000000.0f, pa/8);
-				//ERROR(tmp);
+				ERROR(tmp);
 				int len = strlen(tmp);
 				for(int i=0; i<len; i++)
 				{
@@ -254,15 +254,18 @@ int main()
 			}
 
 			//ERROR("%f,%.3f, %f\n", getus()/1000000.0f, gyro_degree, avg_gyro/avg_gyro_count);
-			for(int i=0; i<16; i++)
-				ERROR("(%d)%01.4f,", i, 5.3f * channel_data[8+i]/ 8388607.0f);
-			ERROR(",%.3f\n", getus()/1000000.0f);
+			//for(int i=0; i<16; i++)
+			//	ERROR("(%d)%01.5f,", i, 5.3f * channel_data[8+i]/ 8388607.0f);
+			//ERROR(",%.3f\r", getus()/1000000.0f);
 
 
 			t = getus();
-			
 			last_update_channel = -1;
+			
 		}
+		
+		extern int irq;
+		//printf("irq=%.2f", irq/(getus()/1000000.0f));
 		*/
 	}
 }

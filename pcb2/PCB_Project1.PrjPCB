@@ -240,30 +240,10 @@ DItemRevisionGUID=
 GenerateClassCluster=0
 
 [GeneratedDocument1]
-DocumentPath=Project Outputs for PCB_Project1\Board Information - advsensor.html
-DItemRevisionGUID=
-
-[GeneratedDocument2]
-DocumentPath=Project Outputs for PCB_Project1\Board Information - PCB1.html
-DItemRevisionGUID=
-
-[GeneratedDocument3]
-DocumentPath=Project Outputs for PCB_Project1\Board Information - PCB13.html
-DItemRevisionGUID=
-
-[GeneratedDocument4]
-DocumentPath=Project Outputs for PCB_Project1\Design Rule Check - advsensor.html
-DItemRevisionGUID=
-
-[GeneratedDocument5]
-DocumentPath=Project Outputs for PCB_Project1\Design Rule Check - PCB1.html
-DItemRevisionGUID=
-
-[GeneratedDocument6]
 DocumentPath=Project Outputs for PCB_Project1\PCB1.BOM
 DItemRevisionGUID=
 
-[GeneratedDocument7]
+[GeneratedDocument2]
 DocumentPath=Project Outputs for PCB_Project1\PCB1.CSV
 DItemRevisionGUID=
 

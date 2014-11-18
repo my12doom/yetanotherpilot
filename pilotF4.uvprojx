@@ -1098,6 +1098,11 @@
               <FileType>1</FileType>
               <FilePath>.\sensors\hp203b.c</FilePath>
             </File>
+            <File>
+              <FileName>adxrs453.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\sensors\adxrs453.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -2326,6 +2331,11 @@
               <FileName>hp203b.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\sensors\hp203b.c</FilePath>
+            </File>
+            <File>
+              <FileName>adxrs453.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\sensors\adxrs453.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -3556,6 +3566,11 @@
               <FileType>1</FileType>
               <FilePath>.\sensors\hp203b.c</FilePath>
             </File>
+            <File>
+              <FileName>adxrs453.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\sensors\adxrs453.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -4784,6 +4799,11 @@
               <FileName>hp203b.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\sensors\hp203b.c</FilePath>
+            </File>
+            <File>
+              <FileName>adxrs453.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\sensors\adxrs453.c</FilePath>
             </File>
           </Files>
         </Group>

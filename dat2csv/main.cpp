@@ -65,6 +65,36 @@ int sanity_test()
 	return 0;
 }
 
+int tobin()
+{
+	char line[1024];
+	FILE * f = fopen("Z:\\test.txt", "rb");;
+	FILE *o = fopen("Z:\\o.bin", "wb");
+
+	int last_gyro = 0;
+	int temp;
+	int gyro1, gyro2;
+
+	while(fscanf(f, "%f%d%d", &temp, &gyro1, &gyro2) == 3)
+	{
+// 		if (gyro != last_gyro)
+		{
+			gyro1 = 65.5*gyro1/80.0;
+			short v = gyro1;
+			fwrite(&v, 1, sizeof(v), o);
+			v = gyro2;
+			fwrite(&v, 1, sizeof(v), o);
+		}
+
+	}
+
+	fclose(f);
+	fclose(o);
+
+
+	return 0;
+}
+
 float sqr(float a, float b)
 {
 	return sqrt(a*a+b*b);
@@ -73,6 +103,10 @@ float sqr(float a, float b)
 int main(int argc, char **argv)
 {
 // 	sanity_test();
+	tobin();
+
+	int size =  sizeof(rf_data);
+
 
 	FILE * sanity = fopen("Z:\\sanity.dat", "wb");;
 
@@ -178,6 +212,7 @@ int main(int argc, char **argv)
 	ned_data &ned0 = ned[0];
 	ned_data &ned1 = ned[1];
 	ned_data &ned2 = ned[2];
+	adv_sensor_data adv_sensor[3] = {0};
 
 
 	FILE * f = fopen(argv[1], "rb");
@@ -199,6 +234,12 @@ int main(int argc, char **argv)
 		int64_t time = rf.time & ~TAG_MASK;
 		if ((rf.time & TAG_MASK) ==  TAG_IMU_DATA)
 			imu = rf.data.imu;
+		else if ((rf.time & TAG_MASK) ==  TAG_ADV_SENSOR_DATA1)
+			adv_sensor[0] = rf.data.adv_sensor;
+		else if ((rf.time & TAG_MASK) ==  TAG_ADV_SENSOR_DATA2)
+			adv_sensor[1] = rf.data.adv_sensor;
+		else if ((rf.time & TAG_MASK) ==  TAG_ADV_SENSOR_DATA3)
+			adv_sensor[2] = rf.data.adv_sensor;
 		else if ((rf.time & TAG_MASK) ==  TAG_PILOT_DATA)
 			pilot = rf.data.pilot;
 		else if ((rf.time & TAG_MASK) ==  TAG_PILOT_DATA2)
@@ -419,7 +460,12 @@ int main(int argc, char **argv)
 			imu.temperature = temp;
 		}
 
+		if ((rf.time & TAG_MASK) !=  TAG_SENSOR_DATA)
+			continue;
+
 		double pressure = (imu.pressure)/100.0;
+// 		pressure = 15000 + (adv_sensor[0].data[0]-adv_sensor[0].data[3]*0.05f)/(0.9f*adv_sensor[0].data[3])*100000.0f;
+// 		pressure /= 100.0f;
 
 		if (ground_pressure <0 && pressure > 900)
 		{
@@ -442,18 +488,22 @@ int main(int argc, char **argv)
 			yaw_est += 2*PI;
 
 		float mag_size = sqrt((double)sensor.mag[0]*sensor.mag[0]+sensor.mag[1]*sensor.mag[1]+sensor.mag[2]*sensor.mag[2]);
+		float gyro = (adv_sensor[0].data[1] - 2.50f)/0.006f;
+		float a1 = (adv_sensor[1].data[5]-2.50f);
+		float a2 = (adv_sensor[2].data[0]-2.50f);
 
-// 		if (time > 300000000 && time < 400000000)
- 		if (n++ %24 == 0)
-//		if (time > 160000000 && time < 190000000)
- 		fprintf(fo, "%.4f,%.2f,%.2f,%2f,%.2f,"
+		if (time > 240000000)
+  		if (n++ %5 == 0)
+//  		if (abs(adv_sensor[0].data[3]-5)<0.2)
+//  		if ((time > 13500000 && time < 17500000) || (time > 25500000 && time < 30000000))
+ 		fprintf(fo, "%.4f,%.2f,%.2f,%2f,%f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d,%d\r\n",
-				float(time/1000000.0f), sensor.voltage/1000.0f, sensor.current/1000.0f, mag_size, imu.temperature / 100.0f,
- 				sensor.accel[0], sensor.accel[1], sensor.accel[2], ned1.accel_NED2[0], ned1.accel_NED2[1], ned1.accel_NED2[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[0], pilot2.D[0],
+				float(time/1000000.0f), quad2.loop_hz/1.0f, quad2.altitude_baro_raw/100.0f, quad2.altitude_inertia/100.0f, quad3.altitude/100.0f,
+ 				sensor.accel[0], sensor.accel[1], sensor.accel[2], sensor.gyro[0], sensor.gyro[1], sensor.gyro[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[1], pilot2.D[1],
 				roll*180/PI, pitch*180/PI, yaw_est*180/PI, pilot.target[0]/100.0, pilot.target[1]/100.0, pilot.target[2]/100.0, 
 				(ppm.in[2]-1113)/50, pilot.fly_mode,
-				ppm.in[0], ppm.in[1], ppm.in[2], ned0.accel_NED2[2], ppm.out[0], ppm.out[1], ppm.out[2], ppm.out[3],
+				ppm.in[0], ppm.in[1], ppm.in[2], ppm.in[3], ppm.out[0], ppm.out[1], ppm.out[2], ppm.out[3],
 				estAccGyro.V.x, estAccGyro.V.y, estAccGyro.V.z,
 				sensor.gyro[0],sensor.gyro[1],sensor.gyro[2], sensor.mag[0]);
 // 		fprintf(fo, "%.2f,%d,%d,%d,%d\r\n", float(time/1000000.0f), ppm.in[0], ppm.in[1], ppm.in[2], ppm.in[3]);
@@ -464,23 +514,25 @@ int main(int argc, char **argv)
 				// estAcc[1], 前进方向，机头方向为正
 				// estAcc[2], 垂直方向，往上为正
 
-		if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA || (rf.time & TAG_MASK) ==  TAG_GPS_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA2)
+// 		if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA || (rf.time & TAG_MASK) ==  TAG_GPS_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA2)
 		{
 //  			if (
 // 				1 &&
 // 				pilot.fly_mode == quadcopter
 // 				gps.fix>1 && gps.longitude > 0 && gps.latitude > 0
 //  				)
-//  			if (time > 254000000 && time < 264000000)
+//  			if (time > 200000000 && time < 300000000)
 // 			if (m++ %3 == 0 && quad3.ultrasonic != 0xffff)
 // 			if (home_set)
- 			if (m++ %10 == 0)
+ 			if (m++ %15 == 0)
 			{
 				fprintf(gpso, "%.4f", float(time/1000000.0f));
-				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[2], quad.angle_target[2], quad.angle_pos[0], quad.angle_target[0]);
-				fprintf(gpso, ",%d,%d,%d,%f,%f,%f,%f,", quad.angle_pos[0],quad.angle_target[0],quad.speed[0], meter_raw.longtitude, meter_raw.latitude, meter.longtitude, meter.latitude);
-				fprintf(gpso, "%.1f/%d/%d/%d,%f,%f,%f,%f,%f", gps.DOP[0]/100.0f, gps.satelite_in_use, gps.fix, gps.id, quad3.altitude_target/100.01f, quad3.altitude/100.01f, sqr(ned0.error_lat,ned0.error_lon), sqr(ned1.error_lat,ned1.error_lon), sqr(ned2.error_lat,ned2.error_lon));
+				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[1], quad.angle_target[1], quad.speed[1], quad.speed_target[1]);
+				fprintf(gpso, ",%d,%d,%d,%d,%f,%f,%f,", quad.angle_pos[0],quad.angle_target[0],quad.speed[0], quad.speed_target[0], meter_raw.latitude, meter.longtitude, meter.latitude);
+				fprintf(gpso, "%.1f/%d/%d/%d,%f,%f,%f,%f,%f", gps.DOP[0]/100.0f, gps.satelite_in_use, gps.fix, gps.id, quad3.altitude_target/100.00f, quad2.altitude_inertia/100.00f, quad2.altitude_baro_raw/100.00f, quad3.altitude/100.00f, quad3.altitude_target/100.0f);
 				fprintf(gpso, "\r\n");
+
+				fflush(gpso);
 			}
 		}
 	}

@@ -47,13 +47,13 @@ int init_MPU6050(void)
 	delayms(10);
 	I2C_WriteReg(MPU6050SlaveAddress, PWR_MGMT_1, 0x00);
 	#if QUADCOPTER == 1
-	I2C_WriteReg(MPU6050SlaveAddress, SMPLRT_DIV, 0x02);
+	I2C_WriteReg(MPU6050SlaveAddress, SMPLRT_DIV, 0x01);
 	#else
 	I2C_WriteReg(MPU6050SlaveAddress, SMPLRT_DIV, 0x07);
 	#endif
-	I2C_WriteReg(MPU6050SlaveAddress, MPU6050_CONFIG, 0x04);
-	I2C_WriteReg(MPU6050SlaveAddress, GYRO_CONFIG, 0);			// full scale : +/-8192; +/- 2000 degree/s
-	I2C_WriteReg(MPU6050SlaveAddress, ACCEL_CONFIG, 0x18);
+	I2C_WriteReg(MPU6050SlaveAddress, MPU6050_CONFIG, 0x2);
+	I2C_WriteReg(MPU6050SlaveAddress, GYRO_CONFIG, 1 << 3);			// full scale : 500 degree/s, ~65.5 LSB/degree/s
+	I2C_WriteReg(MPU6050SlaveAddress, ACCEL_CONFIG, 0x18);			// full scale : 16g, 2048 = 1g
 	
 	res = I2C_ReadReg(MPU6050SlaveAddress, WHO_AM_I, &who_am_i, 1);
 	ERROR("MPU6050 initialized, WHO_AM_I=%x, address = %x\r\n", who_am_i, MPU6050SlaveAddress);

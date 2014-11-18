@@ -150,11 +150,17 @@ typedef struct
 
 typedef struct
 {
+	float data[6];
+} adv_sensor_data;
+
+typedef struct
+{
 	int64_t time;			// 8 byte, the top 1byte is tag
 	union
 	{
 		sensor_data sensor;	// 24 bytes
 // 		imu_data_v1 imu_v1;		// 24 bytes
+		adv_sensor_data adv_sensor;		// 24 bytes
 		imu_data imu;		// 24 bytes
 		ned_data ned;
 		pilot_data pilot;	// 23 bytes
@@ -185,6 +191,9 @@ typedef struct
 #define TAG_IMU_DATA	0x3A00000000000000
 #define TAG_NED_DATA	0x3B00000000000000
 #define TAG_GPS_DATA	0x3C00000000000000
+#define TAG_ADV_SENSOR_DATA1	0x3D00000000000000
+#define TAG_ADV_SENSOR_DATA2	0x3E00000000000000
+#define TAG_ADV_SENSOR_DATA3	0x3F00000000000000
 
 #define CTRL_CMD_SET_VALUE 0
 #define CTRL_CMD_GET_VALUE 1
