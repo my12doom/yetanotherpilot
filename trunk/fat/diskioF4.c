@@ -10,6 +10,7 @@
 #include "diskio.h"
 #include "stm324xg_eval_sdio_sd.h"
 #include "../mcu.h"
+#include "../common/timer.h"
 #include "stm324xg_eval.h"
 #include "../common/gps.h"
 
@@ -82,6 +83,7 @@ DRESULT disk_read (
 	BYTE count		/* Number of sectors to read (1..255) */
 )
 {
+	int timeout = 50000;
 	if(count==1)
 	{
 		if (SD_ReadBlock((uint8_t*)buff,((int64_t)sector) << 9 , SECTOR_SIZE) != SD_OK)
@@ -93,7 +95,9 @@ DRESULT disk_read (
 			return RES_ERROR;;
 	}
 	Status = SD_WaitReadOperation();
-	while(SD_GetStatus() != SD_TRANSFER_OK);
+	while(SD_GetStatus() != SD_TRANSFER_OK)
+		if (timeout-- == 0)
+			return RES_ERROR;
 
 	read_count++;
 
@@ -113,6 +117,7 @@ DRESULT disk_write (
 	BYTE count			/* Number of sectors to write (1..255) */
 )
 {
+	int timeout = 50000;
 	if(count==1)
 	{
 		if (SD_WriteBlock((uint8_t*)buff,((int64_t)sector) << 9 ,SECTOR_SIZE) != SD_OK)
@@ -123,8 +128,10 @@ DRESULT disk_write (
 		if (SD_WriteMultiBlocks((uint8_t*)buff,((int64_t)sector) << 9 ,SECTOR_SIZE,count) != SD_OK)
 			return RES_ERROR;
 	}
-	Status = SD_WaitReadOperation();
-	while(SD_GetStatus() != SD_TRANSFER_OK);
+	Status = SD_WaitWriteOperation();
+	while(SD_GetStatus() != SD_TRANSFER_OK)
+		if (timeout-- == 0)
+			return RES_ERROR;
 
 	write_count++;
 	return RES_OK;

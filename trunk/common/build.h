@@ -65,7 +65,7 @@ extern int LOG_LEVEL;
 
 #endif
 
-#define QUADCOPTER_THROTTLE_RESERVE 0.15
+#define QUADCOPTER_THROTTLE_RESERVE 0.15f
 
 
 

@@ -23,14 +23,16 @@ static int dma_running = 0;
 void UART4_IRQHandler(void)
 {
 	int c = -1;
-	if(USART_GetFlagStatus(UART4,USART_IT_RXNE)==SET)
+	//if(USART_GetFlagStatus(UART4,USART_IT_RXNE)==SET)
 	{
 		c = USART_ReceiveData(UART4);
-		USART_ClearITPendingBit(UART4, USART_IT_RXNE);
 	}
 	
-	if (c>0 && 0)
+	//USART_ClearITPendingBit(UART4, USART_IT_RXNE);
+	UART4->SR = (uint16_t)~0x20;
+	if (c>0)
 	{
+		/*
 		if (lastR)
 		{
 			lastR = 0;
@@ -56,6 +58,14 @@ void UART4_IRQHandler(void)
 			}
 		}
 		buffer[end] = 0;
+		*/
+		
+		buffer[end] = c;
+		end++;
+		end %= sizeof(buffer);
+		if (c == '\n')
+			end_sentence = end;
+
 	}
 }
 
@@ -123,7 +133,7 @@ static int dma_init()
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1, ENABLE);
 
 	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Stream4_IRQn;  
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 3;  
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;  
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
@@ -154,7 +164,7 @@ static int dma_init()
  	return 0;
 }
 
-void UART4_Init(uint32_t baud_rate)
+void UART4_Init(uint32_t baud_rate, int PC10_11)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	USART_InitTypeDef USART_InitStructure;
@@ -164,19 +174,39 @@ void UART4_Init(uint32_t baud_rate)
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART4, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 
-	// UART4 GPIO (PA0(TX) & PA1(RX))config 
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
-	GPIO_PinAFConfig(GPIOA, GPIO_PinSource0, GPIO_AF_UART4);
-	GPIO_PinAFConfig(GPIOA, GPIO_PinSource1, GPIO_AF_UART4);
+	
+	if (PC10_11)
+	{
+		// UART4 GPIO (PC10(TX) & PC11(RX))config 
+		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+		GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+		GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+		GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+		GPIO_Init(GPIOC, &GPIO_InitStructure);
+		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_11;
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+		GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+		GPIO_Init(GPIOC, &GPIO_InitStructure);
+		GPIO_PinAFConfig(GPIOC, GPIO_PinSource10, GPIO_AF_UART4);
+		GPIO_PinAFConfig(GPIOC, GPIO_PinSource11, GPIO_AF_UART4);
+	}
+	else
+	{
+		// UART4 GPIO (PA0(TX) & PA1(RX))config 
+		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+		GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+		GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+		GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+		GPIO_Init(GPIOA, &GPIO_InitStructure);
+		GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
+		GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+		GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+		GPIO_Init(GPIOA, &GPIO_InitStructure);
+		GPIO_PinAFConfig(GPIOA, GPIO_PinSource0, GPIO_AF_UART4);
+		GPIO_PinAFConfig(GPIOA, GPIO_PinSource1, GPIO_AF_UART4);
+	}
 
 	// NVIC config
 	NVIC_InitStructure.NVIC_IRQChannel = UART4_IRQn;
@@ -217,6 +247,7 @@ int UART4_ReadPacket(void *out, int maxsize)
 	int j=0;
 	int i;
 	int size;
+	int lastR = 0;
 	
 	if (_end_sentence == start)
 		return -1;
@@ -228,12 +259,27 @@ int UART4_ReadPacket(void *out, int maxsize)
 	if (size >= maxsize)
 		return -2;
 
-	for(i=start; i!= _end_sentence; i=(i+1)%sizeof(buffer), j++)
-		p[j] = buffer[i];
+	
+	for(i=start; i!= _end_sentence; i=(i+1)%sizeof(buffer))
+	{
+		if (buffer[i] == '\r')
+		{
+			if (lastR)
+				p[j++] = buffer[i];
+			lastR = !lastR;
+		}
+		
+		p[j++] = buffer[i];
+		if (buffer[i] == '\n')
+		{
+			i=(i+1)%sizeof(buffer);
+			break;
+		}
+	}
 	
 	p[j] = 0;
 	
-	start = _end_sentence;
+	start = i;
 
-	return size;
+	return j;
 }

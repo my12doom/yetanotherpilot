@@ -410,6 +410,10 @@
 				Name="sensors"
 				>
 				<File
+					RelativePath=".\sensors\adxrs453.c"
+					>
+				</File>
+				<File
 					RelativePath=".\sensors\BMP085.c"
 					>
 				</File>

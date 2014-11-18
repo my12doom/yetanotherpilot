@@ -21,6 +21,7 @@
 #include "ahrs.h"
 
 #ifndef LITE
+#include "crc32.h"
 #include "pos_estimator.h"
 #include "common/gps.h"
 #include "common/uart4.h"
@@ -32,6 +33,7 @@
 #include "osd/MAX7456.h"
 #include "sensors/MS5611.h"
 #include "sensors/hp203b.h"
+#include "sensors/adxrs453.h"
 #else
 #include "sensors/BMP085.h"
 #endif
@@ -283,6 +285,15 @@ float angle_errorI[3] = {0};
 float pos[3] = {0};
 float target[3] = {0};		// target [roll, pitch, yaw] (pid controller target, can be angle or angle rate)
 int cycle_counter = 0;
+int imu_packet_counter = 0;
+int64_t last_imu_packet_time = 0;
+int byte_count;
+float gyro620 = 0;
+struct
+{
+	float data[16];
+	unsigned long crc;
+} packets[3], imupacket;
 float ground_pressure = 0;
 float ground_temperature = 0;
 float rc[8] = {0};			// ailerron : full left -1, elevator : full down -1, throttle: full down 0, rudder, full left -1
@@ -407,6 +418,7 @@ float mah_consumed = 0;
 float wh_consumed = 0;
 
 float sonar_distance = NAN;
+short adxrs453_value = 0;
 int64_t last_sonar_time = getus();
 bool has_5th_channel = true;
 
@@ -901,8 +913,18 @@ int sdcard_speed_test()
 	return 0;
 }
 
+int format_sdcard()
+{
+	res = disk_initialize(0) == RES_OK ? FR_OK : FR_DISK_ERR;
+	res = f_mount(&fs, "", 0);
+	res = f_mkfs("", 0, 0);
+	
+	return 0;
+}
+
 int sdcard_init()
-{	
+{
+	//format_sdcard();
 	ERROR("sdcard init...");
 	FIL f;
 	res = disk_initialize(0) == RES_OK ? FR_OK : FR_DISK_ERR;
@@ -1200,9 +1222,11 @@ int pid()
 		error_pid[i][1] = limit(error_pid[i][1], -pid_factor[i][3], pid_factor[i][3]);
 
 		// D, with 30hz low pass filter
-		static const float lpf_RC = 1.0f/(2*PI * 30.0f);
+		static const float lpf_RC = 1.0f/(2*PI * 5.0f);
 		float alpha = interval / (interval + lpf_RC);
-		error_pid[i][2] = error_pid[i][2] * (1-alpha) + alpha * (new_p - error_pid[i][0] + rc_d[i]* sensor_reverse[i])/interval;
+		float derivative = (new_p - error_pid[i][0] + rc_d[i]* sensor_reverse[i])/interval;
+		error_pid[i][2] = error_pid[i][2] * (1-alpha) + alpha * derivative;
+
 
 		// P
 		error_pid[i][0] = new_p;
@@ -1387,6 +1411,7 @@ int real_log_packet(void *data, int size)
 				{
 					f_close(file);
 					res = f_open(file, filename, FA_OPEN_EXISTING | FA_WRITE | FA_READ);
+					ERROR("opened %s for logging\n", filename);
 					break;
 				}
 			}
@@ -1424,9 +1449,18 @@ int real_log_packet(void *data, int size)
 	return 0;
 }
 
-uint8_t log_buffer[2][512];
+CircularQueue<rf_data, 256> log_buffer;
+CircularQueue<rf_data, 256> log_buffer2;
+CircularQueue<rf_data, 256> *plog_buffer = &log_buffer;
 volatile int log_pending = 0;
-int log_packet_count = 0;
+
+int save_log_packet(rf_data &packet)
+{
+	if (log_pending)
+		return -1;
+
+	return plog_buffer->push(packet);
+}
 
 // called by main loop, only copy logs to a memory buffer, should be very fast
 int save_logs()
@@ -1442,17 +1476,15 @@ int save_logs()
 	if (log_pending !=0)
 		return -1;
 
-	int c = 0;
-
 	// send/store debug data
 	time = getus();
-	rf_data to_send;
-	to_send.time = (time & (~TAG_MASK)) | TAG_SENSOR_DATA;
-	to_send.data.sensor = *p;
+	rf_data packet;
+	packet.time = (time & (~TAG_MASK)) | TAG_SENSOR_DATA;
+	packet.data.sensor = *p;
+	packet.data.sensor.gyro[1] = adxrs453_value;
 
-
-	memcpy(log_buffer[0]+c*32, &to_send, 32);
-	c++;
+	
+	save_log_packet(packet);
 
 	imu_data imu = 
 	{
@@ -1463,13 +1495,41 @@ int save_logs()
 		{estMagGyro.array[0], estMagGyro.array[1], estMagGyro.array[2]},
 	};
 
-	to_send.time = (time & (~TAG_MASK)) | TAG_IMU_DATA;
-	to_send.data.imu = imu;
+	packet.time = (time & (~TAG_MASK)) | TAG_IMU_DATA;
+	packet.data.imu = imu;
 
-	memcpy(log_buffer[0]+c*32, &to_send, 32);
-	c++;
+	save_log_packet(packet);
 
 	#ifndef LITE
+	
+	if (last_imu_packet_time > getus() - 1000000)
+	{
+		adv_sensor_data adv_sensor1 = 
+		{
+			imupacket.data[0], imupacket.data[1], imupacket.data[2], imupacket.data[3], imupacket.data[4], imupacket.data[5],
+		};
+		adv_sensor_data adv_sensor2 = 
+		{
+			imupacket.data[6], imupacket.data[7], imupacket.data[8], imupacket.data[9], imupacket.data[10], imupacket.data[11],
+		};
+		adv_sensor_data adv_sensor3 = 
+		{
+			imupacket.data[12], imupacket.data[13], imupacket.data[14], imupacket.data[15],
+		};
+
+		packet.time = (time & (~TAG_MASK)) | TAG_ADV_SENSOR_DATA1;
+		packet.data.adv_sensor = adv_sensor1;
+// 		save_log_packet(packet);
+
+		packet.time = (time & (~TAG_MASK)) | TAG_ADV_SENSOR_DATA2;
+		packet.data.adv_sensor = adv_sensor2;
+// 		save_log_packet(packet);
+
+		packet.time = (time & (~TAG_MASK)) | TAG_ADV_SENSOR_DATA3;
+		packet.data.adv_sensor = adv_sensor3;
+// 		save_log_packet(packet);
+	}
+
 	position p = estimator.get_estimation();
 	position p2 = estimator2.get_estimation();
 	position p3 = estimator3.get_estimation();
@@ -1502,18 +1562,15 @@ int save_logs()
 		estimator3.error_lon, 
 	};
 
-	to_send.time = (time & (~TAG_MASK)) | TAG_NED_DATA;
-	to_send.data.ned = ned;
-	memcpy(log_buffer[0]+c*32, &to_send, 32);
-	c++;
+	packet.time = (time & (~TAG_MASK)) | TAG_NED_DATA;
+	packet.data.ned = ned;
+// 	save_log_packet(packet);
 
-	to_send.data.ned = ned2;
-	memcpy(log_buffer[0]+c*32, &to_send, 32);
-	c++;
+	packet.data.ned = ned2;
+	save_log_packet(packet);
 
-	to_send.data.ned = ned3;
-	memcpy(log_buffer[0]+c*32, &to_send, 32);
-	c++;
+	packet.data.ned = ned3;
+// 	save_log_packet(packet);
 
 	#endif
 
@@ -1528,10 +1585,9 @@ int save_logs()
 		mah_consumed,
 	};
 
-	to_send.time = (time & (~TAG_MASK)) | TAG_PILOT_DATA;
-	to_send.data.pilot = pilot;
-	memcpy(log_buffer[0]+c*32, &to_send, 32);
-	c++;
+	packet.time = (time & (~TAG_MASK)) | TAG_PILOT_DATA;
+	packet.data.pilot = pilot;
+	save_log_packet(packet);
 
 	pilot_data2 pilot2 = 
 	{
@@ -1539,10 +1595,9 @@ int save_logs()
 		{error_pid[0][2]*180*100/PI, error_pid[1][2]*180*100/PI, error_pid[2][2]*180*100/PI},
 	};
 
-	to_send.time = (time & (~TAG_MASK)) | TAG_PILOT_DATA2;
-	to_send.data.pilot2 = pilot2;
-	memcpy(log_buffer[0]+c*32, &to_send, 32);
-	c++;
+	packet.time = (time & (~TAG_MASK)) | TAG_PILOT_DATA2;
+	packet.data.pilot2 = pilot2;
+	save_log_packet(packet);
 
 	ppm_data ppm = 
 	{
@@ -1550,10 +1605,9 @@ int save_logs()
 		{g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_output[4], g_ppm_output[5]},
 	};
 
-	to_send.time = (time & (~TAG_MASK)) | TAG_PPM_DATA;
-	to_send.data.ppm = ppm;
-	memcpy(log_buffer[0]+c*32, &to_send, 32);
-	c++;
+	packet.time = (time & (~TAG_MASK)) | TAG_PPM_DATA;
+	packet.data.ppm = ppm;
+	save_log_packet(packet);
 
 #if QUADCOPTER == 1
 	quadcopter_data quad = 
@@ -1564,10 +1618,9 @@ int save_logs()
 		target[0] * 18000/PI,  target[1] * 18000/PI, target[2] * 18000/PI, 
 	};
 
-	to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA;
-	to_send.data.quadcopter = quad;
-	memcpy(log_buffer[0]+c*32, &to_send, 32);
-	c++;
+	packet.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA;
+	packet.data.quadcopter = quad;
+	save_log_packet(packet);
 
 	quadcopter_data2 quad2 = 
 	{
@@ -1580,10 +1633,9 @@ int save_logs()
 		loop_hz,
 	};
 
-	to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA2;
-	to_send.data.quadcopter2 = quad2;
-	memcpy(log_buffer[0]+c*32, &to_send, 32);
-	c++;
+	packet.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA2;
+	packet.data.quadcopter2 = quad2;
+	save_log_packet(packet);
 
 	quadcopter_data3 quad3 = 
 	{
@@ -1605,17 +1657,16 @@ int save_logs()
 		accel_error_pid[1]*1000,
 	};
 
-	to_send.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA3;
-	to_send.data.quadcopter3 = quad3;
-	memcpy(log_buffer[0]+c*32, &to_send, 32);
-	c++;
+	packet.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA3;
+	packet.data.quadcopter3 = quad3;
+	save_log_packet(packet);
 #endif
 
 	// only 5 seconds magnet centering data
 	if (getus() < 5000000)
 	{
-		controll_data &controll = to_send.data.controll;
-		to_send.time = (time & (~TAG_MASK)) | TAG_CTRL_DATA;
+		controll_data &controll = packet.data.controll;
+		packet.time = (time & (~TAG_MASK)) | TAG_CTRL_DATA;
 		controll.cmd = CTRL_CMD_FEEDBACK;
 		controll.reg = CTRL_REG_MAGNET;
 		controll.value = mag_radius * 1000;
@@ -1623,8 +1674,7 @@ int save_logs()
 		controll.data[1] = mag_zero.array[1] * 1000;
 		controll.data[2] = mag_zero.array[2] * 1000;
 
-		memcpy(log_buffer[0]+c*32, &to_send, 32);
-		c++;
+		save_log_packet(packet);
 	}
 
 
@@ -1643,15 +1693,12 @@ int save_logs()
 			gps_id,
 		};
 
-		to_send.time = (time & (~TAG_MASK)) | TAG_GPS_DATA;
-		to_send.data.gps = gps;
-		memcpy(log_buffer[0]+c*32, &to_send, 32);
-		c++;
+		packet.time = (time & (~TAG_MASK)) | TAG_GPS_DATA;
+		packet.data.gps = gps;
+		save_log_packet(packet);
 	}
 #endif
 	
-	log_packet_count = c;
-
 	return 0;
 }
 
@@ -1663,6 +1710,8 @@ int read_sensors()
 	#ifndef LITE
 	// read external adc
 	ads1115_go_on();
+
+	adxrs453_value = adxrs453_get_data();
 
 	if (sonar_update() == 0)
 	{
@@ -1700,7 +1749,7 @@ int read_sensors()
 	mpu6050_temperature = p->temperature1  / 340.0f + 36.53f;
 
 	// universal
-	float GYRO_SCALE = 250.0f * PI / 180 / 32767;		// full scale: +/-2000 deg/s  +/-32767
+	float GYRO_SCALE = 500.0f * PI / 180 / 32767;		// full scale: +/-2000 deg/s  +/-32767
 	float dt = mpu6050_temperature - temperature0;
 	vector gyro_bias = 
 	{
@@ -1920,7 +1969,7 @@ int calculate_attitude()
 	for(int i=0; i<3; i++)
 		gyroI.array[i] = radian_add(gyroI.array[i], delta_rotation.array[i]);
 
-	TRACE("gyroI:%f,%f,%f\r", gyroI.array[0] *180/PI, gyroI.array[1]*180/PI, gyroI.array[2]*180/PI);
+	TRACE("\rgyroI:%f,%f,%f   ", gyroI.array[0] *180/PI, gyroI.array[1]*180/PI, gyroI.array[2]*180/PI);
 	TRACE("\r          gyro:%.2f,%.2f, pos:%.2f,%.2f             ", ::gyro.array[0], ::gyro.array[1], pos[0], pos[1]);
 
 	static float mag_tolerate = 0.25f;
@@ -1943,7 +1992,7 @@ int calculate_attitude()
 	{
 		pix_mag[0] = pix_mag[1] = pix_mag[2] = 0;
 		mag_tolerate += 0.05f * interval;
-		ERROR("warning: possible magnetic interference");
+		TRACE("warning: possible magnetic interference");
 	}
 #else
 	float pix_mag[3] = {0, 0, 0};
@@ -2035,7 +2084,7 @@ int calculate_attitude()
 	else
 	{
 		mag_tolerate += 0.05f * interval;
-		ERROR("warning: possible magnetic interference");
+		TRACE("warning: possible magnetic interference");
 	}
 #endif
 
@@ -2643,10 +2692,16 @@ int osd()
 
 int real_log()
 {
-	// copy to 2nd buffer
 	log_pending = 1;
-	memcpy(log_buffer[1], log_buffer[0], 32*log_packet_count);
+	
+	CircularQueue<rf_data, 256> *writer_buffer = plog_buffer;
+	plog_buffer = (plog_buffer == &log_buffer) ? &log_buffer2 : &log_buffer;
+
 	log_pending = 0;
+
+	// real saving / sending
+	if (writer_buffer->count() == 0)
+		return 1;
 
 	// disable USB interrupt to prevent sdcard dead lock
 #ifdef STM32F1
@@ -2661,11 +2716,13 @@ int real_log()
 	__DSB();
 	__ISB();
 
-	// real saving / sending
-	if (log_packet_count == 0)
-		return 1;
-	for(int i=0; i<log_packet_count; i++)
-		real_log_packet(log_buffer[1] + 32*i, 32);
+	rf_data packet[256];
+	int count = 0;
+	while(writer_buffer->pop(&packet[count]) == 0)
+		count++;
+	real_log_packet(&packet[0], sizeof(rf_data)*count);
+
+// 	printf("%d\n", sizeof(rf_data)*count);
 
 	// restore USB
 #ifdef STM32F1
@@ -2717,14 +2774,14 @@ int crash_detector()
 	float gforce = vector_length(&accel_delta) / accel_1g;
 	if (gforce > 1.75f)
 	{
-		ERROR("high G force (%.2f) detected\n", gforce);
+		TRACE("high G force (%.2f) detected\n", gforce);
 		collision_detected = getus();
 	}
 
 	// forced shutdown if >3g external force
 	if (gforce > 3.0f)
 	{
-		ERROR("very high G force (%.2f) detected (%.0f,%.0f,%.0f)\n", gforce, accel.array[0], accel.array[1], accel.array[2]);
+		TRACE("very high G force (%.2f) detected (%.0f,%.0f,%.0f)\n", gforce, accel.array[0], accel.array[1], accel.array[2]);
 		mode = _shutdown;
 	}
 
@@ -2733,7 +2790,7 @@ int crash_detector()
 	// tilt detection
 	if (rc[2] < 0.1f || prot & CRASH_TILT_IMMEDIATE)
 	{
-		if (vector_angle(&ground, &estAccGyro) < 0.33)		// around 70 degree
+		if (vector_angle(&ground, &estAccGyro) < 0.33f)		// around 70 degree
 			tilt_us = tilt_us > 0 ? tilt_us : getus();
 		else
 			tilt_us = 0;
@@ -2742,7 +2799,7 @@ int crash_detector()
 	if (((collision_detected > 0 && getus() - collision_detected < 5000000) && (rc[2] < 0.1f || prot & CRASH_COLLISION_IMMEDIATE)) 
 		|| (tilt_us> 0 && getus()-tilt_us > 1000000))	// more than 1 second
 	{
-		ERROR("crash landing detected(%s)\n", (collision_detected > 0 && getus() - collision_detected < 5000000) ? "collision" : "tilt");
+		TRACE("crash landing detected(%s)\n", (collision_detected > 0 && getus() - collision_detected < 5000000) ? "collision" : "tilt");
 
 		mode = _shutdown;
 	}
@@ -2760,6 +2817,35 @@ float ppm2rc(float ppm, float min_rc, float center_rc, float max_rc, bool revert
 		v = -v;
 
 	return v;
+}
+
+int read_advsensor_packets()
+{
+#ifdef STM32F4
+
+	byte_count = UART4_ReadPacket(packets, sizeof(packets));
+	if (byte_count > 0 && byte_count > sizeof(packets[0]))
+	{
+		int count = byte_count/sizeof(packets[0]);
+		//ERROR("count=%d\n", byte_count);
+		for(int i=0; i<count; i++)
+		{
+			int crc = crc32(0, &packets[i], sizeof(packets[i].data));
+
+			if (crc == packets[i].crc)
+			{
+				last_imu_packet_time = getus();
+				imu_packet_counter++;
+				gyro620 = (packets[i].data[1]-2.50f)/0.006f;
+				//ERROR("\rg:%.3f,a:%.4fg, ", gyro620, packets[i].data[14]-2.50f);
+				imupacket = packets[0];
+			}
+		}
+	}
+
+#endif
+	
+	return 0;
 }
 
 int64_t tic = 0;
@@ -2794,9 +2880,10 @@ int loop(void)
 	if (getus() - tic > 1000000)
 	{
 		tic = getus();
-		ERROR("speed: %d\r\n", cycle_counter);
+		ERROR("speed: %d/%d\r\n", cycle_counter, imu_packet_counter);
 		loop_hz = cycle_counter;
 		cycle_counter = 0;
+		imu_packet_counter = 0;
 	}
 
 	cycle_counter++;
@@ -2816,6 +2903,9 @@ int loop(void)
 
 	// read sensors and update altitude if new air pressure data arrived.
 	read_sensors();
+// 	read_advsensor_packets();
+// 	read_advsensor_packets();
+// 	read_advsensor_packets();
 
 	// attitude and  heading
 	calculate_attitude();
@@ -2828,13 +2918,14 @@ int loop(void)
 		gps_id++;
 
 		nmeaINFO *info = GPS_GetInfo();
-		if (info->HDOP > 0 && info->HDOP < 5.0 && info->fix>1)
+
+  		if (info->HDOP > 0 && info->HDOP < 5.0 && info->fix>1)
 		{
 			estimator.update_gps(COORDTIMES * NDEG2DEG(info->lat), COORDTIMES * NDEG2DEG(info->lon), getus());
 			estimator2.update_gps(COORDTIMES * NDEG2DEG(info->lat), COORDTIMES * NDEG2DEG(info->lon), getus());
 			estimator3.update_gps(COORDTIMES * NDEG2DEG(info->lat), COORDTIMES * NDEG2DEG(info->lon), getus());
 		}
-		else
+// 		else
 		{
 			//estimator.reset();
 			//estimator2.reset();
@@ -2854,16 +2945,10 @@ int loop(void)
 	estimator2.update_accel(accel_earth_frame.array[0], accel_earth_frame.array[1], getus());
 	estimator3.update_accel(accel_earth_frame.array[0], accel_earth_frame.array[1], getus());
 
-#ifdef STM32F4
-	char uart4_packet[512];
-	int packet_size = UART4_ReadPacket(uart4_packet, sizeof(uart4_packet));
-	if (packet_size > 0)
-		ERROR("packet:%s\n", uart4_packet);
-#endif
 #endif
 
 
-	osd();
+// 	osd();
 	prepare_pid();
 	pid();
 	output();
@@ -2913,7 +2998,7 @@ int loop(void)
 	// read and process a packet
 	#ifndef LITE
 	rf_data packet;
-	if (NRF_Rx_Dat((uint8_t*)&packet) == RX_OK)
+	if (nrf_ok && NRF_Rx_Dat((uint8_t*)&packet) == RX_OK)
 	{
 		TRACE("packet!!!!\r\n\r\n");
 	}
@@ -2921,7 +3006,8 @@ int loop(void)
 	
 	// wait for next 8ms and send all data out
 	#ifndef LITE
-	NRF_TX_Mode();
+	if (nrf_ok)
+		NRF_TX_Mode();
 	#endif
 
 	return 0;
@@ -2983,6 +3069,7 @@ int main(void)
 	SysClockInit();
 	#ifndef LITE
 	sdcard_init();
+// 	sdcard_speed_test();
 	#endif
 
 	// priority settings
@@ -3022,6 +3109,8 @@ int main(void)
 	estimator2.set_gps_latency(0);
 	estimator3.set_gps_latency(250);
 
+	adxrs453_init();
+
 	ADC1_Init();
 	SysTick_Config(720);
 	PPM_init();
@@ -3037,10 +3126,10 @@ int main(void)
 		critical_errors |= error_magnet;	
 	GPS_Init(115200);
 #ifdef STM32F4
-	UART4_Init(115200);
+	UART4_Init(384000, 0);
 #endif
 	NRF_Init();
- 	MAX7456_SYS_Init();
+ 	//MAX7456_SYS_Init();
  	Max7456_Set_System(1);
 	//sonar_init();
 	#else
@@ -3117,6 +3206,7 @@ int main(void)
 	TRACE("NRF_Check() 2 = %d\r\n", nrf_ok);
 	#endif
 
+	adxrs453_init();
 
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
@@ -3133,7 +3223,7 @@ int main(void)
 #endif
 	TIM_TimeBaseStructure.TIM_ClockDivision=TIM_CKD_DIV1;
 	TIM_TimeBaseStructure.TIM_CounterMode=TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period=3000-1;
+	TIM_TimeBaseStructure.TIM_Period=2000-1;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0x0;
 	TIM_TimeBaseInit(TIM1,&TIM_TimeBaseStructure);
 	TIM_ClearFlag(TIM1,TIM_FLAG_Update);
@@ -3189,7 +3279,6 @@ int main(void)
 
 	}
 
-	return -2;
 }
 
 
@@ -3213,11 +3302,11 @@ void TIM1_UP_TIM10_IRQHandler(void)
 int64_t tick;
 void TIM8_BRK_TIM12_IRQHandler(void)
 {
-	TIM_ClearITPendingBit(TIM12 , TIM_FLAG_Update);
 
 #ifndef LITE
 
-	int dt=getus()-tick;
+	int64_t t = getus();
+	int dt = t-tick;
 	if (dt > 15000)
 		TRACE("long log interval:%d\n", dt);
 
@@ -3226,12 +3315,13 @@ void TIM8_BRK_TIM12_IRQHandler(void)
 	int res = real_log();
 	starttick = getus() - starttick;
 
-// 	if (tick > 10000)
-// 		ERROR("long log time:%d\n", int(starttick));
+	if (starttick > 10000)
+		TRACE("long log time:%d\n", int(starttick));
 
 	if (res == 0)
-		tick = getus();
+		tick = t;
 #endif
+	TIM_ClearITPendingBit(TIM12 , TIM_FLAG_Update);
 }
 }
 

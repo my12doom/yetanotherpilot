@@ -4,15 +4,6 @@
 #include <string.h>
 #include "printf.h"
 
-#define ADS1256_ADDR1 0x90
-#define ADS1256_ADDR2
-
-#define CONVERSION 0
-#define CONFIG 1
-#define LOW_THRESH 2
-#define HIGH_THRESH 3
-
-
 void ads1256_begin()
 {
 	GPIO_ResetBits(GPIOA, GPIO_Pin_15);
