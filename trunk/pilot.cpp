@@ -1449,6 +1449,7 @@ int real_log_packet(void *data, int size)
 	return 0;
 }
 
+#ifndef LITE
 CircularQueue<rf_data, 256> log_buffer;
 CircularQueue<rf_data, 256> log_buffer2;
 CircularQueue<rf_data, 256> *plog_buffer = &log_buffer;
@@ -1701,6 +1702,7 @@ int save_logs()
 	
 	return 0;
 }
+#endif
 
 volatile vector imu_statics[2][4] = {0};		//	[accel, gyro][min, current, max, avg]
 int avg_count = 0;
@@ -2690,6 +2692,7 @@ int osd()
 #define DEMCR           (*((volatile unsigned long *)(0xE000EDFC)))
 #define TRCENA          0x01000000
 
+#ifndef LITE
 int real_log()
 {
 	log_pending = 1;
@@ -2738,6 +2741,9 @@ int real_log()
 	return 0;
 }
 
+
+
+#endif
 
 int64_t land_detect_us = 0;
 int land_detector()
@@ -2982,13 +2988,14 @@ int loop(void)
 
 	led_all_on();
 
+	#ifndef LITE
 	if (sd_ok)
 	{
 		// flash one of the LED(A4) at 10hz
 		if ((getus() % 100000) < 50000)
 			GPIO_SetBits(GPIOC, GPIO_Pin_4);
-
 	}
+	#endif
 
 	if (ms5611_result == 0)
 	{
@@ -3013,7 +3020,7 @@ int loop(void)
 	return 0;
 }
 
-
+#ifndef LITE
 typedef struct  
 {
 	int isAccel;
@@ -3056,6 +3063,8 @@ int sanity_test()
 
 	return 0;
 }
+
+#endif
 
 int main(void)
 {
@@ -3106,10 +3115,6 @@ int main(void)
 		g_ppm_output[i] = i == 2 ? THROTTLE_STOP : RC_CENTER;
 #endif
 
-	estimator2.set_gps_latency(0);
-	estimator3.set_gps_latency(250);
-
-	adxrs453_init();
 
 	ADC1_Init();
 	SysTick_Config(720);
@@ -3120,6 +3125,9 @@ int main(void)
 	if (init_MPU6050() < 0)
 		critical_errors |= error_accelerometer | error_gyro;
 	#ifndef LITE
+	estimator2.set_gps_latency(0);
+	estimator3.set_gps_latency(250);
+	adxrs453_init();
 	if (init_MS5611() < 0)
 		critical_errors |= error_baro;
 	if (init_HMC5883() < 0)
@@ -3204,9 +3212,9 @@ int main(void)
 		NRF_TX_Mode();
 
 	TRACE("NRF_Check() 2 = %d\r\n", nrf_ok);
+	adxrs453_init();
 	#endif
 
-	adxrs453_init();
 
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseStructure;
 	NVIC_InitTypeDef NVIC_InitStructure;
