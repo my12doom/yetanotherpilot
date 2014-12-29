@@ -97,7 +97,7 @@ typedef struct _nmeaINFO
     double  lon;        /**< Longitude in NDEG - +/-[degree][min].[sec/60] */
     double  elv;        /**< Antenna altitude above/below mean sea level (geoid) in meters */
     double  speed;      /**< Speed over the ground in kilometers/hour */
-    double  direction;  /**< Track angle in degrees True */
+    double  direction;  /**< Track angle in degrees True, 0/360 = north, 90=east, 180=south, 270 = west*/
     double  declination; /**< Magnetic variation degrees (Easterly var. subtracts from true course) */
 
     nmeaSATINFO satinfo; /**< Satellites information */
