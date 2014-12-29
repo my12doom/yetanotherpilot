@@ -23,7 +23,7 @@ static int dma_running = 0;
 void UART4_IRQHandler(void)
 {
 	int c = -1;
-	//if(USART_GetFlagStatus(UART4,USART_IT_RXNE)==SET)
+	if(USART_GetFlagStatus(UART4,USART_IT_RXNE)==SET)
 	{
 		c = USART_ReceiveData(UART4);
 	}
