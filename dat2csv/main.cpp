@@ -16,6 +16,7 @@ typedef __int64 int64_t;
 #include "../pos_estimator.h"
 
 #define TIMES 1000000000
+#define countof(x) (sizeof(x)/sizeof(x[0]))
 
 typedef struct
 {
@@ -65,6 +66,302 @@ int sanity_test()
 	return 0;
 }
 
+
+float still_start_time;
+float still_start_accel[3];
+float still_accel_avg[3];
+float still_temp_avg;
+int still_counter;
+
+
+int point_count = 0;
+const int max_point = 8192;
+float points[max_point][4];
+
+typedef struct
+{
+	double parameter[15];
+} func_vector;
+
+double func(func_vector v);
+double func2(func_vector v);
+
+int fitting()
+{
+
+	for(int i=0; i<point_count; i++)
+	{
+		points[i][0] /= 500;
+		points[i][1] /= 500;
+		points[i][2] /= 500;
+	}
+
+	func_vector v = {0,0,0,1,1,1};
+	const double step = 0.0001;
+
+	double delta[6];
+	for(int j=0; j<100000; j++)
+	{
+		double result = func(v);
+		double delta_length = 0;
+		for(int i=0; i<6; i++)
+		{
+			func_vector v2 = v;
+			v2.parameter[i] += step;
+
+			delta[i] = func(v2) - result;
+			delta_length += delta[i] * delta[i];
+		}
+
+		delta_length = sqrt(delta_length);
+		for(int i=0; i<6; i++)
+		{
+			delta[i] /= delta_length;
+			v.parameter[i] -= step * delta[i];
+		}
+	}
+
+	for(int i=0; i<point_count; i++)
+	{
+		printf("I:%f,%f,%f(%f)", points[i][0], points[i][1], points[i][2], sqrt(points[i][0]*points[i][0]+points[i][1]*points[i][1]+points[i][2]*points[i][2]));
+		printf("\n");
+
+	}
+
+	for(int i=0; i<point_count; i++)
+	{
+		float a0 = (points[i][0] + v.parameter[0]) * v.parameter[3];
+		float a1 = (points[i][1] + v.parameter[1]) * v.parameter[4];
+		float a2 = (points[i][2] + v.parameter[2]) * v.parameter[5];
+
+		printf("O:%f,%f,%f(%f)", a0, a1, a2, sqrt(a0*a0+a1*a1+a2*a2));
+		printf("\n");
+	}
+
+	printf("bias:");
+	for(int i=0; i<3; i++)
+	{
+		v.parameter[i] *= 500;
+		printf("%.2f,", v.parameter[i]);
+	}
+
+	printf("\nscale:");
+	for(int i=0; i<3; i++)
+		printf("%f,", v.parameter[i+3]);
+	printf("\n");
+
+
+	return 0;
+}
+
+int fitting_accel_3d()
+{
+
+	for(int i=0; i<point_count; i++)
+	{
+		points[i][0] /= 2048;
+		points[i][1] /= 2048;
+		points[i][2] /= 2048;
+	}
+
+	func_vector v = 
+	{
+		1,0,0,
+		0,1,0,
+		0,0,1,
+		0,0,0};
+
+// 	func_vector v = 
+// 	{
+// 		0.998976, -0.006189, -0.015724,
+// 		0.005724, 1.004099, -0.018982,
+// 		0.016394, 0.020874, 0.987771,
+// 
+// 		-0.000405, -0.003841, -0.022524};
+
+	const double step = 0.000001;
+
+	double delta[15];
+	double delta_length = 0;
+	for(int j=0; j<100000000; j++)
+	{
+		double result = func2(v);
+		delta_length = 0;
+		for(int i=0; i<12; i++)
+		{
+			func_vector v2 = v;
+			v2.parameter[i] += step;
+
+			delta[i] = func2(v2) - result;
+			delta_length += delta[i] * delta[i];
+		}
+
+		if (delta_length <= 1e-25)
+			break;
+
+		delta_length = sqrt(delta_length);
+		for(int i=0; i<12; i++)
+		{
+			delta[i] /= delta_length;
+			v.parameter[i] -= step * delta[i];
+		}
+	}
+
+	for(int i=0; i<point_count; i++)
+	{
+		printf("I:%f,%f,%f(%f)", points[i][0], points[i][1], points[i][2], sqrt(points[i][0]*points[i][0]+points[i][1]*points[i][1]+points[i][2]*points[i][2]));
+		printf("\n");
+
+	}
+
+	for(int i=0; i<point_count; i++)
+	{
+		float a0 = (points[i][0] + v.parameter[0]) * v.parameter[3];
+		float a1 = (points[i][1] + v.parameter[1]) * v.parameter[4];
+		float a2 = (points[i][2] + v.parameter[2]) * v.parameter[5];
+
+		a0 = (points[i][0]*v.parameter[0] + points[i][1]*v.parameter[1] + points[i][2]*v.parameter[2] + v.parameter[9]);
+		a1 = (points[i][0]*v.parameter[3] + points[i][1]*v.parameter[4] + points[i][2]*v.parameter[5] + v.parameter[10]);
+		a2 = (points[i][0]*v.parameter[6] + points[i][1]*v.parameter[7] + points[i][2]*v.parameter[8] + v.parameter[11]);
+
+		printf("O:%f,%f,%f(%f)", a0, a1, a2, sqrt(a0*a0+a1*a1+a2*a2));
+		printf("\n");
+	}
+
+
+	printf("coeff:\n");
+	for(int i=0; i<3; i++)
+	{
+		for(int j=0; j<3; j++)
+			printf("%llf,", v.parameter[i*3+j]);
+		printf("   %f\n", v.parameter[9+i]);
+	}
+
+
+	return 0;
+}
+
+int motion_detect_accel(sensor_data sensor, float time)
+{
+	float mpu6050_temperature = sensor.temperature1  / 340.0f + 36.53f;
+
+	int mounted[3] = {sensor.accel[1], sensor.accel[0], -sensor.accel[2]};
+	for(int i=0; i<3; i++)
+		sensor.accel[i] = mounted[i];
+
+	bool still = true;
+	for(int i=0; i<3; i++)
+	{
+		if (abs(still_start_accel[i] - sensor.accel[i]) > 55)
+			still = false;
+	}
+
+	if (still)
+	{
+		if (still_counter == 0)
+		{
+			for(int i=0; i<3; i++)
+				still_accel_avg[i] = sensor.accel[i];
+			still_start_time = time;
+			still_temp_avg = mpu6050_temperature;
+
+		}
+		else
+		{
+			still_temp_avg += mpu6050_temperature;
+			for(int i=0; i<3; i++)
+				still_accel_avg[i] += sensor.accel[i];
+		}
+
+		still_counter ++;
+	}
+	else
+	{
+		if (time - still_start_time > 4)
+		{
+			printf("STILL:");
+			for(int i=0; i<3; i++)
+				printf("%.1f,", still_accel_avg[i]/still_counter);
+			printf("%.2f¡ãC, %.2fs\n", still_temp_avg/still_counter, time - still_start_time);
+
+			for(int i=0; i<3; i++)
+				points[point_count][i] = still_accel_avg[i]/still_counter;
+			points[point_count][3] = still_temp_avg/still_counter;
+
+			point_count++;
+		}
+
+		for(int i=0; i<3; i++)
+			still_start_accel[i] = sensor.accel[i];
+		still_counter = 0;
+		still_start_time = 999999;
+	}
+
+	return 0;
+}
+
+int motion_detect_mag(sensor_data sensor, float time)
+{
+	float mpu6050_temperature = sensor.temperature1  / 340.0f + 36.53f;
+
+	int mounted[3] = {sensor.mag[0], sensor.mag[2], sensor.mag[1]};
+	for(int i=0; i<3; i++)
+		sensor.accel[i] = mounted[i];
+
+	static float last_data[3] = {0};
+	float sum = 0;
+	for (int i=0; i<3; i++)
+		sum += (last_data[i]-sensor.accel[i])*(last_data[i]-sensor.accel[i]);
+
+	if (sum > 600)
+	{
+		for(int i=0; i<3; i++)
+			last_data[i] = points[point_count][i] = sensor.accel[i];
+		point_count++;
+	}
+
+	return 0;
+}
+
+double func(func_vector v)
+{
+	double sum = 0;
+	for(int i=0; i<point_count; i++)
+	{
+		double v2[3] = 
+		{
+			(points[i][0]+v.parameter[0])*v.parameter[3],
+			(points[i][1]+v.parameter[1])*v.parameter[4],
+			(points[i][2]+v.parameter[2])*v.parameter[5],
+		};
+		double delta = v2[0]*v2[0] + v2[1]*v2[1] + v2[2]*v2[2] - 1;
+		sum += delta * delta;
+	}
+
+	return sqrt(sum);
+}
+
+double func2(func_vector v)
+{
+	double sum = 0;
+
+	for(int i=0; i<point_count; i++)
+	{
+		double v2[3] = 
+		{
+			(points[i][0]*v.parameter[0] + points[i][1]*v.parameter[1] + points[i][2]*v.parameter[2] + v.parameter[9]),
+			(points[i][0]*v.parameter[3] + points[i][1]*v.parameter[4] + points[i][2]*v.parameter[5] + v.parameter[10]),
+			(points[i][0]*v.parameter[6] + points[i][1]*v.parameter[7] + points[i][2]*v.parameter[8] + v.parameter[11]),
+		};
+
+		double delta = v2[0]*v2[0] + v2[1]*v2[1] + v2[2]*v2[2] - 1;
+		sum += delta * delta;
+	}
+
+	return sum;
+}
+
+
 int tobin()
 {
 	char line[1024];
@@ -73,20 +370,48 @@ int tobin()
 
 	int last_gyro = 0;
 	int temp;
-	int gyro1, gyro2;
+	int gyro1;
+	float gyro2;
 
-	while(fscanf(f, "%f%d%d", &temp, &gyro1, &gyro2) == 3)
+	int v1,v2,v3,v4,v5,v6;
+
+	while(fscanf(f, "%f%d%f%d%d%d%d", &temp, &gyro1, &gyro2, &v3, &v4, &v5, &v6) == 7)
 	{
 // 		if (gyro != last_gyro)
 		{
-			gyro1 = 65.5*gyro1/80.0;
-			short v = gyro1;
+// 			gyro1 = 65.5*gyro1/80.0;
+			short v = v5;
 			fwrite(&v, 1, sizeof(v), o);
-			v = gyro2;
+			v = v6 *65.5/80;
 			fwrite(&v, 1, sizeof(v), o);
 		}
 
 	}
+
+	/*
+	const int order = 1;
+	double errorD_lpf[order] = {0};			// variable for high order low pass filter, [order]
+
+	static const float lpf_RC = 1.0f/(2*PI * 5.0f);
+
+
+	for(int i=0; i<500*2000; i++)
+	{
+		double interval = 0.002f;
+		double alpha = interval / (interval + lpf_RC);
+
+		float v = ((rand() & 0xff) << 8) | (rand()&0xff);
+		v/=65535.0f;
+
+		for(int j=0; j<order; j++)
+			errorD_lpf[j] = errorD_lpf[j] * (1-alpha) + alpha * (j==0?v:errorD_lpf[j-1]);
+
+		float v2 = errorD_lpf[order-1];
+		fwrite(&v, 1, sizeof(v), o);
+		fwrite(&v2, 1, sizeof(v2), o);
+
+	}
+	*/
 
 	fclose(f);
 	fclose(o);
@@ -94,6 +419,53 @@ int tobin()
 
 	return 0;
 }
+
+float avg(float *data, int count)
+{
+	float o = 0;
+	for(int i=0; i<count; i++)
+		o += data[i];
+	return o/count;
+}
+
+float std_dev(float *data, int count)
+{
+	float avg = ::avg(data, count);
+	float sum = 0;
+	for(int i=0; i<count; i++)
+		sum += (data[i]-avg)*(data[i]-avg);
+	return sqrt(sum/count);
+}
+
+int allan_variance(float *input, int count, float *out)
+{
+	int max_bin_size = count/5;
+
+#pragma omp parallel for
+	for(int bin_size = 2; bin_size<max_bin_size; bin_size+=5)
+	{
+		float *tmp = new float[count/2];
+		int bin_count = count / bin_size;
+
+		for(int i=0; i<bin_count; i++)
+		{
+			tmp[i] = 0;
+			for(int j=0; j<bin_size; j++)
+				tmp[i] += input[bin_size*i+j];
+			tmp[i] /= bin_size;
+		}
+
+		out[bin_size-2] = std_dev(tmp, bin_count);
+
+		if (bin_size % 8 == 0)
+			printf("%d/%d\n", bin_size, max_bin_size);
+		delete [] tmp;
+	}
+
+
+	return max_bin_size;
+}
+
 
 float sqr(float a, float b)
 {
@@ -103,9 +475,14 @@ float sqr(float a, float b)
 int main(int argc, char **argv)
 {
 // 	sanity_test();
+	int ssize = sizeof(pilot_data);
 	tobin();
 
 	int size =  sizeof(rf_data);
+	int gyros_counter = 0;
+	float *gyros[3];
+	for(int i=0; i<3; i++)
+		gyros[i] = new float[1024*10240];
 
 
 	FILE * sanity = fopen("Z:\\sanity.dat", "wb");;
@@ -267,6 +644,8 @@ int main(int argc, char **argv)
 		}
 // 		else if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA_V1)
 // 			gps_v1 = rf.data.gps_v1;
+ 		else if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA_V3)
+ 			;//do nothing
 		else if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA_V2)
 		{
 			gps_v2 = rf.data.gps_v2;
@@ -285,6 +664,24 @@ int main(int argc, char **argv)
 		{
 			sensor = rf.data.sensor;
 			fwrite(sensor.gyro, 1, 6, gyrof);
+			motion_detect_accel(sensor, time/1000000.0f);
+
+			static int imu_counter = 0;
+			if (time > 3600000000)
+			{
+				if (imu_counter ++ % 5 == 0)
+				{
+					gyros[0][gyros_counter] = sensor.gyro[0] * 500.0f / 32767;
+					gyros[1][gyros_counter] = sensor.gyro[1] * 500.0f / 32767;
+					gyros[2][gyros_counter] = sensor.gyro[2] / 80.0f;
+
+// 					gyros[0][gyros_counter] = sensor.accel[0] / 2048.0f;
+// 					gyros[1][gyros_counter] = sensor.accel[1] / 2048.0f;
+// 					gyros[2][gyros_counter] = sensor.accel[2] / 2048.0f;
+
+					gyros_counter ++;
+				}
+			}
 		}
 		else if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA)
 		{
@@ -300,6 +697,8 @@ int main(int argc, char **argv)
 		}
 		else if ((rf.time & TAG_MASK) ==  TAG_PPM_DATA)
 			ppm = rf.data.ppm;
+		else if ((rf.time & TAG_MASK) ==  TAG_CTRL_DATA)
+			;// ignore controll data packets
 		else
 		{
 			printf("unknown data %x, skipping\r\n", int((rf.time & TAG_MASK)>>56));
@@ -491,19 +890,24 @@ int main(int argc, char **argv)
 		float gyro = (adv_sensor[0].data[1] - 2.50f)/0.006f;
 		float a1 = (adv_sensor[1].data[5]-2.50f);
 		float a2 = (adv_sensor[2].data[0]-2.50f);
+		float a3 = (adv_sensor[1].data[4]-2.50f)/0.312f;
+		float temperature_620 = (adv_sensor[0].data[2] - 2.50f)/0.009f + 25;
+		int avg_output = (ppm.out[0]+ ppm.out[1]+ ppm.out[2]+ ppm.out[3])/4;
 
-		if (time > 240000000)
-  		if (n++ %5 == 0)
+//  		if (time > 55000000 && time < 75000000)
+// 		if (time > 50000000 && time < 75000000)
+		if (abs(a1) < 0.10 && abs(a2) < 0.10)
+  		if (n++ %25 == 0)
 //  		if (abs(adv_sensor[0].data[3]-5)<0.2)
 //  		if ((time > 13500000 && time < 17500000) || (time > 25500000 && time < 30000000))
- 		fprintf(fo, "%.4f,%.2f,%.2f,%2f,%f,"
+ 		fprintf(fo, "%.4f,%.5f,%.3f,%2f,%f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d,%d\r\n",
-				float(time/1000000.0f), quad2.loop_hz/1.0f, quad2.altitude_baro_raw/100.0f, quad2.altitude_inertia/100.0f, quad3.altitude/100.0f,
+				float(time/1000000.0f), a3, temperature_620, quad2.altitude_inertia/100.0f, quad3.altitude/100.0f,
  				sensor.accel[0], sensor.accel[1], sensor.accel[2], sensor.gyro[0], sensor.gyro[1], sensor.gyro[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[1], pilot2.D[1],
 				roll*180/PI, pitch*180/PI, yaw_est*180/PI, pilot.target[0]/100.0, pilot.target[1]/100.0, pilot.target[2]/100.0, 
 				(ppm.in[2]-1113)/50, pilot.fly_mode,
-				ppm.in[0], ppm.in[1], ppm.in[2], ppm.in[3], ppm.out[0], ppm.out[1], ppm.out[2], ppm.out[3],
+				ppm.in[0], ppm.in[1], ppm.in[2], quad2.throttle_result, ppm.out[0], ppm.out[1], ppm.out[2], ppm.out[3],
 				estAccGyro.V.x, estAccGyro.V.y, estAccGyro.V.z,
 				sensor.gyro[0],sensor.gyro[1],sensor.gyro[2], sensor.mag[0]);
 // 		fprintf(fo, "%.2f,%d,%d,%d,%d\r\n", float(time/1000000.0f), ppm.in[0], ppm.in[1], ppm.in[2], ppm.in[3]);
@@ -523,13 +927,21 @@ int main(int argc, char **argv)
 //  				)
 //  			if (time > 200000000 && time < 300000000)
 // 			if (m++ %3 == 0 && quad3.ultrasonic != 0xffff)
-// 			if (home_set)
- 			if (m++ %15 == 0)
+			if (home_set)
+// 			if (time > 220000000 && time < 230000000)
+ 			if (m++ %5 == 0)
 			{
+				float yaw = gps.direction * PI / 180;
+				if (yaw > PI)
+					yaw -= 2*PI;
+
+				float speed_north = cos(yaw) * gps.speed;
+				float speed_east = sin(yaw) * gps.speed;
+
 				fprintf(gpso, "%.4f", float(time/1000000.0f));
 				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[1], quad.angle_target[1], quad.speed[1], quad.speed_target[1]);
 				fprintf(gpso, ",%d,%d,%d,%d,%f,%f,%f,", quad.angle_pos[0],quad.angle_target[0],quad.speed[0], quad.speed_target[0], meter_raw.latitude, meter.longtitude, meter.latitude);
-				fprintf(gpso, "%.1f/%d/%d/%d,%f,%f,%f,%f,%f", gps.DOP[0]/100.0f, gps.satelite_in_use, gps.fix, gps.id, quad3.altitude_target/100.00f, quad2.altitude_inertia/100.00f, quad2.altitude_baro_raw/100.00f, quad3.altitude/100.00f, quad3.altitude_target/100.0f);
+				fprintf(gpso, "%.1f/%d/%d/%d,%f,%f,%f,%f,%f", gps.speed/100.0f, gps.satelite_in_use, gps.fix, gps.direction, quad2.accel_z_kalman/100.0f, ned[1].accel_NED2[2]/1000.0f, quad2.altitude_baro_raw/100.0f, quad3.altitude/100.00f, quad3.altitude_target/100.0f);
 				fprintf(gpso, "\r\n");
 
 				fflush(gpso);
@@ -542,7 +954,29 @@ int main(int argc, char **argv)
 	fclose(f);
 	fclose(gpso);
 
-	printf("max time delta: %d\n", max_time_delta);
+	/*
+	printf("allan variance\n");
+
+	float *allan[3];
+	int count = 0;
+	for(int i=0; i<3; i++)
+	{
+		allan[i] = new float[1024*10240];
+		count = allan_variance(gyros[i], gyros_counter, allan[i]);
+	}
+
+	printf("allan variance OK\n");
+
+	FILE * allanf = fopen("allan.csv", "wb");
+	for(int i=0; i<count; i+=5)
+		fprintf(allanf, "%f,%f,%f,%f\r\n", i*0.01f, allan[0][i], allan[1][i], allan[2][i]);
+
+	fclose(allanf);
+	*/
+
+// 	printf("max time delta: %d\n", max_time_delta);
+
+	//fitting_accel_3d();
 
 	return 0;
 }

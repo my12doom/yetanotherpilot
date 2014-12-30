@@ -71,7 +71,27 @@ typedef struct
 	unsigned sig				: 4;// GPS quality indicator (0 = Invalid; 1 = Fix; 2 = Differential, 3 = Sensitive)
 	unsigned fix				: 4;// Operating mode, used for navigation (1 = Fix not available; 2 = 2D; 3 = 3D)
 	unsigned id					: 16;// incremental id for un-guaranteed telemetry channel
+} gps_data_v3;
+
+typedef struct
+{
+	unsigned short DOP[3];			// DOP[3]: PDOP, HDOP, VOP, unit base: 0.01
+	short speed;					// unit: cm/s
+	int longitude;					// longitude in 1/10000000 degree
+	int latitude;					// latitude in 1/10000000 degree
+	float altitude;					// meter
+	unsigned satelite_in_view 	: 4;
+	unsigned satelite_in_use	: 4;
+	unsigned sig				: 4;// GPS quality indicator (0 = Invalid; 1 = Fix; 2 = Differential, 3 = Sensitive)
+	unsigned fix				: 4;// Operating mode, used for navigation (1 = Fix not available; 2 = 2D; 3 = 3D)
+	unsigned id					: 4;// incremental id for un-guaranteed telemetry channel
+	unsigned direction			: 12;// Track angle in degrees True, 0-360 degree, 0: north, 90: east, 180: south, 270: west, 359:almost north
 } gps_data;
+
+typedef struct
+{
+	char data[24];
+} raw_packet;
 
 typedef struct
 {
@@ -126,10 +146,11 @@ typedef struct
 	short climb_rate;		// high-frequency low pass filtered climb rate, unit: cm/s
 	bool airborne;
 	short altitude_inertia;	// unit: cm
-	short climb_rate_inertia;	// unit: cm/s
+	short accel_z_kalman;	// unit: cm/s
 	short altitude_baro_raw;	// unit: cm
 	short accel_z;			// unit: cm/s^2
 	short loop_hz;
+	short throttle_result;	// throttle result pwm from auto throttle controller
 } quadcopter_data2;
 
 typedef struct
@@ -167,9 +188,10 @@ typedef struct
 		pilot_data2 pilot2;	// 24 bytes
 		ppm_data ppm;		// 24 bytes
 		controll_data controll; // 24 bytes
-// 		gps_data_v1 gps_v1;		// 22 bytes
+		//gps_data_v1 gps_v1;		// 22 bytes
  		gps_data_v2 gps_v2;		// 22 bytes
-		gps_data gps;		// 23 bytes
+		gps_data_v3 gps_v3;		// 24 bytes
+		gps_data gps;		// 24 bytes
 		quadcopter_data quadcopter;	// 24 byte
 		quadcopter_data2 quadcopter2;
 		quadcopter_data3 quadcopter3;
@@ -185,15 +207,17 @@ typedef struct
 #define TAG_CTRL_DATA	0x3400000000000000
 #define TAG_GPS_DATA_V1	0x3500000000000000
 #define TAG_GPS_DATA_V2	0x3600000000000000
+#define TAG_GPS_DATA_V3	0x3C00000000000000
 #define TAG_QUADCOPTER_DATA	0x3700000000000000
 #define TAG_QUADCOPTER_DATA2	0x3800000000000000
 #define TAG_QUADCOPTER_DATA3	0x3900000000000000
 #define TAG_IMU_DATA	0x3A00000000000000
 #define TAG_NED_DATA	0x3B00000000000000
-#define TAG_GPS_DATA	0x3C00000000000000
 #define TAG_ADV_SENSOR_DATA1	0x3D00000000000000
 #define TAG_ADV_SENSOR_DATA2	0x3E00000000000000
 #define TAG_ADV_SENSOR_DATA3	0x3F00000000000000
+#define TAG_GPS_DATA	0x4000000000000000
+#define TAG_RAW_DATA	0x4100000000000000
 
 #define CTRL_CMD_SET_VALUE 0
 #define CTRL_CMD_GET_VALUE 1
