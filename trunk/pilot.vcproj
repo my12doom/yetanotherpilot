@@ -410,6 +410,14 @@
 				Name="sensors"
 				>
 				<File
+					RelativePath=".\sensors\adis16405.c"
+					>
+				</File>
+				<File
+					RelativePath=".\sensors\adis16405.h"
+					>
+				</File>
+				<File
 					RelativePath=".\sensors\adxrs453.c"
 					>
 				</File>
@@ -451,6 +459,10 @@
 				</File>
 				<File
 					RelativePath=".\sensors\MPU6050.h"
+					>
+				</File>
+				<File
+					RelativePath=".\sensors\MPU9250.c"
 					>
 				</File>
 				<File
