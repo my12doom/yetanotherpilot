@@ -159,10 +159,9 @@ int ads1256_init(void)
 	{
 		delayms(50);
 
-	ads1256_read_registers(i, 1, &data);
+		ads1256_read_registers(i, 1, &data);
 
-
-	ERROR("reg(%d)=0x%02x\n", i, data);
+		LOGE("reg(%d)=0x%02x\n", i, data);
 	}
 
 	return 0;

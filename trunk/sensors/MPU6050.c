@@ -56,7 +56,7 @@ int init_MPU6050(void)
 	I2C_WriteReg(MPU6050SlaveAddress, ACCEL_CONFIG, 0x18);			// full scale : 16g, 2048 = 1g
 	
 	res = I2C_ReadReg(MPU6050SlaveAddress, WHO_AM_I, &who_am_i, 1);
-	ERROR("MPU6050 initialized, WHO_AM_I=%x, address = %x\r\n", who_am_i, MPU6050SlaveAddress);
+	LOGE("MPU6050 initialized, WHO_AM_I=%x, address = %x\r\n", who_am_i, MPU6050SlaveAddress);
 	
 	// enable I2C bypass for AUX I2C and initialize HMC5883 into continues mode
 #ifdef EXTERNAL_HMC5883_2

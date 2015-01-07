@@ -890,7 +890,9 @@ int main(int argc, char **argv)
 		float gyro = (adv_sensor[0].data[1] - 2.50f)/0.006f;
 		float a1 = (adv_sensor[1].data[5]-2.50f);
 		float a2 = (adv_sensor[2].data[0]-2.50f);
-		float a3 = (adv_sensor[1].data[4]-2.50f)/0.312f;
+		float vcc = adv_sensor[0].data[3];
+		float a3 = (adv_sensor[1].data[4]-vcc/2)*5.0/vcc/0.312f;
+		float a4 = (adv_sensor[1].data[4]-2.50)/0.312f;
 		float temperature_620 = (adv_sensor[0].data[2] - 2.50f)/0.009f + 25;
 		int avg_output = (ppm.out[0]+ ppm.out[1]+ ppm.out[2]+ ppm.out[3])/4;
 
@@ -900,10 +902,10 @@ int main(int argc, char **argv)
   		if (n++ %25 == 0)
 //  		if (abs(adv_sensor[0].data[3]-5)<0.2)
 //  		if ((time > 13500000 && time < 17500000) || (time > 25500000 && time < 30000000))
- 		fprintf(fo, "%.4f,%.5f,%.3f,%2f,%f,"
+ 		fprintf(fo, "%.4f,%.5f,%.5f,%2f,%f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d,%d\r\n",
-				float(time/1000000.0f), a3, temperature_620, quad2.altitude_inertia/100.0f, quad3.altitude/100.0f,
+				float(a3-a4), a3, a4, quad2.altitude_inertia/100.0f, quad3.altitude/100.0f,
  				sensor.accel[0], sensor.accel[1], sensor.accel[2], sensor.gyro[0], sensor.gyro[1], sensor.gyro[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[1], pilot2.D[1],
 				roll*180/PI, pitch*180/PI, yaw_est*180/PI, pilot.target[0]/100.0, pilot.target[1]/100.0, pilot.target[2]/100.0, 
 				(ppm.in[2]-1113)/50, pilot.fly_mode,

@@ -65,7 +65,7 @@ int init_HMC5883(void)
 #ifdef EXTERNAL_HMC5883
 		restore_I2C();
 #endif
-		ERROR("HMC5883 not found\n");
+		LOGE("HMC5883 not found\n");
 		return -2;
 	}
 
@@ -89,7 +89,7 @@ int init_HMC5883(void)
 		
 		if (-(1<<12) >= min(data[0],min(data[1],data[2])))
 		{
-			ERROR("mag saturation detected\n");
+			LOGE("mag saturation detected\n");
 #ifdef EXTERNAL_HMC5883
 			restore_I2C();
 #endif
@@ -115,7 +115,7 @@ int init_HMC5883(void)
 				
 		if (-(1<<12) >= min(data[0],min(data[1],data[2])))
 		{
-			ERROR("mag saturation detected\n");
+			LOGE("mag saturation detected\n");
 #ifdef EXTERNAL_HMC5883
 			restore_I2C();
 #endif
@@ -130,7 +130,7 @@ int init_HMC5883(void)
 	I2C_WriteReg(HMC5883SlaveAddress ,HMC58X3_R_CONFB ,0x20 ); //Configuration Register B  -- 001 00000    configuration gain 1.3Ga
 	I2C_WriteReg(HMC5883SlaveAddress, HMC58X3_R_MODE, 0x00);
 	
-	ERROR("mag gain=%.3f, %.3f, %.3f", gain[0], gain[1], gain[2]);
+	LOGE("mag gain=%.3f, %.3f, %.3f", gain[0], gain[1], gain[2]);
 #ifdef EXTERNAL_HMC5883
 	restore_I2C();
 #endif	
