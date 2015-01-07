@@ -9,6 +9,7 @@
 #include "param.h"
 #include "space.h"
 #include <math.h>
+#include "gps.h"
 
 extern volatile vector imu_statics[2][4];		//	[accel, gyro][min, current, max, avg]
 extern volatile int avg_count;
@@ -210,6 +211,27 @@ extern "C" int parse_command_line(const char *line, char *out)
 		}
 		strcpy(out, "ok\n");
 		return 3;
+	}
+	else if (strstr(line, "gps") == line)
+	{
+		nmeaINFO *info = GPS_GetInfo();
+		int hdop = info->HDOP;
+		int hdop_frac = int(info->HDOP * 100) % 100;
+		int db_max = -999, db_min=999;
+		char tmp[200] = {0};
+		for(int i=0; i<NMEA_MAXSAT; i++)
+		{
+			if (info->satinfo.sat[i].sig > db_max)
+				db_max = info->satinfo.sat[i].sig;
+			if (info->satinfo.sat[i].sig < db_min)
+				db_min = info->satinfo.sat[i].sig;
+			sprintf(tmp+strlen(tmp), "%d,", info->satinfo.sat[i].sig);
+		}
+		sprintf(out, "%d/%d sat, hdop%d.%02d, %d-%ddb(", info->satinfo.inuse, info->satinfo.inview, hdop, hdop_frac, db_min, db_max);
+		strcat(out, tmp);
+		strcat(out, ")\n");
+		
+		return strlen(out);
 	}
 	else if (strstr(line, "imustates") == line)
 	{

@@ -448,7 +448,7 @@ int loop_hz = 0;
 
 void matrix_error(const char*msg)
 {
-	ERROR(msg);
+	LOGE(msg);
 	while(true)
 		;
 }
@@ -779,7 +779,7 @@ int auto_throttle(float user_climb_rate)
 	user_climb_rate = 1.11f* (user_climb_rate > 0 ? (limit(user_climb_rate - quadcopter_max_climb_rate*0.1f, 0, quadcopter_max_climb_rate))
 							: (limit(user_climb_rate + quadcopter_max_descend_rate * 0.1f, -quadcopter_max_descend_rate, 0)));
 
-	target_climb_rate += user_climb_rate;
+	target_climb_rate += user_climb_rate * 0.65f;		// feed forward 65%
 
 
 	TRACE("\rtarget_climb_rate=%.2f/%.2f, user=%.2f, out=%2f.     ", target_climb_rate, target_climb_rate-user_climb_rate, user_climb_rate, throttle_result);
@@ -912,25 +912,25 @@ int sdcard_speed_test()
 // 			f_write(&f, blk, 512, &done);
 		ttt = getus() - ttt;
 
-		ERROR("SDCARD 2Mbyte write cost %dus\r\n", int(ttt));
+		LOGE("SDCARD 2Mbyte write cost %dus\r\n", int(ttt));
 		f_lseek(&f, 0);
 		ttt = getus();
 // 		for(int i=0; i<4096; i++)
 // 			f_read(&f, blk, 512, &done);
 		ttt = getus() - ttt;
-		ERROR("SDCARD 2Mbyte read cost %dus\r\n", int(ttt));
+		LOGE("SDCARD 2Mbyte read cost %dus\r\n", int(ttt));
 
 		ttt = getus();
 //		for(int i=0; i<4096; i++)
 //			SD_ReadBlock(((int64_t)i) << 9 ,(uint32_t*)blk, 512);
 		ttt = getus() - ttt;
-		ERROR("SDCARD 2Mbyte raw read cost %dus\r\n", int(ttt));
+		LOGE("SDCARD 2Mbyte raw read cost %dus\r\n", int(ttt));
 
 		ttt = getus();
 //		for(int i=0; i<4096; i+=8)
 //			SD_ReadMultiBlocks(((int64_t)i+8192) << 9 ,(uint32_t*)blk, 512,8);
 		ttt = getus() - ttt;
-		ERROR("SDCARD 2Mbyte raw read cost %dus\r\n", int(ttt));
+		LOGE("SDCARD 2Mbyte raw read cost %dus\r\n", int(ttt));
 	}
 	f_close(&f);
 	return 0;
@@ -948,14 +948,14 @@ int format_sdcard()
 int sdcard_init()
 {
 	//format_sdcard();
-	ERROR("sdcard init...");
+	LOGE("sdcard init...");
 	FIL f;
 	res = disk_initialize(0) == RES_OK ? FR_OK : FR_DISK_ERR;
 	res = f_mount(&fs, "", 0);
 	res = f_open(&f, "test.bin", FA_CREATE_ALWAYS | FA_WRITE | FA_READ);
 	sd_ok = res == FR_OK;
 	f_close(&f);
-	ERROR("%s\r\n", sd_ok ? "OK" : "FAIL");
+	LOGE("%s\r\n", sd_ok ? "OK" : "FAIL");
 	return 0;
 }
 #endif
@@ -1446,7 +1446,7 @@ int real_log_packet(void *data, int size)
 				{
 					f_close(file);
 					res = f_open(file, filename, FA_OPEN_EXISTING | FA_WRITE | FA_READ);
-					ERROR("opened %s for logging\n", filename);
+					LOGE("opened %s for logging\n", filename);
 					break;
 				}
 			}
@@ -1457,7 +1457,7 @@ int real_log_packet(void *data, int size)
 			unsigned int done;
 			if (f_write(file, data, size, &done) != FR_OK || done !=size)
 			{
-				ERROR("\r\nSDCARD ERROR\r\n");
+				LOGE("\r\nSDCARD ERROR\r\n");
 				sd_ok = false;
 			}
 			if (getus() - last_log_flush_time > 1000000)
@@ -1472,9 +1472,9 @@ int real_log_packet(void *data, int size)
 		TRACE("log cost %d us  ", int(getus()-us));
 		TRACE("  fat R/R:%d/%d\r\n", read_count, write_count);
 	}
-	// 	ERROR("\rfat R/R:%d/%d", read_count, write_count);
+	// 	LOGE("\rfat R/R:%d/%d", read_count, write_count);
 	// 	if (read_count + write_count > 1)
-	// 		ERROR("\r\n");
+	// 		LOGE("\r\n");
 	read_count = write_count = 0;
 	#endif
 
@@ -1769,7 +1769,7 @@ int read_sensors()
 	bool imu_error = false;
 	if (read_MPU6050(&p->accel[0]) < 0 && read_MPU6050(&p->accel[0]) < 0)
 	{
-		ERROR("MPU6050 Error\n");
+		LOGE("MPU6050 Error\n");
 		critical_errors |= error_accelerometer | error_gyro;
 		imu_error = true;
 	}
@@ -1810,7 +1810,7 @@ int read_sensors()
 	
 	gyro.array[1] = mpu9250_value[6];
 
-// 	ERROR("\rmag:%d,%d,%d,%d, %.2f   ", int(mag.array[0]), int(mag.array[1]), int(mag.array[2]), (int)sqrt(mag.array[0]*mag.array[0]+mag.array[1]*mag.array[1]+mag.array[2]*mag.array[2]), yaw_est*PI180);
+// 	LOGE("\rmag:%d,%d,%d,%d, %.2f   ", int(mag.array[0]), int(mag.array[1]), int(mag.array[2]), (int)sqrt(mag.array[0]*mag.array[0]+mag.array[1]*mag.array[1]+mag.array[2]*mag.array[2]), yaw_est*PI180);
 #else
 	vector acc = {p->accel[1], p->accel[0], -p->accel[2]};
 	vector gyro = {-p->gyro[0], p->gyro[1], p->gyro[2]};
@@ -1994,7 +1994,7 @@ int test_accel2ned()
 
 	// accel to lean angle
 	float target_pitch = atan2(-accel_forward, g);
-	float target_roll = atan2(accel_right*cos(target_pitch), g);
+	float target_roll = atan2(accel_right*cos(target_pitch), g);		// TODO: maybe target_pitch not needed?
 
 	TRACE("\raccelNE=%.2f,%.2f/%.2f,%.2f/%.2f,%.2f, heading:%.2f    ", accel_north, accel_east, target_pitch*PI180, target_roll*PI180, euler[1]*PI180, euler[0]*PI180, euler[2]*PI180);
 
@@ -2020,7 +2020,7 @@ int calculate_attitude()
 	TRACE("\rgyroI:%f,%f,%f   ", gyroI.array[0] *180/PI, gyroI.array[1]*180/PI, gyroI.array[2]*180/PI);
 	TRACE("\r          gyro:%.2f,%.2f, pos:%.2f,%.2f             ", ::gyro.array[0], ::gyro.array[1], pos[0], pos[1]);
 
-	//ERROR("\rdeg:%.2f,%.2f", adxrs453_value / 80.0f, ::gyro.array[0] * PI180);
+	//LOGE("\rdeg:%.2f,%.2f", adxrs453_value / 80.0f, ::gyro.array[0] * PI180);
 
 	static float mag_tolerate = 0.25f;
 
@@ -2095,7 +2095,7 @@ int calculate_attitude()
 	for(int i=0; i<3; i++)
 		accel_earth_frame.array[i] = acc[i];
 
-//   	ERROR("accz=%f/%f, acc=%f,%f,%f, raw=%f,%f,%f\n", accz_NED, accelz, acc[0], acc[1], acc[2], BODY2NED[0][0], BODY2NED[0][1], BODY2NED[0][2]);
+//   	LOGE("accz=%f/%f, acc=%f,%f,%f, raw=%f,%f,%f\n", accz_NED, accelz, acc[0], acc[1], acc[2], BODY2NED[0][0], BODY2NED[0][1], BODY2NED[0][2]);
 
 	//1-2-3 Representation.
 	//Equation (290) 
@@ -2109,7 +2109,7 @@ int calculate_attitude()
 
 	TRACE("euler:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, gyroI:%.2f, time:%f, bias:%.2f, pressure=%.2f \n ", euler[0]*PI180, euler[1]*PI180, euler[2]*PI180, roll*PI180, pitch*PI180, yaw_est*PI180, gyroI.array[2]*PI180, getus()/1000000.0f, gyro_bias[1]*PI180, a_raw_pressure);
 
-// 	ERROR("angle target:%.2f,%.2f,%.2f\n", angle_target[0]*PI180, angle_target[1]*PI180, angle_target[2]*PI180);
+// 	LOGE("angle target:%.2f,%.2f,%.2f\n", angle_target[0]*PI180, angle_target[1]*PI180, angle_target[2]*PI180);
 
 	// apply CF filter for Mag : 0.5hz low pass for mag
 	const float RC = 1.0f/(2*3.1415926 * 0.5f);
@@ -2277,7 +2277,7 @@ mag_load:
 
 	for(int i=0; i<3; i++)
 	{
-		ERROR("mag[%d] max/min/gain/zero=%d,%d,%.2f,%.2f\n", i, mag_max[i], mag_min[i], mag_gain.array[i], mag_zero.array[i]);
+		LOGE("mag[%d] max/min/gain/zero=%d,%d,%.2f,%.2f\n", i, mag_max[i], mag_min[i], mag_gain.array[i], mag_zero.array[i]);
 
 		mag_gain.array[i] = mag_gain.array[i] == 0 ? 1 : mag_gain.array[i];
 	}
@@ -2363,7 +2363,7 @@ mag_load:
 		for(int i=0; i<3; i++)
 		{
 			mag_gain.array[i] = 1000.0f/(mag_max[i] - mag_min[i]);
-			ERROR("mag[%d] max/min/gain=%d,%d,%.2f\n", i, mag_max[i], mag_min[i], mag_gain.array[i]);
+			LOGE("mag[%d] max/min/gain=%d,%d,%.2f\n", i, mag_max[i], mag_min[i], mag_gain.array[i]);
 		}
 		mag_offset.get_result(mag_zero.array, &mag_radius);
 		space_write("magzero", 7, &mag_zero, sizeof(mag_zero),NULL);
@@ -2530,7 +2530,7 @@ int sensor_calibration()
 	estAccGyro = accel_avg;
 	estGyro= estMagGyro = mag_avg;
 	accel_1g = vector_length(&accel_avg);	
-	ERROR("base value measured\n");
+	LOGE("base value measured\n");
 
 	// init ahrs gyro bias
 	vector pix_acc = {accel_avg.V.y, -accel_avg.V.x, -accel_avg.V.z};
@@ -2599,7 +2599,7 @@ int check_mode()
 		{
 			mode = _shutdown;
 			last_ch4 = rc[4];
-			ERROR("shutdown!\n");
+			LOGE("shutdown!\n");
 		}
 
 		// arm action check: RC first four channel active, throttle minimum, elevator stick down, rudder max or min, aileron max or min, for 0.5second
@@ -2620,7 +2620,7 @@ int check_mode()
 				if (getus() - arm_start_tick > 500000)
 				{
 					mode = quadcopter;
-					ERROR("armed!\n");
+					LOGE("armed!\n");
 				}
 			}
 			else
@@ -2807,7 +2807,7 @@ int land_detector()
 		if (getus() - land_detect_us > (airborne ? 1000000 : 3000000))		// 2 seconds for before take off, 1 senconds for landing
 		{
 			mode = _shutdown;
-			ERROR("landing detected");
+			LOGE("landing detected");
 		}
 	}
 	else
@@ -2882,7 +2882,7 @@ int read_advsensor_packets()
 	if (byte_count > 0 && byte_count > sizeof(packets[0]))
 	{
 		int count = byte_count/sizeof(packets[0]);
-		//ERROR("count=%d\n", byte_count);
+		//LOGE("count=%d\n", byte_count);
 		for(int i=0; i<count; i++)
 		{
 			int crc = crc32(0, &packets[i], sizeof(packets[i].data));
@@ -2892,7 +2892,7 @@ int read_advsensor_packets()
 				last_imu_packet_time = getus();
 				imu_packet_counter++;
 				gyro620 = (packets[i].data[1]-2.50f)/0.006f;
-				//ERROR("\rg:%.3f,a:%.4fg, ", gyro620, packets[i].data[14]-2.50f);
+				//LOGE("\rg:%.3f,a:%.4fg, ", gyro620, packets[i].data[14]-2.50f);
 				imupacket = packets[0];
 			}
 		}
@@ -2956,7 +2956,7 @@ int loop(void)
 	if (getus() - tic > 1000000)
 	{
 		tic = getus();
-		ERROR("speed: %d/%d\r\n", cycle_counter, imu_packet_counter);
+		LOGE("speed: %d/%d\r\n", cycle_counter, imu_packet_counter);
 		loop_hz = cycle_counter;
 		cycle_counter = 0;
 		imu_packet_counter = 0;
@@ -3078,7 +3078,7 @@ int loop(void)
 
 	if (ms5611_result == 0)
 	{
-// 		ERROR("%.2f    %.2f    %.2f    %.2f\n", getus()/1000000.0f, a_raw_altitude, state[0], mpu6050_temperature);
+// 		LOGE("%.2f    %.2f    %.2f    %.2f\n", getus()/1000000.0f, a_raw_altitude, state[0], mpu6050_temperature);
 	}
 
 	// read and process a packet

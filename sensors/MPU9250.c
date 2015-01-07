@@ -52,7 +52,7 @@ int init_MPU9250(void)
 	I2C_WriteReg(MPU9250SlaveAddress, ACCEL_CONFIG, 0x18);			// full scale : 16g, 2048 = 1g
 	
 	res = I2C_ReadReg(MPU9250SlaveAddress, WHO_AM_I, &who_am_i, 1);
-	ERROR("MPU9250 initialized, WHO_AM_I=%x, address = %x\r\n", who_am_i, MPU9250SlaveAddress);
+	LOGE("MPU9250 initialized, WHO_AM_I=%x, address = %x\r\n", who_am_i, MPU9250SlaveAddress);
 	
 	delayms(10);
 

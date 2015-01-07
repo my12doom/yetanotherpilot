@@ -425,7 +425,7 @@ void MAX7456_SYS_Init(void)
 	MAX7456_Write_Reg(VM0,0x02);
 	
 	delayms(200);
-	ERROR("MAX7456 = %d\r\n", MAX7456_Read_Reg(HOS+RADD1));
+	LOGE("MAX7456 = %d\r\n", MAX7456_Read_Reg(HOS+RADD1));
 
 	MAX7456_Write_Reg(VM0,0x00);
 
@@ -456,7 +456,7 @@ void MAX7456_SYS_Init(void)
 	//MAX7456_Write_Reg(OSDBL_W_ADD,(MAX7456_Read_Reg(OSDBL_R_ADD)|0X10)); 
 	
 	MAX7456_Write_Reg(OSDM,0x2D); 
-	ERROR("MAX7456 = %02x,%02x\r\n", MAX7456_Read_Reg(VM0+RADD1), MAX7456_Read_Reg(VM1+RADD1));
+	LOGE("MAX7456 = %02x,%02x\r\n", MAX7456_Read_Reg(VM0+RADD1), MAX7456_Read_Reg(VM1+RADD1));
 	
 	
 	

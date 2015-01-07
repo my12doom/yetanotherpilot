@@ -4,8 +4,8 @@
 
 // registers of the device
 #define ADDR   0xEE
-#define WRITE_REG 0xC0
-#define READ_REG 0x80
+#define _WRITE_REG 0xC0
+#define _READ_REG 0x80
 
 #define SOFT_RESET 0x06
 #define ADC_CVT 0x40
@@ -66,16 +66,16 @@ int read_hp203b(int *data)
 	uint8_t tmp[8] = {0};
 
 	// check if data ready
-	I2C_ReadReg(ADDR, READ_REG + INT_SRC, tmp, 1);
-	ERROR("tmp=%02x\n", tmp[0]);
+	I2C_ReadReg(ADDR, _READ_REG + INT_SRC, tmp, 1);
+	LOGE("tmp=%02x\n", tmp[0]);
 	if ((tmp[0] & T_RDY) && (tmp[0] & PA_RDY))
 	{
 		// read out data
-		I2C_ReadReg(ADDR, READ_REG + READ_P, tmp+1, 3);
+		I2C_ReadReg(ADDR, _READ_REG + READ_P, tmp+1, 3);
 		tmp[0] = tmp[1] & 0x80 ? 0xff : 0x00;
 		data[0] = *(int*)tmp;
 
-		I2C_ReadReg(ADDR, READ_REG + READ_T, tmp+1, 3);
+		I2C_ReadReg(ADDR, _READ_REG + READ_T, tmp+1, 3);
 		tmp[0] = tmp[1] & 0x80 ? 0xff : 0x00;
 		data[1] = *(int*)tmp;
 
