@@ -1,6 +1,5 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
-
 #include <math.h>
 #include "printf.h"
 
@@ -23,6 +22,13 @@ enum fly_mode
 	acrobaticV,
 };
 
+enum copter_mode
+{
+	basic,
+	althold,
+	poshold,
+	acro,
+};
 
 static void swap(void *p, int size)
 {

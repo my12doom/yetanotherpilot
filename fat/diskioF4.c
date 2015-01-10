@@ -208,8 +208,6 @@ DWORD get_fattime(void)
 	_tm.tm_year = time->year;
 	
 	current_time = mktime(&_tm);
-	if (current_time == -1)
-		return 0;
 	
 	current_time += 8 * 3600;	// CHINA = UTC+8
 	_tm = *localtime(&current_time);
@@ -227,25 +225,3 @@ void SD_SDIO_DMA_IRQHANDLER(void)
 {
   SD_ProcessDMAIRQ();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
