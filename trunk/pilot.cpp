@@ -315,10 +315,9 @@ float rc[8] = {0};			// ailerron : full left -1, elevator : full down -1, thrott
 float accelz_mwc = 0;
 float accelz = 0;
 bool airborne = false;
-int64_t airborne_time = 0;
 bool nearground = false;
 float takeoff_ground_altitude = 0;
-int mode = initializing;
+fly_mode mode = initializing;
 copter_mode submode = basic;
 int64_t collision_detected = 0;	// remember to clear it before arming
 int64_t tilt_us = 0;	// remember to clear it before arming
@@ -358,7 +357,6 @@ long last_baro_time = 0;
 int baro_counter = 0;
 char climb_rate_string[10];
 int64_t time;
-int last_mode = initializing;
 float rc_zero[] = {1520, 1520, 1520, 1520, 1520, 1520};
 float error_pid[3][3] = {0};		// error_pid[roll, pitch, yaw][p,i,d]
 const int lpf_order = 5;
@@ -739,8 +737,6 @@ float calc_leash_length(float speed, float accel, float kP)
 	return leash_length;
 }
 
-float leash_up;
-float leash_down;
 int auto_throttle(float user_climb_rate)
 {
 	if (!airborne)
@@ -751,8 +747,8 @@ int auto_throttle(float user_climb_rate)
 
 	if (!isnan(target_altitude))
 	{
-		leash_up = calc_leash_length(quadcopter_max_climb_rate, quadcopter_max_acceleration, pid_quad_altitude[0]);
-		leash_down = calc_leash_length(quadcopter_max_descend_rate, quadcopter_max_acceleration, pid_quad_altitude[0]);
+		float leash_up = calc_leash_length(quadcopter_max_climb_rate, quadcopter_max_acceleration, pid_quad_altitude[0]);
+		float leash_down = calc_leash_length(quadcopter_max_descend_rate, quadcopter_max_acceleration, pid_quad_altitude[0]);
 		
 		// only move altitude target if throttle didn't hit limits
 		if ((!(throttle_limit & THROTTLE_LIMIT_MAX) && user_climb_rate > 0) || (!(throttle_limit & THROTTLE_LIMIT_MIN) && user_climb_rate < 0))
@@ -771,7 +767,7 @@ int auto_throttle(float user_climb_rate)
 		target_climb_rate = 0;
 	}
 
-	target_climb_rate += user_climb_rate * 0.85f;		// feed forward 85%
+	target_climb_rate += user_climb_rate;		// feed forward 85%
 
 
 	TRACE("\rtarget_climb_rate=%.2f/%.2f, user=%.2f, out=%2f.     ", target_climb_rate, target_climb_rate-user_climb_rate, user_climb_rate, throttle_result);
@@ -793,12 +789,9 @@ int auto_throttle(float user_climb_rate)
 
 	// TODO: add feed forward
 	// reference: get_throttle_rate()
-	bool ground_ops = !airborne && climb_rate_error_pid[0]<0;
-	float accel_factor_ground = throttle_real_crusing*1.1f/(quadcopter_max_descend_rate)/pid_quad_accel[0];
-	ground_ops = false;
 
 	climb_rate_error_pid[0] = climb_rate_error_pid[0] * (1-alpha) + alpha * climb_rate_error;
-	target_accel = climb_rate_error_pid[0] * (ground_ops ? accel_factor_ground : pid_quad_alt_rate[0]);
+	target_accel = climb_rate_error_pid[0] * pid_quad_alt_rate[0];
 	target_accel = limit(target_accel,  airborne ? -quadcopter_max_acceleration : -2 * quadcopter_max_acceleration, quadcopter_max_acceleration);
 
 	
@@ -808,6 +801,7 @@ int auto_throttle(float user_climb_rate)
 
 	// core pid
 	// only integrate if throttle didn't hit limits or I term will reduce
+	if (airborne)
 	if ((!(throttle_limit & THROTTLE_LIMIT_MAX) && accel_error_pid[0] > 0) || (!(throttle_limit & THROTTLE_LIMIT_MIN) && accel_error_pid[0] < 0))
 	{
 		accel_error_pid[1] += accel_error_pid[0] * interval;
@@ -822,6 +816,7 @@ int auto_throttle(float user_climb_rate)
 	output += accel_error_pid[1] * pid_quad_accel[1];
 	output += accel_error_pid[2] * pid_quad_accel[2];
 
+	float result = throttle_result;
 	throttle_result  = output + throttle_real_crusing;
 	float angle_boost_factor = limit(1/ cos(euler[0]) / cos(euler[1]), 1.0f, 1.5f);
 	throttle_result = throttle_result * angle_boost_factor;
@@ -841,8 +836,8 @@ int auto_throttle(float user_climb_rate)
 		throttle_limit = 0;
 	}
 
-	TRACE("\rthrottle=%.3f, altitude = %.2f/%.2f, pid=%.2f,%.2f,%.2f", throttle_result, state[0], target_altitude,
-		accel_error_pid[0], accel_error_pid[1], accel_error_pid[2]);
+	TRACE("\rthrottle=%f, altitude = %.2f/%.2f, pid=%.2f,%.2f,%.2f, limit=%d", result, state[0], target_altitude,
+		accel_error_pid[0], accel_error_pid[1], accel_error_pid[2], throttle_limit);
 
 	// update throttle_real_crusing if we're in near level state and no violent climbing/descending action
 	if (airborne && throttle_real>0 && fabs(state[1]) < 0.5f && fabs(state[3] + accelz)<0.5f && fabs(roll)<5*PI/180 && fabs(pitch)<5*PI/180
@@ -1115,7 +1110,9 @@ int prepare_pid()
 				user_rate = (v+0.05f)/0.45f;
 				user_rate = -user_rate * user_rate * quadcopter_max_descend_rate;
 			}
-			auto_throttle(user_rate);
+
+			if (submode == althold || submode == poshold)
+				auto_throttle(user_rate);
 
 
 			// airborne or armed and throttle up
@@ -1194,16 +1191,13 @@ int prepare_pid()
 			TRACE("angle pos,target=%f,%f, air=%s\r\n", angle_pos[2] * PI180, angle_target[2] * PI180, airborne ? "true" : "false");
 
 			// check takeoff
-			float active_throttle = (rc[5] > 0 || g_ppm_input_update[5] < getus()-500000 ) ? throttle_result : rc[2];
+			float active_throttle = (submode == poshold || submode == althold) ? throttle_result : rc[2];
 			if ( (state[0] > takeoff_ground_altitude + 1.0f) ||
 				(state[0] > takeoff_ground_altitude && active_throttle > throttle_real_crusing) ||
 				(active_throttle > throttle_real_crusing + QUADCOPTER_THROTTLE_RESERVE))
 			{
 				airborne = true;
 				gyro_bias_estimating_end = true;
-
-				if (!airborne_time)
-					airborne_time = getus();
 			}
 		}
 		break;
@@ -1350,7 +1344,9 @@ int output()
 			}
 			else
 			{
-				float mix = (rc[5] > 0 || g_ppm_input_update[5] < getus()-500000 ) ? throttle_result : rc[2];
+				float mix = (submode == althold || submode == poshold) ? throttle_result : rc[2];
+
+				TRACE("\r%.2f, mode=%d", mix, submode);
 
 				for(int j=0; j<3; j++)
 					mix += quadcopter_mixing_matrix[matrix][i][j] * pid_result[j] * QUADCOPTER_THROTTLE_RESERVE;
@@ -2589,8 +2585,32 @@ int usb_lock()
 
 int set_submode(copter_mode newmode)
 {
+	if (mode != quadcopter)
+		newmode = invalid;
+	
 	if (newmode == submode)
 		return 0;
+
+	bool has_pos_controller = submode == poshold;
+	bool to_use_pos_controller = newmode == poshold;
+	bool has_alt_controller = submode == poshold || submode == althold;
+	bool to_use_alt_controller = newmode == poshold || newmode == althold;
+
+	if (!has_pos_controller && to_use_pos_controller)
+	{
+		// TODO: reset pos controller
+	}
+
+	if (!has_alt_controller && to_use_alt_controller)
+	{
+		// TODO: reset alt controller
+		target_altitude = state[0];	
+// 		accel_error_pid[0] = 0;
+		accel_error_pid[1] = 0;
+		//accel_error_pid[2] = 0;
+	}
+	
+	submode = newmode;
 
 	return 0;
 }
@@ -2600,31 +2620,80 @@ int set_mode(fly_mode newmode)
 	if (newmode == mode)
 		return 0;
 
-	// TODO
+	target[0] = pos[0];
+	target[1] = pos[1];
+	target[2] = pos[2];
+
+	takeoff_ground_altitude = state[0];
+	yaw_launch = yaw_est;
+	collision_detected = 0;
+	tilt_us = 0;
+	throttle_result = 0;
+	airborne = false;
+// 	accel_error_pid[1] = -throttle_real_crusing / pid_quad_accel[1];
+// 	accel_error_pid[1] = limit(accel_error_pid[1], -pid_quad_accel[3], pid_quad_accel[3]);
+	accel_error_pid[0] = -quadcopter_max_acceleration*2;
+
+#if QUADCOPTER == 1
+	for(int i=0; i<3; i++)
+	{
+		angle_target[i] = angle_pos[i];
+		error_pid[i][1] = 0;	//reset integration
+		angle_errorI[i] = 0;
+	}
+#endif
+
+
+	targetVA = estAccGyro;
+	targetVM = estMagGyro;
+
+	vector_normalize(&targetVA);
+	vector_normalize(&targetVM);
+
+	for(int i=0; i<6; i++)
+		rc_zero[i] = RC_CENTER;
+
+	mode = newmode;
+
 	return 0;
 }
 
 
-float last_ch4 = 0;
-int64_t arm_start_tick = 0;
 int check_mode()
 {
+	// sub mode swtich
+	if (g_ppm_input_update[5] > getus() - RC_TIMEOUT)
+	{
+		copter_mode newmode = submode;
+		if(!has_6th_channel)
+			newmode = althold;
+		else if (rc[5] < -0.6f)
+			newmode = basic;
+		else if (rc[5] > 0.6f)
+			newmode = poshold;
+		else if (rc[5] > -0.5f && rc[5] < 0.5f)
+			newmode = althold;
+
+		set_submode(newmode);
+	}
 
 	if (g_ppm_input_update[4] > getus() - RC_TIMEOUT || !has_5th_channel)
 	{
 #if QUADCOPTER == 1
 		if (mode == initializing)
-			mode = _shutdown;
+			set_mode(_shutdown);
 
 		// emergency switch
+		static float last_ch4 = 0;
 		if (fabs(rc[4]-last_ch4) > 0.20f)
 		{
-			mode = _shutdown;
+			set_mode(_shutdown);
 			last_ch4 = rc[4];
 			LOGE("shutdown!\n");
 		}
 
 		// arm action check: RC first four channel active, throttle minimum, elevator stick down, rudder max or min, aileron max or min, for 0.5second
+		static int64_t arm_start_tick = 0;
 		bool rc_fail = false;
 		for(int i=0; i<4; i++)
 			if (g_ppm_input_update[i] < getus() - RC_TIMEOUT)
@@ -2641,7 +2710,7 @@ int check_mode()
 			{
 				if (getus() - arm_start_tick > 500000)
 				{
-					mode = quadcopter;
+					set_mode(quadcopter);
 					LOGE("armed!\n");
 				}
 			}
@@ -2653,65 +2722,20 @@ int check_mode()
 
 #else
 		if (g_ppm_input[4] < 1333)
-			mode = manual;
+			set_mode(manual);
 		else if (g_ppm_input[4] > 1666)
-			mode = acrobatic;
+			set_mode(acrobatic);
 		else
 		{
-			mode = rc_fail;
+			set_mode(rc_fail);
 		}
 #endif
 	}
 	else
 	{
 		TRACE("warning: RC out of controll");
-		mode = rc_fail;	
+		set_mode(rc_fail);
 	}
-
-	// mode changed?
-	if (mode != last_mode)
-	{
-		last_mode = mode;
-
-		target[0] = pos[0];
-		target[1] = pos[1];
-		target[2] = pos[2];
-
-		target_altitude = state[0];
-		takeoff_ground_altitude = state[0];
-		target_climb_rate = -quadcopter_max_descend_rate;
-		target_accel = -quadcopter_max_acceleration*2;
-		accel_error_pid[0] = target_accel;
-		accel_error_pid[1] = 0;
-		accel_error_pid[2] = 0;
-		yaw_launch = yaw_est;
-		collision_detected = 0;
-		tilt_us = 0;
-		throttle_result = 0;
-
-#if QUADCOPTER == 1
-		for(int i=0; i<3; i++)
-		{
-			angle_target[i] = angle_pos[i];
-			error_pid[i][1] = 0;	//reset integration
-			angle_errorI[i] = 0;
-		}
-#endif
-
-		airborne = false;
-		airborne_time = 0;
-		takeoff_ground_altitude = state[0];
-
-		targetVA = estAccGyro;
-		targetVM = estMagGyro;
-
-		vector_normalize(&targetVA);
-		vector_normalize(&targetVM);
-
-		for(int i=0; i<6; i++)
-			rc_zero[i] = RC_CENTER;
-	}
-
 
 	return 0;
 }
@@ -2758,11 +2782,6 @@ int osd()
 	return 0;
 }
 
-#define ITM_Port8(n)    (*((volatile unsigned char *)(0xE0000000+4*n)))
-#define ITM_Port16(n)   (*((volatile unsigned short*)(0xE0000000+4*n)))
-#define ITM_Port32(n)   (*((volatile unsigned long *)(0xE0000000+4*n)))
-#define DEMCR           (*((volatile unsigned long *)(0xE000EDFC)))
-#define TRCENA          0x01000000
 
 #ifndef LITE
 int real_log()
@@ -2829,7 +2848,7 @@ int land_detector()
 
 		if (getus() - land_detect_us > (airborne ? 1000000 : 3000000))		// 2 seconds for before take off, 1 senconds for landing
 		{
-			mode = _shutdown;
+			set_mode(_shutdown);
 			LOGE("landing detected");
 		}
 	}
@@ -2860,7 +2879,7 @@ int crash_detector()
 	if (gforce > 3.0f)
 	{
 		TRACE("very high G force (%.2f) detected (%.0f,%.0f,%.0f)\n", gforce, accel.array[0], accel.array[1], accel.array[2]);
-		mode = _shutdown;
+		set_mode(_shutdown);
 	}
 
 	int prot = (float)::crash_protect;
@@ -2879,7 +2898,7 @@ int crash_detector()
 	{
 		TRACE("crash landing detected(%s)\n", (collision_detected > 0 && getus() - collision_detected < 5000000) ? "collision" : "tilt");
 
-		mode = _shutdown;
+		set_mode(_shutdown);
 	}
 
 	return 0;
@@ -3276,8 +3295,8 @@ int main(void)
 #endif
 	sensor_calibration();
 
-	has_5th_channel = g_ppm_input_update[4] > getus();
-	has_6th_channel = g_ppm_input_update[5] > getus();
+	has_5th_channel = g_ppm_input_update[4] > getus()-500000;
+	has_6th_channel = g_ppm_input_update[5] > getus()-500000;
 
 	// check critical errors
 	if (critical_errors != 0)
