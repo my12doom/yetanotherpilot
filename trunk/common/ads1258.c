@@ -159,7 +159,7 @@ int ads1258_init(void)
 	for(i=0; i<10; i++)
 	{
 		ads1258_read_registers(i, 1, &data);
-		ERROR("reg(%d)=0x%02x\n", i, data);
+		LOGE("reg(%d)=0x%02x\n", i, data);
 	}
 
 	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;

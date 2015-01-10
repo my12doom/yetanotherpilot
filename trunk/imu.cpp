@@ -199,6 +199,10 @@ int main()
 			{
 				packet.crc = crc32(0, (uint8_t*)&packet, sizeof(packet.data));
 				UART4_SendPacket(&packet, sizeof(packet));
+				float a1 = (packet.data[13] - 2.50f);
+				float a4 = (packet.data[11] - 2.50f) * 10;
+				//printf("%f\n", packet.data[11]);
+				printf("%f,%f\n", a1, a4);
 			}
 		}
 		
