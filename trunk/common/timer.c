@@ -63,6 +63,16 @@ int64_t getus(void)
 {
 	return gettick() / us_cycle_count;
 }
+int64_t gettick_nodelay(void)
+{
+	volatile int i = TIM2->CNT;
+
+	return overflow_count + TIM2->CNT;
+}
+int64_t getus_nodelay(void)
+{
+	return gettick_nodelay() / us_cycle_count;
+}
 
 int delayms(int count)
 {
