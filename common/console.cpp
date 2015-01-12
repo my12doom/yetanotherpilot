@@ -10,11 +10,15 @@
 #include "space.h"
 #include <math.h>
 #include "gps.h"
+#include "../pos_estimator.h"
 
 extern volatile vector imu_statics[2][4];		//	[accel, gyro][min, current, max, avg]
 extern volatile int avg_count;
 extern float mpu6050_temperature;
 
+#ifndef LITE
+extern pos_estimator estimator;
+#endif
 
 #define SIGNATURE_ADDRESS 0x0800E800
 
@@ -227,7 +231,9 @@ extern "C" int parse_command_line(const char *line, char *out)
 				db_min = info->satinfo.sat[i].sig;
 			sprintf(tmp+strlen(tmp), "%d,", info->satinfo.sat[i].sig);
 		}
-		sprintf(out, "%d/%d sat, hdop%d.%02d, %d-%ddb(", info->satinfo.inuse, info->satinfo.inview, hdop, hdop_frac, db_min, db_max);
+		position_meter pos = estimator.get_estimation_meter();
+		sprintf(out, "%.2f/%.2fm, %.2f/%.2fm/s, %d/%d sat, hdop%d.%02d, %d-%ddb(", pos.latitude, pos.longtitude,
+			pos.vlatitude, pos.vlongtitude, info->satinfo.inuse, info->satinfo.inview, hdop, hdop_frac, db_min, db_max);
 		strcat(out, tmp);
 		strcat(out, ")\n");
 		

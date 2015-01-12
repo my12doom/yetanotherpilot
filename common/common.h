@@ -24,6 +24,7 @@ enum fly_mode
 
 enum copter_mode
 {
+	invalid,	// not even in copter mode
 	basic,
 	althold,
 	poshold,

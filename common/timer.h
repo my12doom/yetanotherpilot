@@ -11,6 +11,8 @@ extern "C" {
 // the total time of a single delay call is limited by 2^31-1 ticks (~29.82s on 72Mhz chip)
 
 int init_timer(void);
+int64_t gettick_nodelay(void);
+int64_t getus_nodelay(void);
 int64_t gettick(void);
 int64_t getus(void);
 int delayms(int count);

@@ -165,6 +165,7 @@ DWORD make_fattime(int sec, int min, int hour, int day, int mon, int year)
 
 }
 
+#ifndef NOGPS
 DWORD get_fattime(void)
 {
 	time_t current_time;
@@ -188,7 +189,12 @@ DWORD get_fattime(void)
 
 	return make_fattime(_tm.tm_sec, _tm.tm_min, _tm.tm_hour, _tm.tm_mday, _tm.tm_mon, _tm.tm_year);
 }
-
+#else
+DWORD get_fattime(void)
+{
+	return 0;
+}
+#endif
 
 
 
