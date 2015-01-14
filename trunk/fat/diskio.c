@@ -28,8 +28,16 @@ DSTATUS disk_initialize (
 	BYTE drv				/* Physical drive nmuber (0..) */
 )
 {
+	NVIC_InitTypeDef NVIC_InitStructure;
 	SD_CardInfo SDCardInfo;
 	
+	// SDIO Interrupt ENABLE
+	NVIC_InitStructure.NVIC_IRQChannel = SDIO_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
 	if (SD_Init() != SD_OK ||
 		SD_GetCardInfo(&SDCardInfo) != SD_OK ||
 		SD_SelectDeselect((uint32_t) (SDCardInfo.RCA << 16)) != SD_OK ||

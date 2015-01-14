@@ -4,14 +4,15 @@
 #include "build.h"
 #include "../mcu.h"
 #include <math.h>
+#include "param.h"
 
 #define PPM_6 1
 #define OC 12
 
-uint32_t g_ppm_input_start[6];
-float g_ppm_input[6];
-float ppm_static[8][2];
-int64_t g_ppm_input_update[6] = {0};
+uint32_t g_pwm_input_start[6];
+float g_pwm_input[6];
+float pwm_static[8][2];
+int64_t g_pwm_input_update[6] = {0};
 
 #if QUADCOPTER == 0
 #undef OC 1
@@ -19,10 +20,10 @@ int64_t g_ppm_input_update[6] = {0};
 #else
 #endif
 
-static float ppm_channels[6];
 int last_high_tim = -1;
 int ppm_channel_id = 0;
 int ppm_channel_count = 0;
+float *use_ppm;
 int handle_ppm(int now)
 {
 	float delta = 0;
@@ -33,13 +34,9 @@ int handle_ppm(int now)
 	}
 	
 	if (now > last_high_tim)
-		delta = (now - last_high_tim)/(float)OC;
+		delta = now - last_high_tim;
 	else
-#if QUADCOPTER == 1
-		delta = (now + 3000*OC - last_high_tim)/(float)OC;
-#else
-		delta = now + 10000 - last_high_tim;
-#endif
+		delta = now + 60000 - last_high_tim;
 	
 	last_high_tim = now;
 
@@ -49,14 +46,14 @@ int handle_ppm(int now)
 		ppm_channel_id = 0;
 		TRACE("        %.0f\r", delta);
 	}
-	else if (ppm_channel_id < 6)
+	else if (ppm_channel_id < sizeof(g_pwm_input)/sizeof(g_pwm_input[0]))
 	{
-		ppm_channels[ppm_channel_id++] = delta;	
-		TRACE("%.0f,", ppm_channels[ppm_channel_id-1]);
+		g_pwm_input[ppm_channel_id++] = delta;
+		TRACE("%.0f,", g_pwm_input[ppm_channel_id-1]);
 	}
-		
 	return 0;
 }
+
 // initialize this before calling ppm_init()!
 uint16_t g_ppm_output[8] = {0};
 
@@ -76,9 +73,10 @@ static void PPM_EXTI_Handler(void)
 	while(1)
 	{
 		int channel = -1;
+		__IO int tick = TIM_GetCounter(TIM5);
 #if PCB_VERSION == 1 ||  PCB_VERSION == 3
-	static int pin_tbl[6] = {GPIO_Pin_10, GPIO_Pin_11, GPIO_Pin_12, GPIO_Pin_13, GPIO_Pin_14, GPIO_Pin_15};
-	static int line_tbl[6] = {EXTI_Line10, EXTI_Line11, EXTI_Line12, EXTI_Line13, EXTI_Line14, EXTI_Line15};
+		static int pin_tbl[6] = {GPIO_Pin_10, GPIO_Pin_11, GPIO_Pin_12, GPIO_Pin_13, GPIO_Pin_14, GPIO_Pin_15};
+		static int line_tbl[6] = {EXTI_Line10, EXTI_Line11, EXTI_Line12, EXTI_Line13, EXTI_Line14, EXTI_Line15};
 		if (EXTI_GetITStatus(EXTI_Line10) != RESET)
 			channel = 0;
 		if (EXTI_GetITStatus(EXTI_Line11) != RESET)
@@ -92,8 +90,8 @@ static void PPM_EXTI_Handler(void)
 		if (EXTI_GetITStatus(EXTI_Line15) != RESET)
 			channel = 5;
 #elif PCB_VERSION == 2
-	static int pin_tbl[6] = {GPIO_Pin_15, GPIO_Pin_14, GPIO_Pin_13, GPIO_Pin_12, GPIO_Pin_11, GPIO_Pin_10};
-	static int line_tbl[6] = {EXTI_Line15, EXTI_Line14, EXTI_Line13, EXTI_Line12, EXTI_Line11, EXTI_Line10};
+		static int pin_tbl[6] = {GPIO_Pin_15, GPIO_Pin_14, GPIO_Pin_13, GPIO_Pin_12, GPIO_Pin_11, GPIO_Pin_10};
+		static int line_tbl[6] = {EXTI_Line15, EXTI_Line14, EXTI_Line13, EXTI_Line12, EXTI_Line11, EXTI_Line10};
 		if (EXTI_GetITStatus(EXTI_Line10) != RESET)
 			channel = 5;
 		if (EXTI_GetITStatus(EXTI_Line11) != RESET)
@@ -109,28 +107,38 @@ static void PPM_EXTI_Handler(void)
 #endif
 		if (channel == -1)
 			break;
-	
-		if(GPIOB->IDR & pin_tbl[channel])
+		
+		if (*use_ppm > 0)
 		{
-			g_ppm_input_start[channel] = TIM_GetCounter(TIM4);
-			handle_ppm(g_ppm_input_start[channel]);
+			// PPM handling
+			if(GPIOB->IDR & pin_tbl[channel])
+				handle_ppm(tick);
 		}
 		else
 		{
-			uint32_t now = TIM_GetCounter(TIM4);
-			if (now > g_ppm_input_start[channel])
-				g_ppm_input[channel]= (now - g_ppm_input_start[channel])/(float)OC;
+	
+			// PWM handling
+			if(GPIOB->IDR & pin_tbl[channel])
+			{
+				g_pwm_input_start[channel] = TIM_GetCounter(TIM4);
+			}
 			else
+			{
+				uint32_t now = TIM_GetCounter(TIM4);
+				if (now > g_pwm_input_start[channel])
+					g_pwm_input[channel]= (now - g_pwm_input_start[channel])/(float)OC;
+				else
 #if QUADCOPTER == 1
-				g_ppm_input[channel]= (now + 3000*OC - g_ppm_input_start[channel])/(float)OC;
+					g_pwm_input[channel]= (now + 3000*OC - g_pwm_input_start[channel])/(float)OC;
 #else
-				g_ppm_input[channel]= now + 10000 - g_ppm_input_start[channel];
+					g_pwm_input[channel]= now + 10000 - g_pwm_input_start[channel];
 #endif			
-			g_ppm_input_update[channel] = getus();
-			ppm_static[channel][0] = f_min(ppm_static[channel][0], g_ppm_input[channel]);
-			ppm_static[channel][1] = f_max(ppm_static[channel][1], g_ppm_input[channel]);
+				g_pwm_input_update[channel] = getus_nodelay();
+				pwm_static[channel][0] = f_min(pwm_static[channel][0], g_pwm_input[channel]);
+				pwm_static[channel][1] = f_max(pwm_static[channel][1], g_pwm_input[channel]);
+			}
+			
 		}
-		
 		EXTI_ClearITPendingBit(line_tbl[channel]);
 	}
 }
@@ -151,7 +159,7 @@ static void GPIO_Config()
 #endif
 #ifdef STM32F4
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG,ENABLE);
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3 | RCC_APB1Periph_TIM4, ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3 | RCC_APB1Periph_TIM4 | RCC_APB1Periph_TIM5, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
 #endif
 
@@ -231,8 +239,18 @@ static void Timer_Config()
 	TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure);
 	TIM_TimeBaseInit(TIM4, &TIM_TimeBaseStructure);
 
+#ifdef STM32F1
+	TIM_TimeBaseStructure.TIM_Prescaler = 72-1;
+#endif
+#ifdef STM32F4
+	TIM_TimeBaseStructure.TIM_Prescaler = 84-1;
+#endif
+	TIM_TimeBaseStructure.TIM_Period = 60000;
+	TIM_TimeBaseInit(TIM5, &TIM_TimeBaseStructure);
+
 	TIM_Cmd(TIM3, ENABLE);
 	TIM_Cmd(TIM4, ENABLE);
+	TIM_Cmd(TIM5, ENABLE);
 
 	TIM_ARRPreloadConfig(TIM3, ENABLE);
 	TIM_ARRPreloadConfig(TIM4, ENABLE);
@@ -373,13 +391,14 @@ void PPM_reset_static()
 	int i;
 	for(i=0; i<8; i++)
 	{
-		ppm_static[i][0] = 99999;		// min
-		ppm_static[i][1] = 0;				// max
+		pwm_static[i][0] = 99999;		// min
+		pwm_static[i][1] = 0;				// max
 	}
 }
 
 void PPM_init()
 {
+	use_ppm = create_param("ENPP", 0);
 	PPM_reset_static();
 	GPIO_Config();
 	Timer_Config();

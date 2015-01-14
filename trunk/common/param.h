@@ -2,6 +2,7 @@
 
 #define MAX_PARAM_COUNT 128
 
+#ifdef __cplusplus
 class param
 {
 public:
@@ -35,3 +36,15 @@ protected:
 private:
 	void init_all();
 };
+
+extern "C"
+{
+#endif
+
+float * find_param(const char *fourcc);
+float * create_param(const char *fourcc, float default_value);
+int save_param(const char *fourcc);
+
+#ifdef __cplusplus
+}
+#endif

@@ -232,7 +232,7 @@ int adis16405_read_register(unsigned char registerAddress, unsigned short *out)
 
 int adis16405_write_register(unsigned char registerAddress, unsigned short new_value)
 {
-	if (registerAddress < 0 || registerAddress > aux_dac || (registerAddress & 0x1))
+	if (registerAddress > aux_dac || (registerAddress & 0x1))
 		return -1;
 
 	CSLow();
