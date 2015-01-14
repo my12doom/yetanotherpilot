@@ -178,9 +178,9 @@ extern "C" int parse_command_line(const char *line, char *out)
 		count += sprintf(out, "rc:");
 		for(i=0; i<6; i++)
 		{
-			volatile float p0 = ppm_static[i][0];
-			volatile float p1 = g_ppm_input[i];
-			volatile float p2 = ppm_static[i][1];
+			volatile float p0 = pwm_static[i][0];
+			volatile float p1 = g_pwm_input[i];
+			volatile float p2 = pwm_static[i][1];
 			count += sprintf(out+count, "%d,%d,%d,", (int)p0, (int)p1, (int)p2);
 			if (count > 256)
 				return count;

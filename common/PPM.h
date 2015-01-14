@@ -5,10 +5,10 @@
 
 
 // constants and enums
-extern float g_ppm_input[6];
-extern int64_t g_ppm_input_update[6];
+extern float g_pwm_input[6];
+extern int64_t g_pwm_input_update[6];
 extern uint16_t g_ppm_output[8];
-extern float ppm_static[8][2];
+extern float pwm_static[8][2];
 
 enum PPM_OUTPUT_CHANNEL
 {

@@ -109,3 +109,24 @@ const char *param::fourcc()
 {
 	return all_params[pos].fourcc;
 }
+
+extern "C"
+{
+float * find_param(const char *fourcc)
+{
+	return param::find_param(fourcc);
+}
+int save_param(const char *fourcc)
+{
+	if (!find_param(fourcc))
+		return -1;
+	
+	param p(fourcc, 0);
+	p.save();
+	return 0;
+}
+float * create_param(const char *fourcc, float default_value)
+{
+	return &param(fourcc, default_value);
+}
+};

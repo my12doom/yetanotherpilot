@@ -151,6 +151,7 @@ typedef struct
 	short accel_z;			// unit: cm/s^2
 	short loop_hz;
 	short throttle_result;	// throttle result pwm from auto throttle controller
+	unsigned char sub_mode;
 } quadcopter_data2;
 
 typedef struct
