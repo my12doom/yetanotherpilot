@@ -30,14 +30,14 @@ class pos_controller : pos_controller_base
 {
 public:
 	pos_controller();
-	~pos_controller();
+	virtual ~pos_controller();
 
-	int reset();
-	int set_desired_velocity(float *desired_velocity);
-	int update_controller(float dt);
-	int get_target_angles(float *target_angles);
-	int set_setpoint(float *pos);
-	int provide_attitue_position(float *eulers, float *pos, float *velocity);
+	virtual int reset();
+	virtual int set_desired_velocity(float *desired_velocity);
+	virtual int update_controller(float dt);
+	virtual int get_target_angles(float *target_angles);
+	virtual int set_setpoint(float *pos);
+	virtual int provide_attitue_position(float *eulers, float *pos, float *velocity);
 
 // private:
 	int move_desire_pos(float dt);

@@ -143,10 +143,11 @@ DWORD WINAPI update_controller(LPVOID p)
 
 	while(true)
 	{
-		use_pos_controller = rc[4] == 0;
+		use_pos_controller = rc[4] > 0;
+		use_pos_controller = true;
 
 		float dt = (GetTickCount() - time)/1000.0f;
-		if (dt < 0.03f)
+		if (dt < 0.1f)
 		{
 			Sleep(10);
 			continue;
@@ -165,7 +166,9 @@ DWORD WINAPI update_controller(LPVOID p)
 		if (abs(desired_velocity[1]) < 0.2 || !use_pos_controller)
 			desired_velocity[1] = 0;
 
-		controller.provide_attitue_position(euler, pos, velocity);
+		float euler2[3] = {euler[0], euler[1], euler[2]+0*PI/180};
+
+		controller.provide_attitue_position(euler2, pos, velocity);
 		controller.set_desired_velocity(desired_velocity);
 		controller.update_controller(dt);
 		controller.get_target_angles(target_euler);
@@ -180,6 +183,14 @@ DWORD WINAPI update_controller(LPVOID p)
 		{
 			float sp[2] = {0, 0};
 			controller.set_setpoint(sp);
+		}
+		if (GetTickCount() - start_time > 18000 && GetTickCount() - start_time < 28000)
+		{
+			use_pos_controller = false;
+		}
+		if (GetTickCount() - start_time > 28000 && GetTickCount() - start_time < 29000)
+		{
+			controller.reset();
 		}
 
 		if (!_finite(target_euler[0]))

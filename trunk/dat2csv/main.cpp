@@ -14,6 +14,7 @@ typedef __int64 int64_t;
 #include "..\common\fifo.h"
 
 #include "../pos_estimator.h"
+#include "../ahrs.h"
 
 #define TIMES 1000000000
 #define countof(x) (sizeof(x)/sizeof(x[0]))
@@ -57,7 +58,7 @@ int sanity_test()
 		if (packet.isAccel)
 			estimator.update_accel(packet.alat, packet.alon, packet.timestamp);
 		else
-			estimator.update_gps(packet.lat, packet.lon, packet.timestamp);
+			estimator.update_gps(packet.lat, packet.lon, 2.0, packet.timestamp);
 	}
 
 	fclose(sanity);
@@ -78,22 +79,24 @@ int point_count = 0;
 const int max_point = 8192;
 float points[max_point][4];
 
+vector acc;
+
 typedef struct
 {
 	double parameter[15];
 } func_vector;
 
-double func(func_vector v);
-double func2(func_vector v);
+double func_3d(func_vector v);
+double func_accel_matrix(func_vector v);
 
-int fitting()
+int fitting_accel_3d()
 {
 
 	for(int i=0; i<point_count; i++)
 	{
-		points[i][0] /= 500;
-		points[i][1] /= 500;
-		points[i][2] /= 500;
+		points[i][0] /= 2048;
+		points[i][1] /= 2048;
+		points[i][2] /= 2048;
 	}
 
 	func_vector v = {0,0,0,1,1,1};
@@ -102,14 +105,14 @@ int fitting()
 	double delta[6];
 	for(int j=0; j<100000; j++)
 	{
-		double result = func(v);
+		double result = func_3d(v);
 		double delta_length = 0;
 		for(int i=0; i<6; i++)
 		{
 			func_vector v2 = v;
 			v2.parameter[i] += step;
 
-			delta[i] = func(v2) - result;
+			delta[i] = func_3d(v2) - result;
 			delta_length += delta[i] * delta[i];
 		}
 
@@ -141,6 +144,103 @@ int fitting()
 	printf("bias:");
 	for(int i=0; i<3; i++)
 	{
+		v.parameter[i] *= 2048;
+		printf("%.2f,", v.parameter[i]);
+	}
+
+	printf("\nscale:");
+	for(int i=0; i<3; i++)
+		printf("%f,", v.parameter[i+3]);
+	printf("\n");
+
+
+	return 0;
+}
+
+int fitting_mag_3d()
+{
+	float mins[3] = {9999,9999,9999};
+	float maxs[3] = {-9999,-9999,-9999};
+
+	for(int i=0; i<point_count; i++)
+	{
+		for(int j=0; j<3; j++)
+		{
+			points[i][j] /= 500;
+			mins[j] = min(mins[j], points[i][j]);
+			maxs[j] = max(maxs[j], points[i][j]);
+		}
+	}
+
+	func_vector v = {0,0,0,1,1,1};
+	for(int i=0; i<3; i++)
+	{
+// 		v.parameter[i] = (maxs[i] + mins[i])/2;
+// 		v.parameter[i+3] = 1/((maxs[i] - mins[i])/2);
+	}
+	func_vector v_initial = v;
+	const double step = 0.001;
+
+	double delta[6];
+	for(int j=0; j<1000000; j++)
+	{
+		double result = func_3d(v);
+		double delta_length = 0;
+		for(int i=0; i<6; i++)
+		{
+			func_vector v2 = v;
+			v2.parameter[i] += step;
+
+			delta[i] = func_3d(v2) - result;
+			delta_length += delta[i] * delta[i];
+		}
+
+		delta_length = sqrt(delta_length);
+		for(int i=0; i<6; i++)
+		{
+			delta[i] /= delta_length;
+			v.parameter[i] -= step * delta[i];
+
+// 			if (i<3)
+// 				v.parameter[i] = limit(v.parameter[i], -2, 2);
+// 			else
+// 				v.parameter[i] = limit(v.parameter[i], 0.5, 2.0);
+
+		}
+	}
+
+	for(int i=0; i<min(point_count,16); i++)
+	{
+		printf("I:%f,%f,%f(%f)", points[i][0], points[i][1], points[i][2], sqrt(points[i][0]*points[i][0]+points[i][1]*points[i][1]+points[i][2]*points[i][2]));
+		printf("\n");
+
+	}
+
+	FILE * f = fopen("Z:\\test.csv", "wb");
+	fprintf(f, "a1,a2,a3,o1,o2,o3,\r\n");
+
+	for(int i=0; i<point_count; i++)
+	{
+		float a0 = (points[i][0] + v_initial.parameter[0]) * v_initial.parameter[3];
+		float a1 = (points[i][1] + v_initial.parameter[1]) * v_initial.parameter[4];
+		float a2 = (points[i][2] + v_initial.parameter[2]) * v_initial.parameter[5];
+
+		float b0 = (points[i][0] + v.parameter[0]) * v.parameter[3];
+		float b1 = (points[i][1] + v.parameter[1]) * v.parameter[4];
+		float b2 = (points[i][2] + v.parameter[2]) * v.parameter[5];
+
+// 		printf("O:%f,%f,%f(%f)", a0, a1, a2, sqrt(a0*a0+a1*a1+a2*a2));
+// 		printf("\n");
+		printf("OB:%f,%f,%f(%f)", b0, b1, b2, sqrt(b0*b0+b1*b1+b2*b2));
+		printf("\n");
+		fprintf(f, "%f,%f,%f,%f,%f,%f\r\n", points[i][0], points[i][1], points[i][2], b0, b1, b2);
+	}
+
+	fclose(f);
+
+	printf("bias:");
+	for(int i=0; i<3; i++)
+	{
 		v.parameter[i] *= 500;
 		printf("%.2f,", v.parameter[i]);
 	}
@@ -154,7 +254,7 @@ int fitting()
 	return 0;
 }
 
-int fitting_accel_3d()
+int fitting_accel_matrix()
 {
 
 	for(int i=0; i<point_count; i++)
@@ -183,16 +283,16 @@ int fitting_accel_3d()
 
 	double delta[15];
 	double delta_length = 0;
-	for(int j=0; j<100000000; j++)
+	for(int j=0; j<1000000; j++)
 	{
-		double result = func2(v);
+		double result = func_accel_matrix(v);
 		delta_length = 0;
 		for(int i=0; i<12; i++)
 		{
 			func_vector v2 = v;
 			v2.parameter[i] += step;
 
-			delta[i] = func2(v2) - result;
+			delta[i] = func_accel_matrix(v2) - result;
 			delta_length += delta[i] * delta[i];
 		}
 
@@ -309,11 +409,16 @@ int motion_detect_mag(sensor_data sensor, float time)
 		sensor.accel[i] = mounted[i];
 
 	static float last_data[3] = {0};
-	float sum = 0;
-	for (int i=0; i<3; i++)
-		sum += (last_data[i]-sensor.accel[i])*(last_data[i]-sensor.accel[i]);
+	float min_sum = 99999;
+	for(int n=0; n<point_count; n++)
+	{
+		float sum = 0;
+		for (int i=0; i<3; i++)
+			sum += (points[n][i]-sensor.accel[i])*(points[n][i]-sensor.accel[i]);
+		min_sum = min(min_sum, sum);
+	}
 
-	if (sum > 600)
+	if (min_sum > 5600)
 	{
 		for(int i=0; i<3; i++)
 			last_data[i] = points[point_count][i] = sensor.accel[i];
@@ -323,7 +428,7 @@ int motion_detect_mag(sensor_data sensor, float time)
 	return 0;
 }
 
-double func(func_vector v)
+double func_3d(func_vector v)
 {
 	double sum = 0;
 	for(int i=0; i<point_count; i++)
@@ -341,7 +446,7 @@ double func(func_vector v)
 	return sqrt(sum);
 }
 
-double func2(func_vector v)
+double func_accel_matrix(func_vector v)
 {
 	double sum = 0;
 
@@ -504,8 +609,8 @@ int main(int argc, char **argv)
 	for(int i=0; i<10000; i++)
 	{
 		static int ii = 0;
-		estimator.update_gps(ii++, ii++, (int64_t)i*1000000/333);
-		estimator2.update_gps(ii++, ii++, (int64_t)i*1000000/333);
+		estimator.update_gps(ii++, ii++, 2.0, (int64_t)i*1000000/333);
+		estimator2.update_gps(ii++, ii++, 2.0, (int64_t)i*1000000/333);
 
 		estimator.update_accel(0, 0, (int64_t)i*1000000/333);
 		estimator2.update_accel(0, 0, (int64_t)i*1000000/333);
@@ -590,6 +695,10 @@ int main(int argc, char **argv)
 	ned_data &ned1 = ned[1];
 	ned_data &ned2 = ned[2];
 	adv_sensor_data adv_sensor[3] = {0};
+	pos_controller_data posc_data1;
+	pos_controller_data2 posc_data2;
+	float Rot_matrix[9];
+	float euler[3];
 
 
 	FILE * f = fopen(argv[1], "rb");
@@ -606,9 +715,10 @@ int main(int argc, char **argv)
 	estimator.reset();
 	estimator2.reset();
 // 	estimator.set_gps_latency(0);
+	int64_t time;
 	while (fread(&rf, 1, 32, f) == 32)
 	{
-		int64_t time = rf.time & ~TAG_MASK;
+		time = rf.time & ~TAG_MASK;
 		if ((rf.time & TAG_MASK) ==  TAG_IMU_DATA)
 			imu = rf.data.imu;
 		else if ((rf.time & TAG_MASK) ==  TAG_ADV_SENSOR_DATA1)
@@ -665,8 +775,10 @@ int main(int argc, char **argv)
 			sensor = rf.data.sensor;
 			fwrite(sensor.gyro, 1, 6, gyrof);
 			motion_detect_accel(sensor, time/1000000.0f);
+			//motion_detect_mag(sensor, time/1000000.0f);
 
 			static int imu_counter = 0;
+			static int ltime = -1;
 			if (time > 3600000000)
 			{
 				if (imu_counter ++ % 5 == 0)
@@ -682,6 +794,63 @@ int main(int argc, char **argv)
 					gyros_counter ++;
 				}
 			}
+
+			float dt = (time - ltime)/1000000.0f;
+			ltime = time;
+
+			// AHRS offline testing
+			if (dt > 0 && dt < 1)
+			{
+				float alpha = dt / (dt + 1.0f/(2*3.1415926 * 2.5f));
+				vector newacc = {sensor.accel[1], sensor.accel[0], -sensor.accel[2]};
+				vector mag = {(sensor.mag[0]), (sensor.mag[2]), (sensor.mag[1])};
+				float GYRO_SCALE = 500.0f * PI / 180 / 32767;		// full scale: +/-2000 deg/s  +/-32767
+				vector gyro = {-sensor.gyro[0], sensor.gyro[1], 0};
+				vector_multiply(&gyro, GYRO_SCALE);
+				vector_multiply(&newacc, alpha);
+				vector_multiply(&acc, 1-alpha);
+				vector_add(&acc, &newacc);
+
+				vector acc_norm = acc;
+				vector_multiply(&acc_norm, 9.8065f/2048.0f);
+				float pix_acc[3] = {acc_norm.V.y, -acc_norm.V.x, -acc_norm.V.z};
+				float pix_acc_g = vector_length(&acc)/ 2048;
+				float pix_acc2[3] = {pix_acc[0], pix_acc[1], pix_acc[2]};
+				if (pix_acc_g > 1.15f || pix_acc_g < 0.85f)
+					pix_acc2[0] = pix_acc2[1] = pix_acc2[2] = 0;
+
+				float pix_mag[3] = {0};
+				NonlinearSO3AHRSupdate(
+					gyro.array[0], gyro.array[1], -gyro.array[2],
+					// 		0,0,0,
+					pix_acc2[0], pix_acc2[1], pix_acc2[2],
+					pix_mag[0], pix_mag[1], pix_mag[2], 
+					0.1f, 0.01f, 0.1f, 0.001f, dt);
+
+				float q0q0 = q0*q0;
+				float q1q1 = q1*q1;
+				float q2q2 = q2*q2;
+				float q3q3 = q3*q3;
+
+
+				Rot_matrix[0] = q0q0 + q1q1 - q2q2 - q3q3;// 11
+				Rot_matrix[1] = 2.f * (q1*q2 + q0*q3);	// 12
+				Rot_matrix[2] = 2.f * (q1*q3 - q0*q2);	// 13
+				Rot_matrix[3] = 2.f * (q1*q2 - q0*q3);	// 21
+				Rot_matrix[4] = q0q0 - q1q1 + q2q2 - q3q3;// 22
+				Rot_matrix[5] = 2.f * (q2*q3 + q0*q1);	// 23
+				Rot_matrix[6] = 2.f * (q1*q3 + q0*q2);	// 31
+				Rot_matrix[7] = 2.f * (q2*q3 - q0*q1);	// 32
+				Rot_matrix[8] = q0q0 - q1q1 - q2q2 + q3q3;// 33
+
+// 				memcpy(&NED2BODY, Rot_matrix, sizeof(float)*9);
+// 				inverse_matrix3x3(NED2BODY, BODY2NED);
+				euler[0] = atan2f(Rot_matrix[5], Rot_matrix[8]);	//! Roll
+				euler[1] = -asinf(Rot_matrix[2]);	//! Pitch
+				euler[2] = atan2f(-Rot_matrix[1], -Rot_matrix[0]);		//! Yaw, 0 = north, PI/-PI = south, PI/2 = east, -PI/2 = west
+
+			}
+
 		}
 		else if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA)
 		{
@@ -695,13 +864,17 @@ int main(int argc, char **argv)
 		{
 			quad3 = rf.data.quadcopter3;
 		}
+		else if ((rf.time & TAG_MASK) ==  TAG_POS_CONTROLLER_DATA1)
+			posc_data1 = rf.data.pos_controller;
+		else if ((rf.time & TAG_MASK) ==  TAG_POS_CONTROLLER_DATA2)
+			posc_data2 = rf.data.pos_controller2;
 		else if ((rf.time & TAG_MASK) ==  TAG_PPM_DATA)
 			ppm = rf.data.ppm;
 		else if ((rf.time & TAG_MASK) ==  TAG_CTRL_DATA)
 			;// ignore controll data packets
 		else
 		{
-			printf("unknown data %x, skipping\r\n", int((rf.time & TAG_MASK)>>56));
+// 			printf("unknown data %x, skipping\r\n", int((rf.time & TAG_MASK)>>56));
 		}
 
 		// test
@@ -759,7 +932,7 @@ int main(int argc, char **argv)
 			static int bid = 0;
 			if (bid != gps.id)
 			{
-				estimator.update_gps(gps_sample.latitude*double(COORDTIMES/TIMES), gps_sample.longtitude*double(COORDTIMES/TIMES), time);
+				estimator.update_gps(gps_sample.latitude*double(COORDTIMES/TIMES), gps_sample.longtitude*double(COORDTIMES/TIMES), 2.0f, time);
 				// 			estimator2.update_gps(gps_sample.latitude*double(COORDTIMES/TIMES), gps_sample.longtitude*double(COORDTIMES/TIMES), time);
 				bid = gps.id;
 
@@ -841,10 +1014,13 @@ int main(int argc, char **argv)
 		pitch = radian_add(pitch, PI);
 		float xxzz = (estAccGyro16.V.x*estAccGyro16.V.x + estAccGyro16.V.z * estAccGyro16.V.z);
 		float G = sqrt(xxzz+estAccGyro16.V.y*estAccGyro16.V.y);
-		float yaw_est = atan2(estMagGyro.V.z * estAccGyro16.V.x - estMagGyro.V.x * estAccGyro16.V.z,
-			(estMagGyro.V.y * xxzz - (estMagGyro.V.x * estAccGyro16.V.x + estMagGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y )/G);
-		float yaw_gyro = atan2(estGyro.V.z * estAccGyro16.V.x - estGyro.V.x * estAccGyro16.V.z,
-			(estGyro.V.y * xxzz - (estGyro.V.x * estAccGyro16.V.x + estGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y )/G);
+		float yaw_est = atan2(estMagGyro.V.x * estAccGyro16.V.z - estMagGyro.V.z * estAccGyro16.V.x ,
+			((estMagGyro.V.x * estAccGyro16.V.x + estMagGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y  - estMagGyro.V.y * xxzz )/G);
+		float yaw_gyro = -atan2(estGyro.V.x * estAccGyro16.V.z - estGyro.V.z * estAccGyro16.V.x,
+			((estGyro.V.x * estAccGyro16.V.x + estGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y - estGyro.V.y * xxzz )/G);
+		float roll_acc = radian_add(atan2(acc.V.x, acc.V.z), PI);
+		float pitch_acc = atan2(acc.V.y, (acc.V.z > 0 ? 1 : -1) *sqrt(acc.V.x*acc.V.x + acc.V.z * acc.V.z));
+		pitch_acc = radian_add(pitch_acc, PI);
 
 
 		static double ground_pressure = -1012.9;
@@ -896,20 +1072,36 @@ int main(int argc, char **argv)
 		float temperature_620 = (adv_sensor[0].data[2] - 2.50f)/0.009f + 25;
 		int avg_output = (ppm.out[0]+ ppm.out[1]+ ppm.out[2]+ ppm.out[3])/4;
 
-//  		if (time > 55000000 && time < 75000000)
-// 		if (time > 50000000 && time < 75000000)
-		if (abs(a1) < 0.10 && abs(a2) < 0.10)
-  		if (n++ %25 == 0)
+		static float pos = -9999;
+		static int time_start = 0;
+		if (time > 134000000)
+		{
+			if (pos != -9999)
+			{
+				float dt = (time - time_start)/1000000.0f;
+				time_start = time;
+				pos += sensor.gyro[2] * 100.0f / 80.0f * dt;
+			}
+			else
+			{
+				time_start = time;
+				pos = quad.angle_pos[0];
+			}
+		}
+//   		if (time > 45000000 && time < 55000000)
+		if (time > 60000000 && time < 70000000)
+// 		if (abs(a1) < 0.10 && abs(a2) < 0.10)
+//   		if (n++ %8 == 0)
 //  		if (abs(adv_sensor[0].data[3]-5)<0.2)
 //  		if ((time > 13500000 && time < 17500000) || (time > 25500000 && time < 30000000))
  		fprintf(fo, "%.4f,%.5f,%.5f,%2f,%f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d,%d\r\n",
-				float(a3-a4), a3, a4, quad2.altitude_inertia/100.0f, quad3.altitude/100.0f,
- 				sensor.accel[0], sensor.accel[1], sensor.accel[2], sensor.gyro[0], sensor.gyro[1], sensor.gyro[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[1], pilot2.D[1],
-				roll*180/PI, pitch*180/PI, yaw_est*180/PI, pilot.target[0]/100.0, pilot.target[1]/100.0, pilot.target[2]/100.0, 
+				float(time/1000000.0f), mag_size, posc_data1.pos[1], posc_data1.target_pos[0], posc_data1.target_pos[1],
+ 				int(acc.V.x), int(acc.V.y), int(acc.V.z), sensor.gyro[0], sensor.gyro[1], sensor.gyro[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[1], pilot2.D[0],
+				roll*180/PI, pitch*180/PI, roll_acc * 180 / PI, pitch_acc*180/PI, pilot.target[0]/100.0, pilot.target[2]/100.0, 
 				(ppm.in[2]-1113)/50, pilot.fly_mode,
-				ppm.in[0], ppm.in[1], ppm.in[2], quad2.throttle_result, ppm.out[0], ppm.out[1], ppm.out[2], ppm.out[3],
+				ppm.in[0], ppm.in[1], ppm.in[2], ppm.in[3], ppm.out[0], ppm.out[1], ppm.out[2], ppm.out[3],
 				estAccGyro.V.x, estAccGyro.V.y, estAccGyro.V.z,
 				sensor.gyro[0],sensor.gyro[1],sensor.gyro[2], sensor.mag[0]);
 // 		fprintf(fo, "%.2f,%d,%d,%d,%d\r\n", float(time/1000000.0f), ppm.in[0], ppm.in[1], ppm.in[2], ppm.in[3]);
@@ -919,6 +1111,7 @@ int main(int argc, char **argv)
 				// estAcc[0], 机翼方向，右机翼方向为正
 				// estAcc[1], 前进方向，机头方向为正
 				// estAcc[2], 垂直方向，往上为正
+		fflush(fo);
 
 // 		if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA || (rf.time & TAG_MASK) ==  TAG_GPS_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA2)
 		{
@@ -929,9 +1122,10 @@ int main(int argc, char **argv)
 //  				)
 //  			if (time > 200000000 && time < 300000000)
 // 			if (m++ %3 == 0 && quad3.ultrasonic != 0xffff)
-			if (home_set)
+// 			if (home_set)
 // 			if (time > 220000000 && time < 230000000)
- 			if (m++ %5 == 0)
+// 			if (time > 50000000 && time < 75000000)
+ 			if (m++ %125 == 0)
 			{
 				float yaw = gps.direction * PI / 180;
 				if (yaw > PI)
@@ -942,8 +1136,8 @@ int main(int argc, char **argv)
 
 				fprintf(gpso, "%.4f", float(time/1000000.0f));
 				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[1], quad.angle_target[1], quad.speed[1], quad.speed_target[1]);
-				fprintf(gpso, ",%d,%d,%d,%d,%f,%f,%f,", quad.angle_pos[0],quad.angle_target[0],quad.speed[0], quad.speed_target[0], meter_raw.latitude, meter.longtitude, meter.latitude);
-				fprintf(gpso, "%.1f/%d/%d/%d,%f,%f,%f,%f,%f", gps.speed/100.0f, gps.satelite_in_use, gps.fix, gps.direction, quad2.accel_z_kalman/100.0f, ned[1].accel_NED2[2]/1000.0f, quad2.altitude_baro_raw/100.0f, quad3.altitude/100.00f, quad3.altitude_target/100.0f);
+				fprintf(gpso, ",%d,%d,%d,%d,%f,%f,%f,", quad.angle_pos[0], quad.angle_target[0],quad.speed[0], quad.speed_target[0], meter_raw.latitude, meter.longtitude, meter.latitude);
+				fprintf(gpso, "%.1f/%d/%d/%d,%f,%f,%f,%f,%f", gps.DOP[1]/100.0f, gps.satelite_in_use, gps.fix, gps.direction, quad2.accel_z_kalman/100.0f, ned[1].accel_NED2[2]/1000.0f, quad2.altitude_baro_raw/100.0f, quad3.altitude/100.00f, quad3.altitude_target/100.0f);
 				fprintf(gpso, "\r\n");
 
 				fflush(gpso);
@@ -955,6 +1149,9 @@ int main(int argc, char **argv)
 	fclose(fo);
 	fclose(f);
 	fclose(gpso);
+
+	memset(&sensor, 0, sizeof(sensor));
+	motion_detect_accel(sensor, time/1000000.0f);
 
 	/*
 	printf("allan variance\n");
@@ -978,7 +1175,9 @@ int main(int argc, char **argv)
 
 // 	printf("max time delta: %d\n", max_time_delta);
 
-	//fitting_accel_3d();
+// 	fitting_accel_matrix();
+// 	fitting_mag_3d();
+	fitting_accel_3d();
 
 	return 0;
 }

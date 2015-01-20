@@ -15,11 +15,15 @@ static int end_sentence = 0;				// valid sentence length in circular buffer
 void USART1_IRQHandler(void)
 {
 	int c = -1;
-	if(USART_GetFlagStatus(USART1,USART_IT_RXNE)==SET)
+	if(USART_GetFlagStatus(USART1,USART_IT_RXNE)==SET
+#ifdef STM32F4
+		|| USART_GetFlagStatus(UART4,USART_IT_ORE_RX)==SET
+#endif
+		)
 	{
 		c = USART_ReceiveData(USART1);
-		USART_ClearITPendingBit(USART1, USART_IT_RXNE);
 	}
+	USART_ClearITPendingBit(USART1, USART_IT_RXNE);
 	
 	if (c>0)
 	{

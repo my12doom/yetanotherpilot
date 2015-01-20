@@ -134,7 +134,7 @@ int main()
 	space_init();
 	ads1258_init();
 	I2C_init(0);
-	UART4_Init(384000, 1);
+	UART4_Init(2100000, 1);
 	
 	int hmc5883 = init_HMC5883();
 
@@ -202,9 +202,11 @@ int main()
 				float a1 = (packet.data[13] - 2.50f);
 				float a4 = (packet.data[11] - 2.50f) * 10;
 				//printf("%f\n", packet.data[11]);
-				printf("%f,%f\n", a1, a4);
+				//printf("%f,%f\n", a1, a4);
 			}
 		}
+		
+		//printf("\r%d", int(getus()));
 		
 
 		/*

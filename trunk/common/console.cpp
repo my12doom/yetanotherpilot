@@ -216,6 +216,7 @@ extern "C" int parse_command_line(const char *line, char *out)
 		strcpy(out, "ok\n");
 		return 3;
 	}
+#ifndef LITE
 	else if (strstr(line, "gps") == line)
 	{
 		nmeaINFO *info = GPS_GetInfo();
@@ -239,6 +240,7 @@ extern "C" int parse_command_line(const char *line, char *out)
 		
 		return strlen(out);
 	}
+#endif
 	else if (strstr(line, "imustates") == line)
 	{
 // 		printf("test:");
