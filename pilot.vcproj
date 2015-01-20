@@ -234,6 +234,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\common\ads1115_worker.c"
+					>
+				</File>
+				<File
 					RelativePath=".\common\ads1256.c"
 					>
 				</File>

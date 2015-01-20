@@ -29,6 +29,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_it.h"
+#include "mcu.h"
 
 /** @addtogroup STM32F4xx_StdPeriph_Examples
   * @{
@@ -65,6 +66,12 @@ void NMI_Handler(void)
   */
 void HardFault_Handler(void)
 {
+  // RESET!
+  SCB->AIRCR  = ((0x5FA << SCB_AIRCR_VECTKEY_Pos)      | 
+                 (SCB->AIRCR & SCB_AIRCR_PRIGROUP_Msk) | 
+                 SCB_AIRCR_SYSRESETREQ_Msk);                   /* Keep priority group unchanged */
+  __DSB();                                                     /* Ensure completion of memory access */              
+
   /* Go to infinite loop when Hard Fault exception occurs */
   while (1)
   {

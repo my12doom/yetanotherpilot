@@ -30,7 +30,8 @@ int pos_estimator::reset()		// mainly for after GPS glitch handling
 	pbias_lat = 0;
 	error_lon = 0;
 	error_lat = 0;
-	has_est = false;
+	home_set = false;
+	healthy = false;
 	last_accel_update = 0;
 	last_gps_update = 0;
 	last_history_push = 0;
@@ -48,7 +49,7 @@ int pos_estimator::set_home(COORDTYPE lat, COORDTYPE lon)
 
 int pos_estimator::update_accel(double accel_lat, double accel_lon, int64_t timestamp)			// unit: meter/s
 {
-	if (!has_est)
+	if (!home_set)
 		return -1;
 
 	double dt = (timestamp - last_accel_update)/1000000.0f;
@@ -93,14 +94,28 @@ int pos_estimator::update_accel(double accel_lat, double accel_lon, int64_t time
 	return 0;
 }
 
-int pos_estimator::update_gps(COORDTYPE lat, COORDTYPE lon, int64_t timestamp)			// unit: degree
+int pos_estimator::update_gps(COORDTYPE lat, COORDTYPE lon, float hdop, int64_t timestamp)			// unit: degree
 {
-	if (!has_est)
+	if (!home_set || !healthy && hdop < 2.5f)
 	{
-		has_est = true;
-		home.latitude = lat;
-		home.longtitude = lon;
-		est = home;
+		if (!home_set)
+		{
+			reset();
+			home.latitude = lat;
+			home.longtitude = lon;
+			home_set = true;
+		}
+		healthy = true;
+		est.latitude = lat;
+		est.longtitude = lon;
+	}
+
+	if (hdop > 3.5f)
+	{
+		if (timestamp - last_gps_update > 8000000)
+			healthy = false;
+
+		return -1;
 	}
 
 	last_gps_update = timestamp;

@@ -49,7 +49,7 @@ public:
 	int reset();		// mainly for after GPS glitch handling
 	int set_home(COORDTYPE lat, COORDTYPE lon);
 	int update_accel(double accel_lat, double accel_lon, int64_t timestamp);			// unit: meter/s
-	int update_gps(COORDTYPE lat, COORDTYPE lon, int64_t timestamp);		// unit: degree
+	int update_gps(COORDTYPE lat, COORDTYPE lon, float hdop, int64_t timestamp);					// unit: degree
 	void set_gps_latency(int new_latency){latency = new_latency;}
 
 	position get_estimation();
@@ -58,6 +58,8 @@ public:
 	
 	double error_lon;
 	double error_lat;
+	bool home_set;
+	bool healthy;
 protected:
 
 	double abias_lon;
@@ -72,7 +74,6 @@ protected:
 	int64_t last_gps_update;
 	int latency;
 
-	bool has_est;
 	position est;
 	position_meter meter;
 	position home;

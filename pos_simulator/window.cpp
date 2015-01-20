@@ -65,9 +65,10 @@ DWORD CALLBACK remote_update_thread(LPVOID p)
 		ReleaseDC(graph_wnd, hdc);
 		DeleteObject(bitmap);
 
+		extern bool use_pos_controller;
 		printf("\r%f,%f -- v:%f,%f, tv:%f,%f       ", pos[0], pos[1], velocity[0], velocity[1], controller.target_velocity[0], controller.target_velocity[1]);
 		char tmp[200];
-		sprintf(tmp, "roll:%.0f/%.0f, pitch:%.0f/%.0f", euler[0] * 180 / PI, target_euler[0] * 180 / PI, euler[1] * 180 / PI, target_euler[1] * 180 / PI);
+		sprintf(tmp, "roll:%.0f/%.0f, pitch:%.0f/%.0f, %s", euler[0] * 180 / PI, target_euler[0] * 180 / PI, euler[1] * 180 / PI, target_euler[1] * 180 / PI, use_pos_controller ? "U" : "X");
 		SetWindowTextA(graph_wnd, tmp);
 		Sleep(17);
 	}

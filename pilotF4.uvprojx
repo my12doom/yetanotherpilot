@@ -348,7 +348,7 @@
           <Cads>
             <interw>1</interw>
             <Optim>1</Optim>
-            <oTime>1</oTime>
+            <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
             <Strict>0</Strict>
@@ -432,6 +432,11 @@
               <FileName>pos_estimator.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\pos_estimator.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>pos_controll.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\pos_controll.cpp</FilePath>
             </File>
           </Files>
         </Group>
@@ -937,6 +942,11 @@
               <FileName>uart4.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\common\uart4.h</FilePath>
+            </File>
+            <File>
+              <FileName>ads1115_worker.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\common\ads1115_worker.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1677,6 +1687,11 @@
               <FileType>8</FileType>
               <FilePath>.\pos_estimator.cpp</FilePath>
             </File>
+            <File>
+              <FileName>pos_controll.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\pos_controll.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -2181,6 +2196,11 @@
               <FileName>uart4.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\common\uart4.h</FilePath>
+            </File>
+            <File>
+              <FileName>ads1115_worker.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\common\ads1115_worker.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -2921,6 +2941,11 @@
               <FileType>8</FileType>
               <FilePath>.\pos_estimator.cpp</FilePath>
             </File>
+            <File>
+              <FileName>pos_controll.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\pos_controll.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -3425,6 +3450,11 @@
               <FileName>uart4.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\common\uart4.h</FilePath>
+            </File>
+            <File>
+              <FileName>ads1115_worker.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\common\ads1115_worker.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -4165,6 +4195,11 @@
               <FileType>8</FileType>
               <FilePath>.\pos_estimator.cpp</FilePath>
             </File>
+            <File>
+              <FileName>pos_controll.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\pos_controll.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -4669,6 +4704,11 @@
               <FileName>uart4.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\common\uart4.h</FilePath>
+            </File>
+            <File>
+              <FileName>ads1115_worker.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\common\ads1115_worker.c</FilePath>
             </File>
           </Files>
         </Group>

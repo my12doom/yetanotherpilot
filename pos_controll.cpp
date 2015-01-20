@@ -11,9 +11,10 @@ static float leash = 5.0f;
 static float linear_distance = 5.0f;
 static float max_speed = 5.0f;
 static float max_speed_ff = 2.0f;
-static bool use_desired_feed_forward = true;
+static bool use_desired_feed_forward = false;
 static float feed_forward_factor = 1;
 static float rate2accel[4] = {1.0f, 0.5f, 0.0f, 2.0f};
+static float pos2rate_P = 1.0f;
 
 // win32 helper
 #ifdef WIN32
@@ -153,7 +154,6 @@ int pos_controller::move_desire_pos(float dt)
 	return 0;
 }
 
-static float pos2rate_P = 1.0f;
 int pos_controller::pos_to_rate(float dt)
 {
 	float error[2] = {setpoint[0] - pos[0], setpoint[1] - pos[1]};

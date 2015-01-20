@@ -172,6 +172,20 @@ typedef struct
 
 typedef struct
 {
+	float target_pos[2];
+	float pos[2];
+	short target_vel[2];
+	short vel[2];
+} pos_controller_data;
+
+typedef struct
+{
+	short target_accel[2];
+	short pid[2][3];
+} pos_controller_data2;
+
+typedef struct
+{
 	float data[6];
 } adv_sensor_data;
 
@@ -196,14 +210,13 @@ typedef struct
 		quadcopter_data quadcopter;	// 24 byte
 		quadcopter_data2 quadcopter2;
 		quadcopter_data3 quadcopter3;
+		pos_controller_data pos_controller;
+		pos_controller_data2 pos_controller2;
+
 	}data;
 } rf_data;
 
 #define TAG_SENSOR_DATA	0x1200000000000000
-#define TAG_IMU_DATA_V1	0x8700000000000000
-#define TAG_PILOT_DATA	0x6500000000000000
-#define TAG_PILOT_DATA2	0x6600000000000000
-#define TAG_MASK		0xff00000000000000
 #define TAG_PPM_DATA	0x3300000000000000
 #define TAG_CTRL_DATA	0x3400000000000000
 #define TAG_GPS_DATA_V1	0x3500000000000000
@@ -219,6 +232,13 @@ typedef struct
 #define TAG_ADV_SENSOR_DATA3	0x3F00000000000000
 #define TAG_GPS_DATA	0x4000000000000000
 #define TAG_RAW_DATA	0x4100000000000000
+#define TAG_POS_CONTROLLER_DATA1	0x4200000000000000
+#define TAG_POS_CONTROLLER_DATA2	0x4300000000000000
+
+#define TAG_PILOT_DATA	0x6500000000000000
+#define TAG_PILOT_DATA2	0x6600000000000000
+#define TAG_IMU_DATA_V1	0x8700000000000000
+#define TAG_MASK		0xff00000000000000
 
 #define CTRL_CMD_SET_VALUE 0
 #define CTRL_CMD_GET_VALUE 1

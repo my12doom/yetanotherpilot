@@ -25,11 +25,13 @@
 #include "sensors/ADIS16405.h"
 #include "crc32.h"
 #include "pos_estimator.h"
+#include "pos_controll.h"
 #include "common/gps.h"
 #include "common/uart4.h"
 #include "common/ads1115.h"
 #include "common/ads1256.h"
 #include "sensors/sonar.h"
+#include "common/ads1115_worker.h"
 #include "common/NRF24L01.h"
 #include "fat/ff.h"
 #include "osd/MAX7456.h"
@@ -75,21 +77,6 @@ extern "C"
 #endif
 }
 
-#ifndef LITE
-typedef struct
-{
-	ads1115_speed speed;
-	ads1115_channel channel;
-	ads1115_gain gain;
-	int16_t *out;
-}ads1115_work;
-#define MAX_ADS1115_WORKS 8
-int ads1115_work_pos = 0;
-int ads1115_work_count = 0;
-ads1115_work ads1115_works[MAX_ADS1115_WORKS];
-int ads1115_new_work(ads1115_speed speed, ads1115_channel channel, ads1115_gain gain, int16_t *out);
-int ads1115_go_on();
-#endif
 
 enum
 {
@@ -110,15 +97,15 @@ static param crash_protect("prot", 0);		// crash protection
 static param simple_mode("simp", 0.0f) ;
 static param pid_factor[3][4] = 			// pid_factor[roll,pitch,yaw][p,i,d,i_limit]
 {
-	{param("rP1",0.50), param("rI1",0.375), param("rD1",0.05),param("rM1",PI)},
-	{param("rP2",0.50), param("rI2",0.375), param("rD2",0.05),param("rM2",PI)},
+	{param("rP1",0.80), param("rI1",1.10), param("rD1",0.05),param("rM1",PI)},
+	{param("rP2",0.80), param("rI2",1.10), param("rD2",0.05),param("rM2",PI)},
 	{param("rP3",1.75), param("rI3",0.25), param("rD3",0.01),param("rM3",PI)},
 };
 static param pid_factor2[3][4] = 			// pid_factor2[roll,pitch,yaw][p,i,d,i_limit]
 {
-	{param("sP1", 6), param("sI1", 0), param("sD1", 0.12),param("sM1", PI/45)},
-	{param("sP2", 6), param("sI2", 0), param("sD2", 0.12),param("sM2", PI/45)},
-	{param("sP3", 8), param("sI3", 0), param("sD3", 0.23),param("sM3", PI/45)},
+	{param("sP1", 6), param("sI1", 0), param("sD1", 0),param("sM1", PI/45)},
+	{param("sP2", 6), param("sI2", 0), param("sD2", 0),param("sM2", PI/45)},
+	{param("sP3", 8), param("sI3", 0), param("sD3", 0),param("sM3", PI/45)},
 };
 static param quadcopter_max_climb_rate("maxC",5);
 static param quadcopter_max_descend_rate("maxD", 2);
@@ -329,6 +316,7 @@ float NED2BODY[3][3];
 float BODY2NED[3][3];
 bool gyro_bias_estimating_end = false;
 vector gyro;
+vector gyro_LP = {0};
 vector gyro_raw;
 vector mag;
 vector accel = {NAN, NAN, NAN};
@@ -367,8 +355,7 @@ int64_t last_gps_tick = 0;
 static unsigned short gps_id = 0;
 #ifndef LITE
 pos_estimator estimator;
-pos_estimator estimator2;
-pos_estimator estimator3;
+pos_controller controller;
 float ground_speed_north;		// unit: m/s
 float ground_speed_east;		// unit: m/s
 #endif
@@ -968,11 +955,7 @@ int prepare_pid()
 	// calculate current core pid position
 #if QUADCOPTER == 1
 
-#ifndef LITE
 	float new_angle_pos[3] = {euler[0], euler[1], -euler[2]};
-#else
-	float new_angle_pos[3] = {euler[0], euler[1], gyroI.array[2]};
-#endif
 
 	// the quadcopter's main pid lock on angle rate
 	for(int i=0; i<3; i++)
@@ -998,7 +981,7 @@ int prepare_pid()
 		{
 			for(int i=0; i<3; i++)
 			{
-				float rc = g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i];
+				float rc = g_pwm_input[i==2?3:i] - rc_zero[i==2?3:i];
 				if (abs(rc) < RC_DEAD_ZONE)
 					rc = 0;
 				else
@@ -1038,7 +1021,7 @@ int prepare_pid()
 			float delta[3] = {0, 0, 0};
 			for(int i=0; i<2; i++)
 			{
-				delta[i] = -(g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i])  * rc_reverse[i] * sensor_reverse[i];
+				delta[i] = -(g_pwm_input[i==2?3:i] - rc_zero[i==2?3:i])  * rc_reverse[i] * sensor_reverse[i];
 				if (abs(delta[i]) < RC_DEAD_ZONE)
 					delta[i] = 0;
 				else
@@ -1065,7 +1048,7 @@ int prepare_pid()
 			rc_dv[0] = rc_dv[1] = rc_dv[2] = 0;
 			for(int i=0; i<2; i++)
 			{
-				float rc = g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i];
+				float rc = g_pwm_input[i==2?3:i] - rc_zero[i==2?3:i];
 				if (abs(rc) < RC_DEAD_ZONE)
 					rc = 0;
 				else
@@ -1095,72 +1078,109 @@ int prepare_pid()
 #if QUADCOPTER == 1
 	case quadcopter:
 		{
-			// auto throttle
-			float v = rc[2] - 0.5f;
-			float user_rate;
-			if (fabs(v)<0.05f)
-				user_rate = 0;
-			else if (v>= 0.05f)
-			{
-				user_rate = (v-0.05f)/0.45f;
-				user_rate = user_rate * user_rate * quadcopter_max_climb_rate;
-			}
-			else
-			{
-				user_rate = (v+0.05f)/0.45f;
-				user_rate = -user_rate * user_rate * quadcopter_max_descend_rate;
-			}
 
+			// throttle
 			if (submode == althold || submode == poshold)
-				auto_throttle(user_rate);
-
-
-			// airborne or armed and throttle up
-			bool after_unlock_action = airborne || rc[2] > 0.2f;
-
-
-
-			if (after_unlock_action)	// airborne or armed and throttle up
 			{
-				// first, calculate target angle
-				// roll & pitch, RC trim is accepted.
-				for(int i=0; i<2; i++)
+				float v = rc[2] - 0.5f;
+				float user_rate;
+				if (fabs(v)<0.05f)
+					user_rate = 0;
+				else if (v>= 0.05f)
 				{
-					float limit_l = angle_target_unrotated[i] - PI*2 * interval;
-					float limit_r = angle_target_unrotated[i] + PI*2 * interval;
-					angle_target_unrotated[i] = rc[i] * quadcopter_range[i] * (i==1?-1:1);	// pitch stick and coordinate are reversed 
-					angle_target_unrotated[i] = limit(angle_target_unrotated[i], limit_l, limit_r);
-					angle_target[i] = angle_target_unrotated[i];
+					user_rate = (v-0.05f)/0.45f;
+					user_rate = user_rate * user_rate * quadcopter_max_climb_rate;
 				}
-
-				if (simple_mode > 0.1f)
-				{
-					float diff = yaw_launch - yaw_est;
-					float cosdiff = cos(diff);
-					float sindiff = sin(diff);
-					angle_target[0] = angle_target_unrotated[0] * cosdiff - angle_target_unrotated[1] * sindiff;
-					angle_target[1] = angle_target_unrotated[0] * sindiff + angle_target_unrotated[1] * cosdiff;
-				}
-				
-				// yaw:
-				//target[2] = limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[2] / RC_RANGE, -1, 1) * quadcopter_range[2] + yaw_gyro + quadcopter_trim[2];
-				rc_d[2] = ((fabs(rc[3]) < (float)RC_DEAD_ZONE/RC_RANGE) ? 0 : -rc[3]) * interval * QUADCOPTER_ACRO_YAW_RATE;
-
-				float trimmed_pos = radian_add(angle_pos[2], quadcopter_trim[2]);
-				float new_target = radian_add(angle_target[2], rc_d[2]);
-				float new_error = abs(radian_sub(trimmed_pos, new_target));
-				if (new_error > (airborne?QUADCOPTER_MAX_YAW_OFFSET:(QUADCOPTER_MAX_YAW_OFFSET/5)) && new_error > abs(angle_error[2]))
-					rc_d[2] = 0;
 				else
-					angle_target[2] = new_target;
+				{
+					user_rate = (v+0.05f)/0.45f;
+					user_rate = -user_rate * user_rate * quadcopter_max_descend_rate;
+				}
+				auto_throttle(user_rate);
 			}
 			else
 			{
-				angle_target[0] = 0;
-				angle_target[1] = 0;
-				angle_target[2] = angle_pos[2];
+				throttle_result = rc[2];
 			}
 
+			// lean angle
+			if (submode == basic || submode == althold)
+			{
+				// airborne or armed and throttle up
+				bool after_unlock_action = airborne || rc[2] > 0.2f;
+
+				if (after_unlock_action)	// airborne or armed and throttle up
+				{
+					// roll & pitch, RC trim is accepted.
+					for(int i=0; i<2; i++)
+					{
+						float limit_l = angle_target_unrotated[i] - PI*2 * interval;
+						float limit_r = angle_target_unrotated[i] + PI*2 * interval;
+						angle_target_unrotated[i] = rc[i] * quadcopter_range[i] * (i==1?-1:1);	// pitch stick and coordinate are reversed 
+						angle_target_unrotated[i] = limit(angle_target_unrotated[i], limit_l, limit_r);
+						angle_target[i] = angle_target_unrotated[i];
+					}
+
+					if (simple_mode > 0.1f)
+					{
+						float diff = yaw_launch - yaw_est;
+						float cosdiff = cos(diff);
+						float sindiff = sin(diff);
+						angle_target[0] = angle_target_unrotated[0] * cosdiff - angle_target_unrotated[1] * sindiff;
+						angle_target[1] = angle_target_unrotated[0] * sindiff + angle_target_unrotated[1] * cosdiff;
+					}
+					
+				}
+				else
+				{
+					angle_target[0] = 0;
+					angle_target[1] = 0;
+					angle_target[2] = angle_pos[2];
+				}
+			}
+#ifndef LITE
+			else if (submode == poshold)
+			{
+				// 10hz pos controller rate
+				static int64_t last_pos_controll_time = 0;
+				float dt = (getus() - last_pos_controll_time) / 1000000.0f;
+				if (dt > 0.1f)
+				{
+					last_pos_controll_time = getus();
+					if (dt < 1.0f)
+					{
+						position_meter meter = estimator.get_estimation_meter();
+
+
+						float ne_pos[2] = {meter.latitude, meter.longtitude};
+						float ne_velocity[2] = {meter.vlatitude, meter.vlongtitude};
+						float desired_velocity[2] = {rc[1] * 5, rc[0] * 5};
+						if (abs(desired_velocity[0]) < 0.4f)
+							desired_velocity[0] = 0;
+						if (abs(desired_velocity[1]) < 0.4f)
+							desired_velocity[1] = 0;
+
+						controller.provide_attitue_position(euler, ne_pos, ne_velocity);
+						controller.set_desired_velocity(desired_velocity);
+						controller.update_controller(dt);
+
+						controller.get_target_angles(angle_target);
+					}
+				}
+			}
+#endif
+
+			// yaw:
+			//target[2] = limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[2] / RC_RANGE, -1, 1) * quadcopter_range[2] + yaw_gyro + quadcopter_trim[2];
+			rc_d[2] = ((fabs(rc[3]) < (float)RC_DEAD_ZONE/RC_RANGE) ? 0 : -rc[3]) * interval * QUADCOPTER_ACRO_YAW_RATE;
+
+			float trimmed_pos = radian_add(angle_pos[2], quadcopter_trim[2]);
+			float new_target = radian_add(angle_target[2], rc_d[2]);
+			float new_error = abs(radian_sub(trimmed_pos, new_target));
+			if (new_error > (airborne?QUADCOPTER_MAX_YAW_OFFSET:(QUADCOPTER_MAX_YAW_OFFSET/5)) && new_error > abs(angle_error[2]))
+				rc_d[2] = 0;
+			else
+				angle_target[2] = new_target;
 
 			// now calculate target angle rate
 			// based on a PID stablizer
@@ -1293,7 +1313,7 @@ int output()
 	{
 		float sum = pid_result[i] * (1-ACRO_MANUAL_FACTOR);
 
-		int rc = rc_reverse[i]*(g_ppm_input[i==2?3:i] - rc_zero[i==2?3:i]);
+		int rc = rc_reverse[i]*(g_pwm_input[i==2?3:i] - rc_zero[i==2?3:i]);
 
 		sum += rc * ACRO_MANUAL_FACTOR / RC_RANGE;
 
@@ -1304,16 +1324,16 @@ int output()
 
 	// RC pass through for channel 5 & 6
 	for(int i=4; i<6; i++)
-		g_ppm_output[i] = floor(g_ppm_input[i]+0.5f);
+		g_ppm_output[i] = floor(g_pwm_input[i]+0.5f);
 
 	if (mode != rc_fail)
 	{
 		// throttle pass through
-		g_ppm_output[2] = floor(g_ppm_input[2]+0.5f);
+		g_ppm_output[2] = floor(g_pwm_input[2]+0.5f);
 		last_rc_work = getus();
 
 #if QUADCOPTER == 0
-		if (g_ppm_input[2] > (THROTTLE_STOP + THROTTLE_MAX)/2)
+		if (g_pwm_input[2] > (THROTTLE_STOP + THROTTLE_MAX)/2)
 			launched = true;
 #endif
 	}
@@ -1363,7 +1383,7 @@ int output()
 #endif
 
 		// yaw pass through for acrobatic
-		g_ppm_output[3] = g_ppm_input[3];
+		g_ppm_output[3] = g_pwm_input[3];
 
 
 	// manual flight pass through
@@ -1371,15 +1391,15 @@ int output()
 	{
 		for(int i=0; i<6; i++)
 		{
-			g_ppm_output[i] = floor(g_ppm_input[i]+0.5f);
+			g_ppm_output[i] = floor(g_pwm_input[i]+0.5f);
 
 			if (i <2)
 			{
 				bool neg = g_ppm_output[i] < RC_CENTER;
 				if (neg)
-					g_ppm_output[i] = -(g_ppm_input[i] - RC_CENTER)*(g_ppm_input[i] - RC_CENTER)/RC_RANGE + RC_CENTER;
+					g_ppm_output[i] = -(g_pwm_input[i] - RC_CENTER)*(g_pwm_input[i] - RC_CENTER)/RC_RANGE + RC_CENTER;
 				else
-					g_ppm_output[i] = (g_ppm_input[i] - RC_CENTER)*(g_ppm_input[i] - RC_CENTER)/RC_RANGE + RC_CENTER;
+					g_ppm_output[i] = (g_pwm_input[i] - RC_CENTER)*(g_pwm_input[i] - RC_CENTER)/RC_RANGE + RC_CENTER;
 			}
 		}
 	}
@@ -1518,7 +1538,7 @@ int save_logs()
 	rf_data packet;
 	packet.time = (time & (~TAG_MASK)) | TAG_SENSOR_DATA;
 	packet.data.sensor = *p;
-	packet.data.sensor.gyro[2] = adxrs453_value;
+// 	packet.data.sensor.gyro[2] = adxrs453_value;
 // 	packet.data.sensor.gyro[0] = mpu9250_value[6];
 
 	
@@ -1569,8 +1589,6 @@ int save_logs()
 	}
 
 	position p = estimator.get_estimation();
-	position p2 = estimator2.get_estimation();
-	position p3 = estimator3.get_estimation();
 	ned_data ned = 
 	{
 // 		{accel_earth_frame_mwc.array[0] * 1000* 9.8f/2048, accel_earth_frame_mwc.array[1] * 1000* 9.8f/2048, -accel_earth_frame_mwc.array[2] * 1000* 9.8f/2048-9800.0f},
@@ -1581,34 +1599,11 @@ int save_logs()
 		estimator.error_lat, 
 		estimator.error_lon, 
 	};
-	ned_data ned2 = 
-	{
-		1,
-		{accel_earth_frame_mwc.array[0] * 1000* 9.8f/2048, accel_earth_frame_mwc.array[1] * 1000* 9.8f/2048, -accel_earth_frame_mwc.array[2] * 1000* 9.8f/2048-9800.0f},
-		p2.latitude * double(10000000.0/COORDTIMES), 
-		p2.longtitude * double(10000000.0/COORDTIMES), 
-		estimator2.error_lat, 
-		estimator2.error_lon, 
-	};
-	ned_data ned3 = 
-	{
-		2,
-		{accel_earth_frame_mwc.array[0] * 1000* 9.8f/2048, accel_earth_frame_mwc.array[1] * 1000* 9.8f/2048, -accel_earth_frame_mwc.array[2] * 1000* 9.8f/2048-9800.0f},
-		p3.latitude * double(10000000.0/COORDTIMES), 
-		p3.longtitude * double(10000000.0/COORDTIMES), 
-		estimator3.error_lat, 
-		estimator3.error_lon, 
-	};
 
 	packet.time = (time & (~TAG_MASK)) | TAG_NED_DATA;
 	packet.data.ned = ned;
-// 	save_log_packet(packet);
+ 	save_log_packet(packet);
 
-	packet.data.ned = ned2;
-	save_log_packet(packet);
-
-	packet.data.ned = ned3;
-// 	save_log_packet(packet);
 
 	#endif
 
@@ -1639,7 +1634,7 @@ int save_logs()
 
 	ppm_data ppm = 
 	{
-		{g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3], g_ppm_input[4], g_ppm_input[5]},
+		{g_pwm_input[0], g_pwm_input[1], g_pwm_input[2], g_pwm_input[3], g_pwm_input[4], g_pwm_input[5]},
 		{g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_output[4], g_ppm_output[5]},
 	};
 
@@ -1670,6 +1665,7 @@ int save_logs()
 		accelz_mwc * 100,
 		loop_hz,
 		THROTTLE_IDLE + throttle_result * (THROTTLE_MAX-THROTTLE_IDLE),
+		submode,
 	};
 
 	packet.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA2;
@@ -1699,6 +1695,39 @@ int save_logs()
 	packet.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA3;
 	packet.data.quadcopter3 = quad3;
 	save_log_packet(packet);
+
+	// pos controller data1
+	pos_controller_data pc = 
+	{
+		controller.setpoint[0],
+		controller.setpoint[1],
+		controller.pos[0],
+		controller.pos[1],
+		controller.target_velocity[0]*1000,
+		controller.target_velocity[1]*1000,
+		controller.velocity[0]*1000,
+		controller.velocity[1]*1000,
+	};
+
+	packet.time = (time & (~TAG_MASK)) | TAG_POS_CONTROLLER_DATA1;
+	packet.data.pos_controller = pc;
+	save_log_packet(packet);
+
+	// pos controller data1
+	pos_controller_data2 pc2 = 
+	{
+		controller.target_accel[0]*1000,
+		controller.target_accel[1]*1000,
+		{
+			{controller.pid[0][0]*100, controller.pid[0][1]*100, controller.pid[0][2]*100,},
+			{controller.pid[1][0]*100, controller.pid[1][1]*100, controller.pid[1][2]*100,},
+		}
+	};
+
+	packet.time = (time & (~TAG_MASK)) | TAG_POS_CONTROLLER_DATA2;
+	packet.data.pos_controller2 = pc2;
+	save_log_packet(packet);
+
 #endif
 
 	// only 5 seconds magnet centering data
@@ -1809,7 +1838,7 @@ int read_sensors()
 	vector gyro = {-p->gyro[0], p->gyro[1], p->gyro[2]};
 	vector mag = {(p->mag[0]), (p->mag[2]), (p->mag[1])};
 	
-	gyro.array[1] = mpu9250_value[6];
+// 	gyro.array[1] = mpu9250_value[6];
 
 // 	LOGE("\rmag:%d,%d,%d,%d, %.2f   ", int(mag.array[0]), int(mag.array[1]), int(mag.array[2]), (int)sqrt(mag.array[0]*mag.array[0]+mag.array[1]*mag.array[1]+mag.array[2]*mag.array[2]), yaw_est*PI180);
 #else
@@ -1824,11 +1853,13 @@ int read_sensors()
 		mag.array[i] += mag_bias[i];
 		mag.array[i] *= mag_scale[i];
 	}
+	float tmp = sqrt(mag.array[0]*mag.array[0]+mag.array[1]*mag.array[1]+mag.array[2]*mag.array[2]);
+	printf("\r%.3f", tmp);
 	gyro_raw = gyro;
 	vector_sub(&gyro, &gyro_bias);
 	vector_multiply(&gyro, GYRO_SCALE);
 
-	gyro.array[0] = adxrs453_value * 0.0002181f;
+// 	gyro.array[0] = adxrs453_value * 0.0002181f;
 
 	::gyro = gyro;
 	::mag = mag;
@@ -1846,6 +1877,13 @@ int read_sensors()
 		vector_multiply(&acc, alpha20);
 		vector_add(&::accel, &acc);
 	}
+
+// 	vector tmp_gyro = gyro;
+// 	float alpha01 = interval / (interval + 1.0f/(2*3.1415926 * 0.01f));
+// 	vector_multiply(&::gyro_LP, 1-alpha01);
+// 	vector_multiply(&tmp_gyro, alpha01);
+// 	vector_add(&::gyro_LP, &tmp_gyro);
+// 	LOGE("%.3f,%.3f,%.3f\n", gyro_LP.array[0] * PI180, gyro_LP.array[1] * PI180, gyro_LP.array[2] * PI180);
 
 	// update imu statics
 	// #ifdef STM32F1
@@ -2108,7 +2146,7 @@ int calculate_attitude()
 	euler[0] = radian_add(euler[0], quadcopter_trim[0]);
 	euler[1] = radian_add(euler[1], quadcopter_trim[1]);
 
-	TRACE("euler:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, gyroI:%.2f, time:%f, bias:%.2f, pressure=%.2f \n ", euler[0]*PI180, euler[1]*PI180, euler[2]*PI180, roll*PI180, pitch*PI180, yaw_est*PI180, gyroI.array[2]*PI180, getus()/1000000.0f, gyro_bias[1]*PI180, a_raw_pressure);
+	TRACE("euler:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, gyroI:%.2f, time:%f, bias:%.2f/%.2f/%.2f, pressure=%.2f \n ", euler[0]*PI180, euler[1]*PI180, euler[2]*PI180, roll*PI180, pitch*PI180, yaw_est*PI180, gyroI.array[2]*PI180, getus()/1000000.0f, gyro_bias[0]*PI180, gyro_bias[1]*PI180, gyro_bias[2]*PI180, a_raw_pressure);
 
 // 	LOGE("angle target:%.2f,%.2f,%.2f\n", angle_target[0]*PI180, angle_target[1]*PI180, angle_target[2]*PI180);
 
@@ -2285,17 +2323,17 @@ mag_load:
 
 	int enter_throttle = (THROTTLE_IDLE+THROTTLE_MAX)/2;
 	// enter magnetemeter centering mode if throttle > THROTTLE_STOP (and slowly flash all LED lights)
-	while (g_ppm_input[2] > (enter_throttle))
+	while (g_pwm_input[2] > (enter_throttle))
 	{
 		mag_offset mag_offset;
 		int mag_c = 0;
 		int64_t start_tick = getus();
 
 		delayms(100);
-		if (g_ppm_input[2] < enter_throttle)
+		if (g_pwm_input[2] < enter_throttle)
 			break;
 
-		while(g_ppm_input[2] > enter_throttle)
+		while(g_pwm_input[2] > enter_throttle)
 		{
 			// flash LED lights
 			if ((getus()/1000)%250 > 125)
@@ -2308,7 +2346,7 @@ mag_load:
 #if QUADCOPTER == 1
 				g_ppm_output[i] = THROTTLE_STOP;
 #else
-				g_ppm_output[i] = floor(g_ppm_input[i]+0.5);
+				g_ppm_output[i] = floor(g_pwm_input[i]+0.5);
 			g_ppm_output[2] = THROTTLE_STOP;
 #endif
 			PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
@@ -2478,7 +2516,7 @@ int sensor_calibration()
 #if QUADCOPTER == 1
 			g_ppm_output[i] = THROTTLE_STOP;
 #else
-			g_ppm_output[i] = g_ppm_input[i];
+			g_ppm_output[i] = g_pwm_input[i];
 #endif
 
 		PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
@@ -2596,10 +2634,21 @@ int set_submode(copter_mode newmode)
 	bool has_alt_controller = submode == poshold || submode == althold;
 	bool to_use_alt_controller = newmode == poshold || newmode == althold;
 
+#ifndef LITE
 	if (!has_pos_controller && to_use_pos_controller)
 	{
-		// TODO: reset pos controller
+		// reset pos controller
+		position_meter meter = estimator.get_estimation_meter();
+		float ne_pos[2] = {meter.latitude, meter.longtitude};
+		float ne_velocity[2] = {meter.vlatitude, meter.vlongtitude};
+		float desired_velocity[2] = {0, 0};
+
+		controller.provide_attitue_position(euler, ne_pos, ne_velocity);
+		controller.set_desired_velocity(desired_velocity);
+		controller.get_target_angles(angle_target);
+		controller.reset();
 	}
+#endif
 
 	if (!has_alt_controller && to_use_alt_controller)
 	{
@@ -2662,22 +2711,27 @@ int set_mode(fly_mode newmode)
 int check_mode()
 {
 	// sub mode swtich
-	if (g_ppm_input_update[5] > getus() - RC_TIMEOUT)
+	if (g_pwm_input_update[5] > getus() - RC_TIMEOUT)
 	{
 		copter_mode newmode = submode;
 		if(!has_6th_channel)
 			newmode = althold;
+#ifndef LITE
 		else if (rc[5] < -0.6f)
 			newmode = basic;
 		else if (rc[5] > 0.6f)
-			newmode = poshold;
+			newmode = (estimator.healthy && airborne) ? poshold : althold;
 		else if (rc[5] > -0.5f && rc[5] < 0.5f)
 			newmode = althold;
+#else
+		else
+			newmode = rc[5] < 0 ? basic : althold;
+#endif
 
 		set_submode(newmode);
 	}
 
-	if (g_ppm_input_update[4] > getus() - RC_TIMEOUT || !has_5th_channel)
+	if (g_pwm_input_update[4] > getus() - RC_TIMEOUT || !has_5th_channel)
 	{
 #if QUADCOPTER == 1
 		if (mode == initializing)
@@ -2696,7 +2750,7 @@ int check_mode()
 		static int64_t arm_start_tick = 0;
 		bool rc_fail = false;
 		for(int i=0; i<4; i++)
-			if (g_ppm_input_update[i] < getus() - RC_TIMEOUT)
+			if (g_pwm_input_update[i] < getus() - RC_TIMEOUT)
 				rc_fail = true;
 		bool arm_action = !rc_fail && rc[2] < 0.1f  && fabs(rc[0]) > 0.85f
 						&& fabs(rc[1]) > 0.85f && fabs(rc[3]) > 0.85f;
@@ -2721,9 +2775,9 @@ int check_mode()
 		}
 
 #else
-		if (g_ppm_input[4] < 1333)
+		if (g_pwm_input[4] < 1333)
 			set_mode(manual);
-		else if (g_ppm_input[4] > 1666)
+		else if (g_pwm_input[4] > 1666)
 			set_mode(acrobatic);
 		else
 		{
@@ -2937,6 +2991,11 @@ int read_advsensor_packets()
 				//LOGE("\rg:%.3f,a:%.4fg, ", gyro620, packets[i].data[14]-2.50f);
 				imupacket = packets[0];
 			}
+			else
+			{
+				//LOGE("bad packet found\n");
+				imu_packet_counter++;
+			}
 		}
 	}
 
@@ -2978,7 +3037,7 @@ int loop(void)
 	TRACE("\rRC");
 	for(int i=0; i<8; i++)
 	{
-		rc[i] = ppm2rc(g_ppm_input[i], rc_setting[i][0], rc_setting[i][1], rc_setting[i][2], rc_setting[i][3] > 0);
+		rc[i] = ppm2rc(g_pwm_input[i], rc_setting[i][0], rc_setting[i][1], rc_setting[i][2], rc_setting[i][3] > 0);
 		TRACE("%.2f,", rc[i]);
 	}
 
@@ -3021,9 +3080,9 @@ int loop(void)
 
 	// read sensors and update altitude if new air pressure data arrived.
 	read_sensors();
-// 	read_advsensor_packets();
-// 	read_advsensor_packets();
-// 	read_advsensor_packets();
+//  	read_advsensor_packets();
+//  	read_advsensor_packets();
+//  	read_advsensor_packets();
 	handle_uart4_cli();
 
 	// attitude and  heading
@@ -3037,11 +3096,9 @@ int loop(void)
 		gps_id++;
 		nmeaINFO *info = GPS_GetInfo();
 
-  		if (info->HDOP > 0 && info->HDOP < 5.0 && info->fix>1)
+		if (info->HDOP > 0 && info->HDOP < (estimator.healthy ? 3.5f : 2.5f) && info->fix>=3)
 		{
-			estimator.update_gps(COORDTIMES * NDEG2DEG(info->lat), COORDTIMES * NDEG2DEG(info->lon), getus());
-			estimator2.update_gps(COORDTIMES * NDEG2DEG(info->lat), COORDTIMES * NDEG2DEG(info->lon), getus());
-			estimator3.update_gps(COORDTIMES * NDEG2DEG(info->lat), COORDTIMES * NDEG2DEG(info->lon), getus());
+			estimator.update_gps(COORDTIMES * NDEG2DEG(info->lat), COORDTIMES * NDEG2DEG(info->lon), info->HDOP, getus());
 		}
 // 		else
 		{
@@ -3069,8 +3126,6 @@ int loop(void)
 	}
 
 	estimator.update_accel(accel_earth_frame.array[0], accel_earth_frame.array[1], getus());
-	estimator2.update_accel(accel_earth_frame.array[0], accel_earth_frame.array[1], getus());
-	estimator3.update_accel(accel_earth_frame.array[0], accel_earth_frame.array[1], getus());
 
 #endif
 
@@ -3096,10 +3151,10 @@ int loop(void)
 	TRACE("\rroll,pitch,yaw/yaw2 = %f,%f,%f,%f, target roll,pitch,yaw = %f,%f,%f, error = %f,%f,%f", roll*PI180, pitch*PI180, yaw_est*PI180, yaw_gyro*PI180, target[0]*PI180, target[1]*PI180, target[2]*PI180,
 		error_pid[0][0]*PI180, error_pid[1][0]*PI180, error_pid[2][0]*PI180);
 
-	TRACE("time=%.2f,inte=%.4f,out= %d, %d, %d, %d, input=%f,%f,%f,%f\n", getus()/1000000.0f, interval, g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_ppm_input[0], g_ppm_input[1], g_ppm_input[3], g_ppm_input[5]);
+	TRACE("time=%.2f,inte=%.4f,out= %d, %d, %d, %d, input=%f,%f,%f,%f\n", getus()/1000000.0f, interval, g_ppm_output[0], g_ppm_output[1], g_ppm_output[2], g_ppm_output[3], g_pwm_input[0], g_pwm_input[1], g_pwm_input[3], g_pwm_input[5]);
 	TRACE ("\r mag=%.2f,%.2f,%.2f  acc=%.2f,%.2f,%.2f ", estMagGyro.V.x, estMagGyro.V.y, estMagGyro.V.z, estAccGyro.V.x, estAccGyro.V.y, estAccGyro.V.z);
 	TRACE ("\racc=%d,%d,%d ", p->accel[0], p->accel[1], p->accel[2]);
-	TRACE("\rinput= %.2f, %.2f, %.2f, %.2f,%.2f,%.2f", g_ppm_input[0], g_ppm_input[1], g_ppm_input[2], g_ppm_input[3], g_ppm_input[4], g_ppm_input[5]);
+	TRACE("\rinput= %.2f, %.2f, %.2f, %.2f,%.2f,%.2f", g_pwm_input[0], g_pwm_input[1], g_pwm_input[2], g_pwm_input[3], g_pwm_input[4], g_pwm_input[5]);
 	TRACE("\rinput:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, ADC=%.2f", (float)g_ppm_output[0], (float)g_ppm_output[1], (float)g_ppm_output[2], (float)g_ppm_output[3], (float)g_ppm_output[0], (float)g_ppm_output[1], p->voltage/1000.0 );
 
 	TRACE("\ryaw=%.2f, yt=%.2f, mag=%d,%d,%d           ", yaw_est *PI180, yaw_launch*PI180, p->mag[0], p->mag[1], p->mag[2]);
@@ -3175,7 +3230,7 @@ int sanity_test()
 			est.update_accel(packet.alat, packet.alon, packet.timestamp);
 		else
 		{
-			est.update_gps(packet.lat, packet.lon, packet.timestamp);
+			est.update_gps(packet.lat, packet.lon, 2.0f, packet.timestamp);
 			printf("err=%f,%f", est.error_lat, est.error_lon);
 		}
 	}
@@ -3246,12 +3301,11 @@ int main(void)
 	if (init_MPU6050() < 0)
 		critical_errors |= error_accelerometer | error_gyro;
 	
-	if (init_MPU9250() < 0)
-		critical_errors |= error_accelerometer | error_gyro;
+// 	if (init_MPU9250() < 0)
+// 		critical_errors |= error_accelerometer | error_gyro;
 	
 	#ifndef LITE
-	estimator2.set_gps_latency(0);
-	estimator3.set_gps_latency(250);
+	estimator.set_gps_latency(0);
 	adxrs453_init();
 	if (init_MS5611() < 0)
 		critical_errors |= error_baro;
@@ -3291,12 +3345,12 @@ int main(void)
 	p->current = -32768;
 
 #ifndef LITE
-	magnet_calibration();
+	//magnet_calibration();
 #endif
 	sensor_calibration();
 
-	has_5th_channel = g_ppm_input_update[4] > getus()-500000;
-	has_6th_channel = g_ppm_input_update[5] > getus()-500000;
+	has_5th_channel = g_pwm_input_update[4] > getus()-500000;
+	has_6th_channel = g_pwm_input_update[5] > getus()-500000;
 
 	// check critical errors
 	if (critical_errors != 0)
@@ -3368,7 +3422,6 @@ int main(void)
 	TIM_Cmd(TIM1,ENABLE);
 
 #ifdef STM32F1
-	#define TIM1_UP_IRQn TIM1_UP_TIM10_IRQn
 	NVIC_InitStructure.NVIC_IRQChannel = TIM1_UP_IRQn;
 #endif
 #ifdef STM32F4
@@ -3429,8 +3482,8 @@ void TIM1_UP_IRQHandler(void)
 void TIM1_UP_TIM10_IRQHandler(void)
 #endif
 {
-	TIM_ClearITPendingBit(TIM1 , TIM_FLAG_Update);
 	loop();
+	TIM_ClearITPendingBit(TIM1 , TIM_FLAG_Update);
 }
 
 int64_t tick;
@@ -3573,44 +3626,3 @@ static void SysClockInit(void)
 	}
 #endif
 }
-
-#ifndef LITE
-
-int ads1115_new_work(ads1115_speed speed, ads1115_channel channel, ads1115_gain gain, int16_t *out)
-{
-	if (ads1115_work_count >= MAX_ADS1115_WORKS)
-		return -1;
-
-	ads1115_work &p = ads1115_works[ads1115_work_count++];
-	p.speed = speed;
-	p.channel = channel;
-	p.gain = gain;
-	p.out = out;
-
-	if (ads1115_work_count == 1)
-	{
-		ads1115_config(speed, channel, gain, ads1115_mode_singleshot);
-		ads1115_startconvert();
-	}
-	
-	return 0;
-}
-
-int ads1115_go_on()
-{
-	if (ads1115_work_count == 0)
-		return 1;
-
-	int res = ads1115_getresult(ads1115_works[ads1115_work_pos].out);
-	if (res == 0)
-	{
-		ads1115_work_pos = (ads1115_work_pos+1)%ads1115_work_count;
-		ads1115_work &p = ads1115_works[ads1115_work_pos];
-		ads1115_config(p.speed, p.channel, p.gain, ads1115_mode_singleshot);
-		ads1115_startconvert();
-		return 0;
-	}
-
-	return 1;
-}
-#endif
