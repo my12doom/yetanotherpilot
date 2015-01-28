@@ -1,5 +1,4 @@
 #include "adis16405.h"
-
 #include "../mcu.h"
 
 #define SET_CS()		GPIO_SetBits(GPIOA, GPIO_Pin_15)	//PA.4->/CS
@@ -14,13 +13,49 @@
 
 static void DelayCLK()
 {
+	__IO uint32_t nCount = 100;
+	for(; nCount != 0; nCount--);
+}
+static void DelayBurst()
+{
 	__IO uint32_t nCount = 20;
+	for(; nCount != 0; nCount--);
+}
+static void DelayMCU()
+{
+	__IO uint32_t nCount = 250;
 	for(; nCount != 0; nCount--);
 }
 
 static void Delay(__IO uint32_t nCount)
 {
   for(; nCount != 0; nCount--);
+}
+
+static uint16_t spi_tx_rx16_burst(uint16_t tx)
+{
+	uint16_t rx = 0;
+	int i;
+
+	for(i=0; i<16; i++)
+	{
+		CLR_SCL();
+
+		if (tx & 0x8000)
+			SET_SDO();
+		else
+			CLR_SDO();
+		tx <<= 1;
+
+		DelayBurst();
+		SET_SCL();
+	
+		rx <<= 1;
+		rx |= GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_6);
+		DelayBurst();
+	}
+
+	return rx;
 }
 
 static uint16_t spi_tx_rx16(uint16_t tx)
@@ -40,7 +75,7 @@ static uint16_t spi_tx_rx16(uint16_t tx)
 
 		DelayCLK();
 		SET_SCL();
-	
+
 		rx <<= 1;
 		rx |= GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_6);
 		DelayCLK();
@@ -48,6 +83,7 @@ static uint16_t spi_tx_rx16(uint16_t tx)
 
 	return rx;
 }
+
 
 static void CSLow()
 {
@@ -97,6 +133,12 @@ int adis16405_init(void)
 	return 0;
 }
 
+#ifdef __GNUC__
+#define NOP __ASM volatile ("nop")
+#else
+#define NOP __nop()
+#endif
+
 int16_t ReadFromADIS16405ViaSpi(unsigned char RegisterAddress)
 {
 	unsigned	char	ControlValue = 0;
@@ -108,27 +150,27 @@ int16_t ReadFromADIS16405ViaSpi(unsigned char RegisterAddress)
 	///Create the 8-bit header
 		ControlValue = RegisterAddress ;//every register of ADIS16405 takes up two bytes ，先读低8位地址
 		SET_SCL();
-		__nop();
-		__nop();
-		__nop();
-		__nop();
-		__nop();
-		__nop();
+		NOP;
+		NOP;
+		NOP;
+		NOP;
+		NOP;
+		NOP;
 		SET_CS();
-		__nop();
-		__nop();
- 		__nop();
-		__nop();
-		__nop();
-		__nop();
-		__nop();
-		__nop();
-		__nop();
- 		__nop();
-		__nop();
-		__nop();
-		__nop();
-		__nop();
+		NOP;
+		NOP;
+ 		NOP;
+		NOP;
+		NOP;
+		NOP;
+		NOP;
+		NOP;
+		NOP;
+ 		NOP;
+		NOP;
+		NOP;
+		NOP;
+		NOP;
 		CLR_CS();	 //bring CS low
 		DelayCLK();
 
@@ -159,16 +201,16 @@ int16_t ReadFromADIS16405ViaSpi(unsigned char RegisterAddress)
 			DelayCLK();
 	
 			SET_SCL();			 //由低变高时 采样	  MOSI
-			__nop();
-			__nop();
-			__nop();
-			__nop();
-			__nop();
-			__nop();
-			__nop();
-			__nop();
-			__nop();
-			__nop();
+			NOP;
+			NOP;
+			NOP;
+			NOP;
+			NOP;
+			NOP;
+			NOP;
+			NOP;
+			NOP;
+			NOP;
 		
 			ReceiveData <<= 1;		//Rotate data
 			ReceiveData |= GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_6);
@@ -192,16 +234,17 @@ int adis16405_burst_read(adis16405_burst_packet *out)
 	
 	DelayCLK();
 
-	spi_tx_rx16(0x3E00);
+	spi_tx_rx16_burst(0x3E00);
 	
 	for(i=0; i<sizeof(adis16405_burst_packet)/2; i++)
 	{
 		DelayCLK();
-		p[i] = spi_tx_rx16(0);
+		p[i] = spi_tx_rx16_burst(0);
 	}
 	DelayCLK();
 	CSHigh();
 
+	out->supply_measurement &= 0x1fff;
 	translate_14bit(&out->accel_z);
 	translate_14bit(&out->gyro_x);
 	translate_14bit(&out->gyro_y);
@@ -219,11 +262,11 @@ int adis16405_burst_read(adis16405_burst_packet *out)
 int adis16405_read_register(unsigned char registerAddress, unsigned short *out)
 {	
 	CSLow();
-	DelayCLK();
+	DelayMCU();
     spi_tx_rx16((registerAddress & 0x7f) << 8);
-	DelayCLK();
+	DelayMCU();
 	*out = spi_tx_rx16(0);
-	DelayCLK();
+	DelayMCU();
 	CSHigh();
 
 	return 0;
@@ -236,11 +279,11 @@ int adis16405_write_register(unsigned char registerAddress, unsigned short new_v
 		return -1;
 
 	CSLow();
-	DelayCLK();
+	DelayMCU();
     spi_tx_rx16((((registerAddress+1) & 0x7f) << 8) | (new_value >> 8) | 0x8000 ) ;
-	DelayCLK();
+	DelayMCU();
     spi_tx_rx16((((registerAddress) & 0x7f) << 8) | (new_value & 0xff) | 0x8000) ;
-	DelayCLK();
+	DelayMCU();
 	CSHigh();
 
 	return 0;
