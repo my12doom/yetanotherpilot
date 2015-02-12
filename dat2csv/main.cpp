@@ -144,8 +144,7 @@ int fitting_accel_3d()
 	printf("bias:");
 	for(int i=0; i<3; i++)
 	{
-		v.parameter[i] *= 2048;
-		printf("%.2f,", v.parameter[i]);
+		printf("%.2f(%f),", v.parameter[i]* 2048, v.parameter[i]);
 	}
 
 	printf("\nscale:");
@@ -175,8 +174,8 @@ int fitting_mag_3d()
 	func_vector v = {0,0,0,1,1,1};
 	for(int i=0; i<3; i++)
 	{
-// 		v.parameter[i] = (maxs[i] + mins[i])/2;
-// 		v.parameter[i+3] = 1/((maxs[i] - mins[i])/2);
+		v.parameter[i] = (maxs[i] + mins[i])/2;
+		v.parameter[i+3] = 1/((maxs[i] - mins[i])/2);
 	}
 	func_vector v_initial = v;
 	const double step = 0.001;
@@ -209,7 +208,7 @@ int fitting_mag_3d()
 		}
 	}
 
-	for(int i=0; i<min(point_count,16); i++)
+	for(int i=0; i<min(point_count,999); i++)
 	{
 		printf("I:%f,%f,%f(%f)", points[i][0], points[i][1], points[i][2], sqrt(points[i][0]*points[i][0]+points[i][1]*points[i][1]+points[i][2]*points[i][2]));
 		printf("\n");
@@ -283,7 +282,7 @@ int fitting_accel_matrix()
 
 	double delta[15];
 	double delta_length = 0;
-	for(int j=0; j<1000000; j++)
+	for(int j=0; j<100000; j++)
 	{
 		double result = func_accel_matrix(v);
 		delta_length = 0;
@@ -337,6 +336,14 @@ int fitting_accel_matrix()
 		printf("   %f\n", v.parameter[9+i]);
 	}
 
+	for(int i=0; i<point_count; i++)
+	{
+		points[i][0] *= 2048;
+		points[i][1] *= 2048;
+		points[i][2] *= 2048;
+	}
+
+
 
 	return 0;
 }
@@ -377,7 +384,7 @@ int motion_detect_accel(sensor_data sensor, float time)
 	}
 	else
 	{
-		if (time - still_start_time > 4)
+		if (time - still_start_time > 4 && still_counter > 10)
 		{
 			printf("STILL:");
 			for(int i=0; i<3; i++)
@@ -393,6 +400,59 @@ int motion_detect_accel(sensor_data sensor, float time)
 
 		for(int i=0; i<3; i++)
 			still_start_accel[i] = sensor.accel[i];
+		still_counter = 0;
+		still_start_time = 999999;
+	}
+
+	return 0;
+}
+
+int motion_detect_accel_16405(double_sensor_data double_sensor, float time)
+{
+	bool still = true;
+	for(int i=0; i<3; i++)
+	{
+		if (abs(still_start_accel[i] - double_sensor.acc2[i]) > 55)
+			still = false;
+	}
+
+	if (still)
+	{
+		if (still_counter == 0)
+		{
+			for(int i=0; i<3; i++)
+				still_accel_avg[i] = double_sensor.acc2[i];
+			still_start_time = time;
+			still_temp_avg = 0;
+
+		}
+		else
+		{
+			still_temp_avg += 0;
+			for(int i=0; i<3; i++)
+				still_accel_avg[i] += double_sensor.acc2[i];
+		}
+
+		still_counter ++;
+	}
+	else
+	{
+		if (time - still_start_time > 4 && still_counter > 10)
+		{
+			printf("STILL:");
+			for(int i=0; i<3; i++)
+				printf("%.1f,", still_accel_avg[i]/still_counter);
+			printf("%.2f¡ãC, %.2fs\n", still_temp_avg/still_counter, time - still_start_time);
+
+			for(int i=0; i<3; i++)
+				points[point_count][i] = still_accel_avg[i]/still_counter;
+			points[point_count][3] = still_temp_avg/still_counter;
+
+			point_count++;
+		}
+
+		for(int i=0; i<3; i++)
+			still_start_accel[i] = double_sensor.acc2[i];
 		still_counter = 0;
 		still_start_time = 999999;
 	}
@@ -580,7 +640,7 @@ float sqr(float a, float b)
 int main(int argc, char **argv)
 {
 // 	sanity_test();
-	int ssize = sizeof(pilot_data);
+	int ssize = sizeof(quadcopter_data2);
 	tobin();
 
 	int size =  sizeof(rf_data);
@@ -697,6 +757,9 @@ int main(int argc, char **argv)
 	adv_sensor_data adv_sensor[3] = {0};
 	pos_controller_data posc_data1;
 	pos_controller_data2 posc_data2;
+	double_sensor_data double_sensor = {0};
+	px4_frame px4flow = {0};
+	float flow_pos[2] = {0};
 	float Rot_matrix[9];
 	float euler[3];
 
@@ -774,8 +837,8 @@ int main(int argc, char **argv)
 		{
 			sensor = rf.data.sensor;
 			fwrite(sensor.gyro, 1, 6, gyrof);
-			motion_detect_accel(sensor, time/1000000.0f);
-			//motion_detect_mag(sensor, time/1000000.0f);
+			//motion_detect_accel(sensor, time/1000000.0f);
+			motion_detect_mag(sensor, time/1000000.0f);
 
 			static int imu_counter = 0;
 			static int ltime = -1;
@@ -864,17 +927,47 @@ int main(int argc, char **argv)
 		{
 			quad3 = rf.data.quadcopter3;
 		}
+		else if ((rf.time & TAG_MASK) ==  TAG_PX4FLOW_DATA)
+		{
+
+// 			if (rf.data.px4flow.ground_distance > 300 && rf.data.px4flow.ground_distance < 30000)
+			{
+				px4flow = rf.data.px4flow;
+				
+
+				static int64_t last_integral_time = 0;
+
+				float dt = (time - last_integral_time) / 1000000.0f;
+
+				if (dt > 0 && dt < 1)
+				{
+					flow_pos[0] += px4flow.flow_comp_m_x / 1000.0f * dt;
+					flow_pos[1] += px4flow.flow_comp_m_y / 1000.0f * dt;
+				}
+				else
+				{
+					printf("..");
+				}
+
+				last_integral_time = time;
+			}
+		}
 		else if ((rf.time & TAG_MASK) ==  TAG_POS_CONTROLLER_DATA1)
 			posc_data1 = rf.data.pos_controller;
 		else if ((rf.time & TAG_MASK) ==  TAG_POS_CONTROLLER_DATA2)
 			posc_data2 = rf.data.pos_controller2;
+		else if ((rf.time & TAG_MASK) ==  TAG_DOUBLE_SENSOR_DATA)
+		{
+			double_sensor = rf.data.double_sensor;
+ 			motion_detect_accel_16405(double_sensor, time/1000000.0f);
+		}
 		else if ((rf.time & TAG_MASK) ==  TAG_PPM_DATA)
 			ppm = rf.data.ppm;
 		else if ((rf.time & TAG_MASK) ==  TAG_CTRL_DATA)
 			;// ignore controll data packets
 		else
 		{
-// 			printf("unknown data %x, skipping\r\n", int((rf.time & TAG_MASK)>>56));
+			printf("unknown data %x, skipping\r\n", int((rf.time & TAG_MASK)>>56));
 		}
 
 		// test
@@ -1070,6 +1163,7 @@ int main(int argc, char **argv)
 		float a3 = (adv_sensor[1].data[4]-vcc/2)*5.0/vcc/0.312f;
 		float a4 = (adv_sensor[1].data[4]-2.50)/0.312f;
 		float temperature_620 = (adv_sensor[0].data[2] - 2.50f)/0.009f + 25;
+		float g_16405 = sqrtf(double_sensor.acc2[0]*double_sensor.acc2[0]+double_sensor.acc2[1]*double_sensor.acc2[1]+double_sensor.acc2[2]*double_sensor.acc2[2]) / 2048.0f;
 		int avg_output = (ppm.out[0]+ ppm.out[1]+ ppm.out[2]+ ppm.out[3])/4;
 
 		static float pos = -9999;
@@ -1088,17 +1182,18 @@ int main(int argc, char **argv)
 				pos = quad.angle_pos[0];
 			}
 		}
+		float latitude_to_meter = (40007000.0f/COORDTIMES/360);
 //   		if (time > 45000000 && time < 55000000)
-		if (time > 60000000 && time < 70000000)
+// 		if (time > 70000000 && time < 80000000)
 // 		if (abs(a1) < 0.10 && abs(a2) < 0.10)
-//   		if (n++ %8 == 0)
+//   		if (n++ %15 == 0)
 //  		if (abs(adv_sensor[0].data[3]-5)<0.2)
 //  		if ((time > 13500000 && time < 17500000) || (time > 25500000 && time < 30000000))
  		fprintf(fo, "%.4f,%.5f,%.5f,%2f,%f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d,%d\r\n",
-				float(time/1000000.0f), mag_size, posc_data1.pos[1], posc_data1.target_pos[0], posc_data1.target_pos[1],
- 				int(acc.V.x), int(acc.V.y), int(acc.V.z), sensor.gyro[0], sensor.gyro[1], sensor.gyro[2], pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[1], pilot2.D[0],
+				float(time/1000000.0f), float(flow_pos[0]), float(flow_pos[1]), float(px4flow.qual), float(px4flow.ground_distance),
+ 				sensor.accel[0], sensor.accel[1], sensor.accel[2], px4flow.qual, pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[1], pilot2.D[0],
 				roll*180/PI, pitch*180/PI, roll_acc * 180 / PI, pitch_acc*180/PI, pilot.target[0]/100.0, pilot.target[2]/100.0, 
 				(ppm.in[2]-1113)/50, pilot.fly_mode,
 				ppm.in[0], ppm.in[1], ppm.in[2], ppm.in[3], ppm.out[0], ppm.out[1], ppm.out[2], ppm.out[3],
@@ -1125,7 +1220,7 @@ int main(int argc, char **argv)
 // 			if (home_set)
 // 			if (time > 220000000 && time < 230000000)
 // 			if (time > 50000000 && time < 75000000)
- 			if (m++ %125 == 0)
+//  			if (m++ %15 == 0)
 			{
 				float yaw = gps.direction * PI / 180;
 				if (yaw > PI)
@@ -1151,7 +1246,7 @@ int main(int argc, char **argv)
 	fclose(gpso);
 
 	memset(&sensor, 0, sizeof(sensor));
-	motion_detect_accel(sensor, time/1000000.0f);
+// 	motion_detect_mag(sensor, time/1000000.0f);
 
 	/*
 	printf("allan variance\n");
@@ -1177,7 +1272,7 @@ int main(int argc, char **argv)
 
 // 	fitting_accel_matrix();
 // 	fitting_mag_3d();
-	fitting_accel_3d();
+// 	fitting_accel_3d();
 
 	return 0;
 }

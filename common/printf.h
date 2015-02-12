@@ -48,7 +48,7 @@ void printf_init(void);
 
 #if __GNUC__ > 0
 extern char gcc_printf_buffer[256];
-#define LOGE gcc_printf
+#define LOGE printf
 #else
 #define LOGE printf
 #endif

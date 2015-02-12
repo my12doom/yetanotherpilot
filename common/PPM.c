@@ -70,10 +70,10 @@ static float f_max(float a, float b)
 // PPM input handler
 static void PPM_EXTI_Handler(void)
 {
+	__IO int tick = TIM_GetCounter(TIM5);
 	while(1)
 	{
 		int channel = -1;
-		__IO int tick = TIM_GetCounter(TIM5);
 #if PCB_VERSION == 1 ||  PCB_VERSION == 3
 		static int pin_tbl[6] = {GPIO_Pin_10, GPIO_Pin_11, GPIO_Pin_12, GPIO_Pin_13, GPIO_Pin_14, GPIO_Pin_15};
 		static int line_tbl[6] = {EXTI_Line10, EXTI_Line11, EXTI_Line12, EXTI_Line13, EXTI_Line14, EXTI_Line15};

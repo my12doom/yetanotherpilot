@@ -1,6 +1,8 @@
 #ifndef __RFDATA_H__
 #define __RFDATA_H__
 
+#include "sensors/px4flow.h"
+
 #ifdef WIN32
 typedef __int64 int64_t;
 #endif
@@ -143,15 +145,16 @@ typedef struct
 
 typedef struct
 {
-	short climb_rate;		// high-frequency low pass filtered climb rate, unit: cm/s
+	short climb_rate_kalman;
 	bool airborne;
-	short altitude_inertia;	// unit: cm
+	short altitude_kalman;	// unit: cm
 	short accel_z_kalman;	// unit: cm/s
 	short altitude_baro_raw;	// unit: cm
 	short accel_z;			// unit: cm/s^2
 	short loop_hz;
 	short throttle_result;	// throttle result pwm from auto throttle controller
 	unsigned char sub_mode;
+	short kalman_accel_bias;
 } quadcopter_data2;
 
 typedef struct
@@ -191,6 +194,14 @@ typedef struct
 
 typedef struct
 {
+	short acc1[3];
+	short gyro1[3];
+	short acc2[3];
+	short gyro2[3];
+} double_sensor_data;
+
+typedef struct
+{
 	int64_t time;			// 8 byte, the top 1byte is tag
 	union
 	{
@@ -212,7 +223,8 @@ typedef struct
 		quadcopter_data3 quadcopter3;
 		pos_controller_data pos_controller;
 		pos_controller_data2 pos_controller2;
-
+		double_sensor_data double_sensor;
+		px4_frame px4flow;
 	}data;
 } rf_data;
 
@@ -234,6 +246,8 @@ typedef struct
 #define TAG_RAW_DATA	0x4100000000000000
 #define TAG_POS_CONTROLLER_DATA1	0x4200000000000000
 #define TAG_POS_CONTROLLER_DATA2	0x4300000000000000
+#define TAG_DOUBLE_SENSOR_DATA	0x4400000000000000
+#define TAG_PX4FLOW_DATA	0x4500000000000000
 
 #define TAG_PILOT_DATA	0x6500000000000000
 #define TAG_PILOT_DATA2	0x6600000000000000

@@ -60,10 +60,10 @@ public:
 	double error_lat;
 	bool home_set;
 	bool healthy;
-protected:
-
 	double abias_lon;
 	double abias_lat;
+protected:
+
 	double pbias_lon;
 	double pbias_lat;
 

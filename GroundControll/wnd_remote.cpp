@@ -173,6 +173,8 @@ DWORD CALLBACK remote_update_thread(LPVOID p)
 		ReleaseDC(graph_wnd, hdc);
 
 		Sleep(17);
+
+		printf("%d,%d\n", ppm_states[0][1], ppm_states[1][1]);
 	}
 
 	return 0;

@@ -75,6 +75,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\of_controller.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\of_controller.h"
+				>
+			</File>
+			<File
 				RelativePath=".\pilot.cpp"
 				>
 			</File>
@@ -479,6 +487,14 @@
 				</File>
 				<File
 					RelativePath=".\sensors\MS5611.h"
+					>
+				</File>
+				<File
+					RelativePath=".\sensors\px4flow.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\sensors\px4flow.h"
 					>
 				</File>
 				<File

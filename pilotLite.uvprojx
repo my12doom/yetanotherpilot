@@ -349,7 +349,7 @@
             <interw>1</interw>
             <Optim>4</Optim>
             <oTime>0</oTime>
-            <SplitLS>1</SplitLS>
+            <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
             <Strict>0</Strict>
             <EnumInt>0</EnumInt>
@@ -362,7 +362,7 @@
             <uC99>0</uC99>
             <useXO>0</useXO>
             <VariousControls>
-              <MiscControls></MiscControls>
+              <MiscControls>--diag_suppress 177,550,1</MiscControls>
               <Define>USE_STDPERIPH_DRIVER, STM32F1,LITE</Define>
               <Undefine></Undefine>
               <IncludePath>stm32\CMSIS;stm32\FWlib\inc</IncludePath>

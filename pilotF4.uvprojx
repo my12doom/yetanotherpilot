@@ -359,10 +359,10 @@
             <wLevel>2</wLevel>
             <uThumb>0</uThumb>
             <uSurpInc>0</uSurpInc>
-            <uC99>0</uC99>
+            <uC99>1</uC99>
             <useXO>0</useXO>
             <VariousControls>
-              <MiscControls>--diag_suppress 177,550,1</MiscControls>
+              <MiscControls>--diag_suppress 177,550,1 --gnu</MiscControls>
               <Define>USE_STDPERIPH_DRIVER,USE_STM324x9I_EVAL,STM32F4,USE_USB_OTG_FS,HSE_VALUE=8000000,__FPU_USED=1</Define>
               <Undefine></Undefine>
               <IncludePath>.\stm32\STM32F4xx_StdPeriph_Driver</IncludePath>
@@ -437,6 +437,11 @@
               <FileName>pos_controll.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\pos_controll.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>data_protocol.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\data_protocol.cpp</FilePath>
             </File>
           </Files>
         </Group>
@@ -1122,6 +1127,11 @@
               <FileName>adis16405.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\sensors\adis16405.c</FilePath>
+            </File>
+            <File>
+              <FileName>px4flow.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\sensors\px4flow.cpp</FilePath>
             </File>
           </Files>
         </Group>
@@ -1692,6 +1702,11 @@
               <FileType>8</FileType>
               <FilePath>.\pos_controll.cpp</FilePath>
             </File>
+            <File>
+              <FileName>data_protocol.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\data_protocol.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -2376,6 +2391,11 @@
               <FileName>adis16405.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\sensors\adis16405.c</FilePath>
+            </File>
+            <File>
+              <FileName>px4flow.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\sensors\px4flow.cpp</FilePath>
             </File>
           </Files>
         </Group>
@@ -2946,6 +2966,11 @@
               <FileType>8</FileType>
               <FilePath>.\pos_controll.cpp</FilePath>
             </File>
+            <File>
+              <FileName>data_protocol.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\data_protocol.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -3630,6 +3655,11 @@
               <FileName>adis16405.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\sensors\adis16405.c</FilePath>
+            </File>
+            <File>
+              <FileName>px4flow.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\sensors\px4flow.cpp</FilePath>
             </File>
           </Files>
         </Group>
@@ -4200,6 +4230,11 @@
               <FileType>8</FileType>
               <FilePath>.\pos_controll.cpp</FilePath>
             </File>
+            <File>
+              <FileName>data_protocol.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\data_protocol.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -4884,6 +4919,11 @@
               <FileName>adis16405.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\sensors\adis16405.c</FilePath>
+            </File>
+            <File>
+              <FileName>px4flow.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\sensors\px4flow.cpp</FilePath>
             </File>
           </Files>
         </Group>

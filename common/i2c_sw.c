@@ -14,6 +14,7 @@ GPIO_TypeDef * volatile SDA_PORT = DEFAULT_SDA_PORT;
 #define SDA_HI     (SDA_PORT->BSRR = SDA_PIN)
 #define SDA_LO     (SDA_PORT->BRR  = SDA_PIN)
 #define SDA_STATE  (SDA_PORT->IDR  & SDA_PIN)
+#define SCL_STATE  (SCL_PORT->IDR  & SCL_PIN)
 #endif
 
 #ifdef STM32F4
@@ -24,17 +25,24 @@ GPIO_TypeDef * volatile SDA_PORT = DEFAULT_SDA_PORT;
 int SDA_STATE2()
 {
 	volatile int v;
-// 	SDA_PORT->MODER  &= ~(GPIO_MODER_MODER0 << 28);
-// 	SDA_PORT->MODER |= GPIO_Mode_IN<<28;
 SDA_PORT->MODER|=GPIO_Mode_IN<<28;
 v = SDA_PORT->IDR  & SDA_PIN;
 SDA_PORT->MODER|=GPIO_Mode_OUT<<28;
-// 	SDA_PORT->MODER  &= ~(GPIO_MODER_MODER0 << 28);
-// 	SDA_PORT->MODER |= GPIO_Mode_OUT<<28;
 	return v;
 }
+int SCL_STATE2()
+{
+	volatile int v;
+	SCL_PORT->MODER|=GPIO_Mode_IN<<26;
+	v = SCL_PORT->IDR  & SCL_PIN;
+	SCL_PORT->MODER|=GPIO_Mode_OUT<<26;
+	return v;
+}
+#define SCL_STATE SCL_STATE2()
 #define SDA_STATE SDA_STATE2()
 #endif
+
+static uint8_t I2C_SCLHigh(void);
 
 void I2C2_SW_Configuration(void)
 {
@@ -200,7 +208,7 @@ static void I2C_Delay(void)
     volatile int speedTick = 5;
 	#endif
 	#ifdef STM32F4
-    volatile int speedTick = 5;
+    volatile int speedTick = 25;
 	#endif
     while (speedTick) {
        speedTick--;
@@ -210,7 +218,7 @@ static void I2C_Delay(void)
 static uint8_t I2C_Start(void)
 {
     SDA_HI;
-    SCL_HI;
+    I2C_SCLHigh();
     I2C_Delay();
     if (!SDA_STATE) {
         //DB_Print("I2C_Start:BUSY!\n");
@@ -233,7 +241,7 @@ static void I2C_Stop(void)
     I2C_Delay();
     SDA_LO;
     I2C_Delay();
-    SCL_HI;
+    I2C_SCLHigh();
     I2C_Delay();
     SDA_HI;
     I2C_Delay();
@@ -245,7 +253,7 @@ static void I2C_SendAck(void)
     I2C_Delay();
     SDA_LO;
     I2C_Delay();
-    SCL_HI;
+    I2C_SCLHigh();
     I2C_Delay();
     SCL_LO;
     I2C_Delay();
@@ -257,7 +265,7 @@ static void I2C_SendNoAck(void)
     I2C_Delay();
     SDA_HI;
     I2C_Delay();
-    SCL_HI;
+    I2C_SCLHigh();
     I2C_Delay();
     SCL_LO;
     I2C_Delay();
@@ -269,7 +277,7 @@ static uint8_t I2C_WaitAck(void)
     I2C_Delay();
     SDA_HI;
     I2C_Delay();
-    SCL_HI;
+    I2C_SCLHigh();
     I2C_Delay();
     if (SDA_STATE) {
       SCL_LO;
@@ -277,6 +285,16 @@ static uint8_t I2C_WaitAck(void)
     }
     SCL_LO;
     return 1;
+}
+
+static uint8_t I2C_SCLHigh(void)
+{
+	static int retry = 25;
+	SCL_HI;
+	while(retry && SCL_STATE)
+		retry --;
+
+	return retry > 0;
 }
 
 static void I2C_SendByte(uint8_t Data)
@@ -293,7 +311,7 @@ static void I2C_SendByte(uint8_t Data)
         }
         Data <<= 1;
         I2C_Delay();
-        SCL_HI;
+        I2C_SCLHigh();
         I2C_Delay();
     }
     SCL_LO;
@@ -308,7 +326,7 @@ static uint8_t I2C_ReceiveByte(void)
         Data <<= 1;
         SCL_LO;
         I2C_Delay();
-        SCL_HI;
+        I2C_SCLHigh();
         I2C_Delay();
         if (SDA_STATE) {
             Data |= 0x01;

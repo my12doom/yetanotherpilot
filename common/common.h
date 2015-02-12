@@ -29,6 +29,8 @@ enum copter_mode
 	althold,
 	poshold,
 	acro,
+	bluetooth,	// bluetooth RC
+	optical_flow,	// optical demo from legacy AP code
 };
 
 static void swap(void *p, int size)
