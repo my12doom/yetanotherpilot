@@ -1,73 +1,73 @@
 #include <stdio.h>
-#include "mcu.h"
+#include "../common/mcu.h"
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
 
-#include "RFData.h"
-#include "common/adc.h"
-#include "common/printf.h"
-#include "common/I2C.h"
-#include "common/PPM.h"
-#include "common/common.h"
-#include "common/vector.h"
-#include "common/build.h"
-#include "sensors/HMC5883.h"
-#include "sensors/MPU6050.h"
-#include "sensors/MPU9250.h"
-#include "sensors/mag_offset.h"
-#include "common/matrix.h"
-#include "common/param.h"
-#include "common/space.h"
-#include "ahrs.h"
+#include "../common/RFData.h"
+#include "../common/adc.h"
+#include "../common/printf.h"
+#include "../common/I2C.h"
+#include "../common/PPM.h"
+#include "../common/common.h"
+#include "../common/vector.h"
+#include "../common/build.h"
+#include "../sensors/HMC5883.h"
+#include "../sensors/MPU6050.h"
+#include "../sensors/MPU9250.h"
+#include "../sensors/mag_offset.h"
+#include "../common/matrix.h"
+#include "../common/param.h"
+#include "../common/space.h"
+#include "../library/ahrs.h"
 
 #ifndef LITE
-#include "sensors/ADIS16405.h"
-#include "crc32.h"
-#include "pos_estimator.h"
-#include "pos_controll.h"
-#include "of_controller.h"
-#include "common/gps.h"
-#include "common/uart4.h"
-#include "common/ads1115.h"
-#include "common/ads1256.h"
-#include "sensors/sonar.h"
-#include "common/ads1115_worker.h"
-#include "common/NRF24L01.h"
-#include "fat/ff.h"
-#include "osd/MAX7456.h"
-#include "sensors/MS5611.h"
-#include "sensors/hp203b.h"
-#include "sensors/adxrs453.h"
-#include "common/console.h"
-#include "sensors/px4flow.h"
+#include "../common/crc32.h"
+#include "../sensors/ADIS16405.h"
+#include "../library/pos_estimator.h"
+#include "../library/pos_controll.h"
+#include "../library/of_controller.h"
+#include "../common/gps.h"
+#include "../common/uart4.h"
+#include "../common/ads1115.h"
+#include "../common/ads1256.h"
+#include "../sensors/sonar.h"
+#include "../common/ads1115_worker.h"
+#include "../common/NRF24L01.h"
+#include "../fat/ff.h"
+#include "../osd/MAX7456.h"
+#include "../sensors/MS5611.h"
+#include "../sensors/hp203b.h"
+#include "../sensors/adxrs453.h"
+#include "../common/console.h"
+#include "../sensors/px4flow.h"
 #else
-#include "sensors/BMP085.h"
+#include "../sensors/BMP085.h"
 #endif
 
 
 extern "C"
 {
-#include "fat/diskio.h"
+#include "../fat/diskio.h"
 
 //#include "osd/osdcore.h"
 
 #ifdef STM32F1
 #ifndef LITE
-	#include "usb_mass_storage/hw_config.h"
-	#include "usb_mass_storage/usb_init.h"
-	#include "usb_mass_storage/mass_mal.h"
+	#include "../usb_mass_storage/hw_config.h"
+	#include "../usb_mass_storage/usb_init.h"
+	#include "../usb_mass_storage/mass_mal.h"
 #else
-	#include "usb_com/hw_config.h"
-	#include "usb_mass_storage/usb_init.h"
+	#include "../usb_com/hw_config.h"
+	#include "../usb_mass_storage/usb_init.h"
 #endif
 #endif
 
 #ifdef STM32F4
-	#include "usb_comF4/cdc/usbd_cdc_core.h"
-	#include "usb_comF4/core/usbd_usr.h"
-	#include "usb_comF4/usb_conf/usbd_desc.h"
-	#include "usb_comF4/usb_conf/usb_conf.h"
+	#include "../usb_comF4/cdc/usbd_cdc_core.h"
+	#include "../usb_comF4/core/usbd_usr.h"
+	#include "../usb_comF4/usb_conf/usbd_desc.h"
+	#include "../usb_comF4/usb_conf/usb_conf.h"
 
 	#ifdef USB_OTG_HS_INTERNAL_DMA_ENABLED
 	#if defined ( __ICCARM__ ) /*!< IAR Compiler */

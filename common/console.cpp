@@ -1,4 +1,4 @@
-#include "../mcu.h"
+#include "mcu.h"
 #include "console.h"
 #include "PPM.h"
 #include "printf.h"
@@ -10,7 +10,7 @@
 #include "space.h"
 #include <math.h>
 #include "gps.h"
-#include "../pos_estimator.h"
+#include "../library/pos_estimator.h"
 
 extern volatile vector imu_statics[2][4];		//	[accel, gyro][min, current, max, avg]
 extern volatile int avg_count;

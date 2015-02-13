@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../mcu.h"
+#include "mcu.h"
 
 extern int channel_data[29];		// data read in auto-scan mode
 extern int last_update_channel;

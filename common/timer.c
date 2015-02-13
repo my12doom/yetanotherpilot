@@ -1,5 +1,5 @@
 #include "timer.h"
-#include "../mcu.h"
+#include "mcu.h"
 
 #define overflow 60000
 #define overhead 144

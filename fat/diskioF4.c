@@ -9,7 +9,7 @@
 #include <string.h>
 #include "diskio.h"
 #include "stm324xg_eval_sdio_sd.h"
-#include "../mcu.h"
+#include "../common/mcu.h"
 #include "../common/timer.h"
 #include "stm324xg_eval.h"
 #include "../common/gps.h"

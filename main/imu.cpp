@@ -1,17 +1,17 @@
-#include "mcu.h"
+#include "../common/mcu.h"
 #include <stdio.h>
 #include <string.h>
-#include "common/timer.h"
-#include "common/printf.h"
-#include "common/space.h"
-#include "common/ads1258.h"
-#include "common/i2c.h"
-#include "sensors/hmc5883.h"
-#include "common/fifo.h"
+#include "../common/timer.h"
+#include "../common/printf.h"
+#include "../common/space.h"
+#include "../common/ads1258.h"
+#include "../common/i2c.h"
+#include "../sensors/hmc5883.h"
+#include "../common/fifo.h"
+#include "../common/uart4.h"
 #include "stm32f4xx_dma.h"
 #include "crc32.h"
 #include "imu_packet.h"
-#include "common/uart4.h"
 
 
 /*

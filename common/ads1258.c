@@ -1,5 +1,5 @@
 #include "ads1258.h"
-#include "../mcu.h"
+#include "mcu.h"
 #include "build.h"
 #include <string.h>
 #include "printf.h"

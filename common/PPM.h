@@ -1,7 +1,7 @@
 #ifndef __PPM_H__
 #define __PPM_H__
 
-#include "../mcu.h"
+#include "mcu.h"
 
 
 // constants and enums

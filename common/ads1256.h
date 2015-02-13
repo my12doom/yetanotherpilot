@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../mcu.h"
+#include "mcu.h"
 
 typedef enum
 {

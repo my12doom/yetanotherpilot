@@ -2,7 +2,7 @@
 #include "build.h"
 #include <string.h>
 #include <stdio.h>
-#include "../mcu.h"
+#include "mcu.h"
 #include "common.h"
 
 static nmeaINFO info;

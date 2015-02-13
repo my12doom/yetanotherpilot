@@ -1,4 +1,4 @@
-#include "../mcu.h"
+#include "mcu.h"
 #include "i2c_sw.h"
 #include "i2c_sw_priv.h"
 

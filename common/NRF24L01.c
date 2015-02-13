@@ -1,5 +1,5 @@
 #include "NRF24L01.h"
-#include "../mcu.h"
+#include "mcu.h"
 
 #include <string.h>
 #include "..\common\build.h"

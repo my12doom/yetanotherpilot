@@ -1,6 +1,6 @@
 //#include "stm32f10x_lib.h" 
 #pragma once
-#include "../mcu.h"
+#include "../common/mcu.h"
 #define MAX7456_SPI          SPI1
 
 #define MAX7456_SPICLK       RCC_APB2Periph_SPI1

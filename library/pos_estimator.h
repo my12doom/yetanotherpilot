@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include "mcu.h"
-#include "common/fifo.h"
+#include <stdint.h>
+#include "../common/fifo.h"
 
 #if 1
 #define COORDTIMES 1000000000

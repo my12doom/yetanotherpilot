@@ -1,20 +1,10 @@
 #include "param.h"
-#include "../mcu.h"
+#include "mcu.h"
 #include <stdlib.h>
 #include "build.h"
 #include <string.h>
 #include "printf.h"
 #include "space.h"
-
-extern "C"
-{
-#ifdef STM32F1
-#include "eeprom.h"
-#endif
-#ifdef STM32F4
-#include "eepromF4.h"
-#endif
-}
 
 #define PARAM_ENDL "\0\0\0\0"
 

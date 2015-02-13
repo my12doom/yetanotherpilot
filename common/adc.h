@@ -1,7 +1,7 @@
 #ifndef __ADC_H
 #define	__ADC_H
 
-#include "../mcu.h"
+#include "mcu.h"
 
 #ifdef __cplusplus
 extern "C" {

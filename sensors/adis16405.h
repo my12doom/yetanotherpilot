@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 	
-#include "../mcu.h"
+#include "../common/mcu.h"
 
 typedef struct
 {

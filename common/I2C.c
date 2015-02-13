@@ -1,5 +1,5 @@
 #include "I2C.h"
-#include "../mcu.h"
+#include "mcu.h"
 #include <stdio.h>
 #include "timer.h"
 #include "i2c_sw.h"

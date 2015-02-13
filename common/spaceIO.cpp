@@ -42,7 +42,7 @@ int space_raw_init()
 }
 #else
 
-#include "../mcu.h"
+#include "mcu.h"
 
 int space_raw_read(int address, void *data, int size)
 {

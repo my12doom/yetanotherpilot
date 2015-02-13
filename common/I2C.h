@@ -1,7 +1,7 @@
 #ifndef __I2C_H__
 #define __I2C_H__
 
-#include "../mcu.h"
+#include "mcu.h"
 #include "build.h"
 
 #ifdef __cplusplus

@@ -1,5 +1,5 @@
 #include "adc.h"
-#include "../mcu.h"
+#include "mcu.h"
 
 static void ADC1_GPIO_Config(void)
 {	

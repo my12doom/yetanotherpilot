@@ -29,7 +29,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_it.h"
-#include "mcu.h"
+#include "../common/mcu.h"
 
 /** @addtogroup STM32F4xx_StdPeriph_Examples
   * @{

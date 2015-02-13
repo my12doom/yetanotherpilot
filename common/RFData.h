@@ -1,7 +1,7 @@
 #ifndef __RFDATA_H__
 #define __RFDATA_H__
 
-#include "sensors/px4flow.h"
+#include "../sensors/px4flow.h"
 
 #ifdef WIN32
 typedef __int64 int64_t;

@@ -1,6 +1,6 @@
 #include "adxrs453.h"
 
-#include "../mcu.h"
+#include "../common/mcu.h"
 
 uint8_t spi_tx_rx(uint8_t tx)
 {

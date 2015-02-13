@@ -6,7 +6,7 @@
 #include "build.h"
 
 #ifndef WIN32
-#include "../mcu.h"
+#include "mcu.h"
 #endif
 
 #ifdef __cplusplus

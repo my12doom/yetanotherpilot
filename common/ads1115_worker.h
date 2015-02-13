@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../mcu.h"
+#include "mcu.h"
 #include "ads1115.h"
 
 #define MAX_ADS1115_WORKS 8

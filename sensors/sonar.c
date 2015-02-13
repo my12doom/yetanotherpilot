@@ -1,6 +1,6 @@
 #include "sonar.h"
 #include "../common/timer.h"
-#include "../mcu.h"
+#include "../common/mcu.h"
 
 #define SONAR_TIMEOUT 1000000
 #define SOUND_SPEED 3.4f		// sound speed in mm/10us

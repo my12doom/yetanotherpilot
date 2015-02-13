@@ -5,7 +5,7 @@
 #if __GNUC__ > 0
 //#include <unistd.h>
 #endif
-#include "../mcu.h"
+#include "mcu.h"
 
 #if __GNUC__ > 0
 char gcc_printf_buffer[256];

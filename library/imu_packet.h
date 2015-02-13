@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mcu.h"
+#include "../common/mcu.h"
 
 typedef struct 
 {

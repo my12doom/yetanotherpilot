@@ -1,4 +1,4 @@
-#include "../mcu.h"
+#include "mcu.h"
 
 #if 1
 

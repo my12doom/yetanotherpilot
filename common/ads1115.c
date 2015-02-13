@@ -1,5 +1,5 @@
 #include "ads1115.h"
-#include "../mcu.h"
+#include "mcu.h"
 #include <string.h>
 
 #define ADS1115_ADDR1 0x90

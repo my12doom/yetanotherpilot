@@ -2,7 +2,7 @@
 #include "common.h"
 #include "timer.h"
 #include "build.h"
-#include "../mcu.h"
+#include "mcu.h"
 #include <math.h>
 #include "param.h"
 

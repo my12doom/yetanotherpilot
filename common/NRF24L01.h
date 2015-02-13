@@ -1,7 +1,7 @@
-﻿#ifndef __NRF24L01_H__
+#ifndef __NRF24L01_H__
 #define __NRF24L01_H__
 
-#include "../mcu.h"
+#include "mcu.h"
 
 // callback prototype
 typedef int (*nrf_callback)(int result, int user_data);

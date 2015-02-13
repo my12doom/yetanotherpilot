@@ -1,4 +1,4 @@
-#include "mcu.h"
+#include <stdint.h>
 #include "ahrs.h"
 #include <math.h>
 
