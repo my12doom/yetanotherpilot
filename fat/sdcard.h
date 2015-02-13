@@ -19,7 +19,7 @@
 #define __SDCARD_H
 
 /* Includes ------------------------------------------------------------------*/
-#include "../mcu.h"
+#include "../common/mcu.h"
 
 /* Exported types ------------------------------------------------------------*/
 typedef enum

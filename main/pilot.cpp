@@ -53,14 +53,8 @@ extern "C"
 //#include "osd/osdcore.h"
 
 #ifdef STM32F1
-#ifndef LITE
-	#include "../usb_mass_storage/hw_config.h"
-	#include "../usb_mass_storage/usb_init.h"
-	#include "../usb_mass_storage/mass_mal.h"
-#else
-	#include "../usb_com/hw_config.h"
-	#include "../usb_mass_storage/usb_init.h"
-#endif
+	#include "../stm32/usb_com/hw_config.h"
+	#include "../stm32/usb_com/usb_init.h"
 #endif
 
 #ifdef STM32F4
@@ -90,7 +84,7 @@ enum
 	error_MAX,
 } critical_error;
 
-char * critical_error_desc[] = 
+const char * critical_error_desc[] = 
 {
 	"error_gyro",
 	"error_accelerometer",
@@ -2733,7 +2727,6 @@ int sensor_calibration()
 }
 
 #ifndef LITE
-#else
 extern __IO uint32_t bDeviceState;
 #define UNCONNECTED 0
 int Mal_Accessed()
@@ -3454,9 +3447,6 @@ int main(void)
 
 	// USB
 #if defined(STM32F1)
-#ifndef LITE
-	Set_System();
-#endif
 	Set_USBClock();
 	USB_Interrupts_Config();
 	USB_Init();

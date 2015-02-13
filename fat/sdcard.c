@@ -20,7 +20,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "sdcard.h"
-#include "../mcu.h"
+#include "../common/mcu.h"
 
 #define rt_kprintf(...) 
 

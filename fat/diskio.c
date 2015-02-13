@@ -9,7 +9,7 @@
 #include <time.h>
 #include "diskio.h"
 #include "sdcard.h"
-#include "../mcu.h"
+#include "../common/mcu.h"
 #include "../common/gps.h"
 
 /*-----------------------------------------------------------------------*/

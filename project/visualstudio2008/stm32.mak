@@ -15,7 +15,7 @@ AR := $(TOOLCHAIN_ROOT)/bin/arm-eabi-ar.exe
 OBJCOPY := $(TOOLCHAIN_ROOT)/bin/arm-eabi-objcopy.exe
 
 #Additional flags
-PREPROCESSOR_MACROS += stm32_flash_layout STM32F103RF STM32F10X_XL
+PREPROCESSOR_MACROS += stm32_flash_layout STM32F103RG STM32F10X_XL
 INCLUDE_DIRS += $(BSP_ROOT)/STM32F1xxxx/CMSIS/CM3/CoreSupport $(BSP_ROOT)/STM32F1xxxx/CMSIS/CM3/DeviceSupport/ST/STM32F10x $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/inc
 LIBRARY_DIRS += 
 LIBRARY_NAMES += 
@@ -25,6 +25,6 @@ MACOS_FRAMEWORKS +=
 CFLAGS += -mcpu=cortex-m3 -mthumb
 CXXFLAGS += -mcpu=cortex-m3 -mthumb
 ASFLAGS += -mcpu=cortex-m3 -mthumb
-LDFLAGS += -mcpu=cortex-m3 -mthumb  -T$(BSP_ROOT)/STM32F1xxxx/LinkerScripts/STM32F103xF_flash.lds
+LDFLAGS += -mcpu=cortex-m3 -mthumb  -T$(BSP_ROOT)/STM32F1xxxx/LinkerScripts/STM32F103xG_flash.lds
 COMMONFLAGS += 
 
