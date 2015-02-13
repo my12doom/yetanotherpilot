@@ -2726,7 +2726,7 @@ int sensor_calibration()
 	return 0;
 }
 
-#ifndef LITE
+#ifdef STM32F1
 extern __IO uint32_t bDeviceState;
 #define UNCONNECTED 0
 int Mal_Accessed()
