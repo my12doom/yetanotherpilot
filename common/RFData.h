@@ -147,14 +147,15 @@ typedef struct
 {
 	short climb_rate_kalman;
 	bool airborne;
+	unsigned char sub_mode;
 	short altitude_kalman;	// unit: cm
 	short accel_z_kalman;	// unit: cm/s
 	short altitude_baro_raw;	// unit: cm
 	short accel_z;			// unit: cm/s^2
 	short loop_hz;
 	short throttle_result;	// throttle result pwm from auto throttle controller
-	unsigned char sub_mode;
 	short kalman_accel_bias;
+	short gyro_bias[3];
 } quadcopter_data2;
 
 typedef struct

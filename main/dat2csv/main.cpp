@@ -1186,14 +1186,14 @@ int main(int argc, char **argv)
 //   		if (time > 45000000 && time < 55000000)
 // 		if (time > 70000000 && time < 80000000)
 // 		if (abs(a1) < 0.10 && abs(a2) < 0.10)
-//   		if (n++ %15 == 0)
+  		if (n++ %5 == 0)
 //  		if (abs(adv_sensor[0].data[3]-5)<0.2)
 //  		if ((time > 13500000 && time < 17500000) || (time > 25500000 && time < 30000000))
  		fprintf(fo, "%.4f,%.5f,%.5f,%2f,%f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d,%d\r\n",
-				float(time/1000000.0f), float(flow_pos[0]), float(flow_pos[1]), float(px4flow.qual), float(px4flow.ground_distance),
- 				sensor.accel[0], sensor.accel[1], sensor.accel[2], px4flow.qual, pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[1], pilot2.D[0],
+				float(time/1000000.0f), float(quad3.altitude_target/100.0f), float(quad2.altitude_baro_raw/100.0f), float(quad3.altitude/100.0f), float(quad2.altitude_kalman/100.0f),
+ 				quad2.accel_z, quad2.accel_z_kalman, sensor.accel[2], px4flow.qual, pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[1], pilot2.D[0],
 				roll*180/PI, pitch*180/PI, roll_acc * 180 / PI, pitch_acc*180/PI, pilot.target[0]/100.0, pilot.target[2]/100.0, 
 				(ppm.in[2]-1113)/50, pilot.fly_mode,
 				ppm.in[0], ppm.in[1], ppm.in[2], ppm.in[3], ppm.out[0], ppm.out[1], ppm.out[2], ppm.out[3],
@@ -1231,7 +1231,7 @@ int main(int argc, char **argv)
 
 				fprintf(gpso, "%.4f", float(time/1000000.0f));
 				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[1], quad.angle_target[1], quad.speed[1], quad.speed_target[1]);
-				fprintf(gpso, ",%d,%d,%d,%d,%f,%f,%f,", quad.angle_pos[0], quad.angle_target[0],quad.speed[0], quad.speed_target[0], meter_raw.latitude, meter.longtitude, meter.latitude);
+				fprintf(gpso, ",%d,%d,%d,%d,%f,%f,%f,", quad.angle_pos[0], quad.angle_target[0],quad.speed[0], quad.speed_target[0], quad2.gyro_bias[0]/100.0f, quad2.gyro_bias[1]/100.0f, quad2.gyro_bias[2]/100.0f);
 				fprintf(gpso, "%.1f/%d/%d/%d,%f,%f,%f,%f,%f", gps.DOP[1]/100.0f, gps.satelite_in_use, gps.fix, gps.direction, quad2.accel_z_kalman/100.0f, ned[1].accel_NED2[2]/1000.0f, quad2.altitude_baro_raw/100.0f, quad3.altitude/100.00f, quad3.altitude_target/100.0f);
 				fprintf(gpso, "\r\n");
 

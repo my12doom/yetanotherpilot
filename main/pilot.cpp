@@ -792,14 +792,21 @@ int auto_throttle(float user_climb_rate)
 	// TODO: add feed forward
 	// reference: get_throttle_rate()
 
-	climb_rate_error_pid[0] = climb_rate_error_pid[0] * (1-alpha) + alpha * climb_rate_error;
+	climb_rate_error_pid[0] = isnan(climb_rate_error_pid[0]) ? (climb_rate_error) : (climb_rate_error_pid[0] * (1-alpha) + alpha * climb_rate_error);
 	target_accel = climb_rate_error_pid[0] * pid_quad_alt_rate[0];
 	target_accel = limit(target_accel,  airborne ? -quadcopter_max_acceleration : -2 * quadcopter_max_acceleration, quadcopter_max_acceleration);
 
 	
 	// new accel error, +2Hz LPF
 	float accel_error = target_accel - (accelz + state[3]);
-	accel_error = accel_error_pid[0] * (1-alpha) + alpha * accel_error;
+	if (isnan(accel_error_pid[0]))
+	{
+		accel_error_pid[0] = accel_error;
+	}
+	else
+	{
+		accel_error = accel_error_pid[0] * (1-alpha) + alpha * accel_error;
+	}
 
 	// core pid
 	// only integrate if throttle didn't hit limits or I term will reduce
@@ -839,7 +846,7 @@ int auto_throttle(float user_climb_rate)
 		throttle_limit = 0;
 	}
 
-	LOGE("\rthrottle=%f, altitude = %.2f/%.2f, pid=%.2f,%.2f,%.2f, limit=%d", result, state[0], target_altitude,
+	TRACE("\rthrottle=%f, altitude = %.2f/%.2f, pid=%.2f,%.2f,%.2f, limit=%d", result, state[0], target_altitude,
 		accel_error_pid[0], accel_error_pid[1], accel_error_pid[2], throttle_limit);
 
 	// update throttle_real_crusing if we're in near level state and no violent climbing/descending action
@@ -1715,14 +1722,15 @@ int save_logs()
 	{
 		state[1] * 100,
 		airborne,
+		submode,
 		state[0] * 100,
 		state[2] * 100,
 		a_raw_altitude * 100,
 		accelz_mwc * 100,
 		loop_hz,
 		THROTTLE_IDLE + throttle_result * (THROTTLE_MAX-THROTTLE_IDLE),
-		submode,
 		kalman_accel_bias : state[3] * 1000,
+		{gyro_bias[0] * 1800000/PI, gyro_bias[1] * 1800000/PI, gyro_bias[2] * 1800000/PI,}
 	};
 
 	packet.time = (time & (~TAG_MASK)) | TAG_QUADCOPTER_DATA2;
@@ -2624,6 +2632,17 @@ int sensor_calibration()
 			LOGE("wtf? %.2f,%.2f,%.2f\n", 		float(adis16405_packet.gyro_x) * 0.05f * PI / 180,
 			float(-adis16405_packet.gyro_y) * 0.05f * PI / 180,
 			float(adis16405_packet.gyro_z) * 0.05f * PI / 180);
+
+			// wait a second (with blinking)
+			int64_t us = getus();
+			while(getus()-us < 1000000)
+			{
+				if ((getus()/1000)%50 > 25)
+					led_all_on();
+				else
+					led_all_off();
+			}
+
 			LOGE("wtf\n");
 			continue;
 		}
@@ -2790,10 +2809,11 @@ int set_submode(copter_mode newmode)
 	if (!has_alt_controller && to_use_alt_controller)
 	{
 		// TODO: reset alt controller
-		target_altitude = state[0];	
-// 		accel_error_pid[0] = 0;
+		target_altitude = airborne ? state[0] : (state[0]-1);
+ 		accel_error_pid[0] = NAN;
 		accel_error_pid[1] = 0;
 		accel_error_pid[2] = NAN;
+		climb_rate_error_pid[0] = NAN;
 	}
 
 	if (newmode == optical_flow && submode != optical_flow)
@@ -2862,8 +2882,8 @@ int check_mode()
 		else if (rc[5] < -0.6f)
 			newmode = basic;
 		else if (rc[5] > 0.6f)
-			newmode = (bluetooth_last_update > getus() - 500000) ? bluetooth : althold;
-// 			newmode = (estimator.healthy && airborne) ? poshold : althold;
+// 			newmode = (bluetooth_last_update > getus() - 500000) ? bluetooth : althold;
+			newmode = (estimator.healthy && airborne) ? poshold : althold;
 		else if (rc[5] > -0.5f && rc[5] < 0.5f)
 			newmode = althold;
 #else
@@ -3262,13 +3282,13 @@ int loop(void)
 	// read sensors and update altitude if new air pressure data arrived.
 	int64_t us = getus();
 	read_sensors();
-	read_px4flow(&frame);
-	LOGE("\rreading sensors cost %dms", int(getus()-us));
+//	read_px4flow(&frame);
+	TRACE("\rreading sensors cost %dms", int(getus()-us));
 //  	read_advsensor_packets();
 //  	read_advsensor_packets();
 //  	read_advsensor_packets();
-	handle_uart4_controll();
-// 	handle_uart4_cli();
+//	handle_uart4_controll();
+ 	handle_uart4_cli();
 
 	// attitude and  heading
 	calculate_attitude();
@@ -3643,7 +3663,7 @@ int main(void)
 #endif
 	TIM_TimeBaseStructure.TIM_ClockDivision=TIM_CKD_DIV1;
 	TIM_TimeBaseStructure.TIM_CounterMode=TIM_CounterMode_Up;
-	TIM_TimeBaseStructure.TIM_Period=10000-1;
+	TIM_TimeBaseStructure.TIM_Period=3000-1;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0x0;
 	TIM_TimeBaseInit(TIM1,&TIM_TimeBaseStructure);
 	TIM_ClearFlag(TIM1,TIM_FLAG_Update);

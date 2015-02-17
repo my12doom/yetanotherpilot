@@ -208,7 +208,7 @@ static void I2C_Delay(void)
     volatile int speedTick = 5;
 	#endif
 	#ifdef STM32F4
-    volatile int speedTick = 25;
+    volatile int speedTick = 5;
 	#endif
     while (speedTick) {
        speedTick--;
