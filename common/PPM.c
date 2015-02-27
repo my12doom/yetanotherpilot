@@ -24,35 +24,6 @@ int last_high_tim = -1;
 int ppm_channel_id = 0;
 int ppm_channel_count = 0;
 float *use_ppm;
-int handle_ppm(int now)
-{
-	float delta = 0;
-	if (last_high_tim < 0)
-	{
-		last_high_tim = now;
-		return 0;
-	}
-	
-	if (now > last_high_tim)
-		delta = now - last_high_tim;
-	else
-		delta = now + 60000 - last_high_tim;
-	
-	last_high_tim = now;
-
-	if (delta > 2100)
-	{
-		ppm_channel_count = ppm_channel_id;
-		ppm_channel_id = 0;
-		TRACE("        %.0f\r", delta);
-	}
-	else if (ppm_channel_id < sizeof(g_pwm_input)/sizeof(g_pwm_input[0]))
-	{
-		g_pwm_input[ppm_channel_id++] = delta;
-		TRACE("%.0f,", g_pwm_input[ppm_channel_id-1]);
-	}
-	return 0;
-}
 
 // initialize this before calling ppm_init()!
 uint16_t g_ppm_output[8] = {0};
@@ -66,6 +37,42 @@ static float f_max(float a, float b)
 	return a > b ? a : b;
 }
 
+
+int handle_ppm(int now)
+{
+	float delta = 0;
+	if (last_high_tim < 0)
+	{
+		last_high_tim = now;
+		return 0;
+	}
+
+	if (now > last_high_tim)
+		delta = now - last_high_tim;
+	else
+		delta = now + 60000 - last_high_tim;
+
+	last_high_tim = now;
+
+	if (delta > 2100)
+	{
+		ppm_channel_count = ppm_channel_id;
+		ppm_channel_id = 0;
+		TRACE("        %.0f\r", delta);
+	}
+	else if (ppm_channel_id < sizeof(g_pwm_input)/sizeof(g_pwm_input[0]))
+	{
+		g_pwm_input[ppm_channel_id] = delta;
+		TRACE("%.0f,", g_pwm_input[ppm_channel_id-1]);
+
+		g_pwm_input_update[ppm_channel_id] = getus_nodelay();
+		pwm_static[ppm_channel_id][0] = f_min(pwm_static[ppm_channel_id][0], g_pwm_input[ppm_channel_id]);
+		pwm_static[ppm_channel_id][1] = f_max(pwm_static[ppm_channel_id][1], g_pwm_input[ppm_channel_id]);
+
+		ppm_channel_id++;
+	}
+	return 0;
+}
 
 // PPM input handler
 static void PPM_EXTI_Handler(void)
