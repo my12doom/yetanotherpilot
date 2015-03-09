@@ -79,6 +79,22 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\library\altitude_controller.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\library\altitude_controller.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\library\altitude_estimator.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\library\altitude_estimator.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\library\log.cpp"
 				>
 			</File>

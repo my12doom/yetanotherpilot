@@ -224,7 +224,7 @@
             <hadIRAM2>1</hadIRAM2>
             <hadIROM2>0</hadIROM2>
             <StupSel>8</StupSel>
-            <useUlib>1</useUlib>
+            <useUlib>0</useUlib>
             <EndSel>0</EndSel>
             <uLtcg>0</uLtcg>
             <RoSelD>3</RoSelD>
@@ -482,6 +482,31 @@
               <FileName>of_controller.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\library\of_controller.h</FilePath>
+            </File>
+            <File>
+              <FileName>altitude_controller.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\altitude_controller.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>altitude_estimator.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\altitude_estimator.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>motor_mixer.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\motor_mixer.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>ahrs2.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\ahrs2.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>log.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\log.cpp</FilePath>
             </File>
           </Files>
         </Group>
@@ -1462,6 +1487,31 @@
               <FileType>5</FileType>
               <FilePath>..\..\library\of_controller.h</FilePath>
             </File>
+            <File>
+              <FileName>altitude_controller.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\altitude_controller.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>altitude_estimator.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\altitude_estimator.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>motor_mixer.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\motor_mixer.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>ahrs2.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\ahrs2.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>log.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\log.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -2441,6 +2491,31 @@
               <FileType>5</FileType>
               <FilePath>..\..\library\of_controller.h</FilePath>
             </File>
+            <File>
+              <FileName>altitude_controller.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\altitude_controller.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>altitude_estimator.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\altitude_estimator.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>motor_mixer.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\motor_mixer.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>ahrs2.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\ahrs2.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>log.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\log.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -3419,6 +3494,31 @@
               <FileName>of_controller.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\library\of_controller.h</FilePath>
+            </File>
+            <File>
+              <FileName>altitude_controller.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\altitude_controller.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>altitude_estimator.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\altitude_estimator.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>motor_mixer.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\motor_mixer.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>ahrs2.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\ahrs2.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>log.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\log.cpp</FilePath>
             </File>
           </Files>
         </Group>

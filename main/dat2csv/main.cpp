@@ -1131,7 +1131,7 @@ int main(int argc, char **argv)
 		double temp = ((double)ground_temperature) + 273.15f;
 		double altitude = 153.8462f * temp * (1.0f - exp(0.190259f * log(scaling)));
 		double overload = sqrt((double)sensor.accel[0]*sensor.accel[0]+ sensor.accel[1]*sensor.accel[1]+ sensor.accel[2]*sensor.accel[2]) / 2048;
-		double throttle = (ppm.in[5]-1000)/520.0;
+		float throttle = (ppm.out[0]+ppm.out[1]+ppm.out[2]+ppm.out[3])/4-1000;
 
 		float airspeed = pilot.airspeed<0?0:  sqrt ( 5 * 1.403 * 287.05287 * (20+273.15) *  (pow((pilot.airspeed/1000.0)/(100.0)+1.0, 1/3.5 ) - 1.0) );
 		float mpu6050_temperature = sensor.temperature1/340.0f+36.53f;
@@ -1178,7 +1178,7 @@ int main(int argc, char **argv)
  		fprintf(fo, "%.4f,%.5f,%.5f,%2f,%f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d,%d\r\n",
-				float(time/1000000.0f), float(flow_pos[0]), float(flow_pos[1]), float(px4flow.qual), float(px4flow.ground_distance/1000.0f),
+				float(time/1000000.0f), float(flow_pos[0]), float(throttle), float(quad3.throttle_real_crusing), float(quad2.airborne ? 500 : 0),
  				quad2.accel_z, quad2.accel_z_kalman, sensor.accel[2], px4flow.qual, pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[1], pilot2.D[0],
 				roll*180/PI, pitch*180/PI, roll_acc * 180 / PI, pitch_acc*180/PI, pilot.target[0]/100.0, pilot.target[2]/100.0, 
 				(ppm.in[2]-1113)/50, pilot.fly_mode,

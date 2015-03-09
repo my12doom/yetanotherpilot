@@ -21,6 +21,7 @@
 #include "../common/space.h"
 #include "../library/ahrs.h"
 #include "../library/ahrs2.h"
+#include "../library/altitude_estimator.h"
 #include "../library/log.h"
 
 #ifndef LITE
@@ -424,63 +425,6 @@ int loop_hz = 0;
 
 double_sensor_data double_sensor = {0};
 
-void matrix_error(const char*msg)
-{
-	LOGE(msg);
-	while(true)
-		;
-}
-
-void matrix_mov(float *dst, const float *src, int row, int column)
-{
-	memcpy(dst, src, row*column*4);
-}
-
-void matrix_add(float *op1, float *op2, int row, int column)
-{
-	int count = row * column;
-	for(int i=0; i<count; i++)
-		op1[i] += op2[i];
-}
-void matrix_sub(float *op1, float *op2, int row, int column)
-{
-	int count = row * column;
-	for(int i=0; i<count; i++)
-		op1[i] -= op2[i];
-}
-
-int matrix_mul(float *out, const float *m1, int row1, int column1, const float *m2, int row2, int column2)
-{
-	if (column1 != row2)
-		matrix_error("invalid matrix_mul");
-
-	for(int x1 = 0; x1<column2; x1++)
-	{
-		for(int y1 = 0; y1<row1; y1++)
-		{
-			out[y1*column2+x1] = 0;
-			for(int k = 0; k<column1; k++)
-				out[y1*column2+x1] += m1[y1*column1+k] * m2[k*column2+x1];
-		}
-	}
-
-	return 0;
-}
-
-int inverse_matrix2x2(float *m)
-{
-	float det = m[0] * m[3] - m[1] * m[2];
-	if (det == 0)
-		return -1;
-	float t[4] = {m[0], m[1], m[2], m[3]};
-
-	m[0] = t[3]/det;
-	m[1] = -t[1]/det;
-	m[2] = -t[2]/det;
-	m[3] = t[0]/det;
-
-	return 0;
-}
 
 double NDEG2DEG(double ndeg)
 {
@@ -491,194 +435,7 @@ double NDEG2DEG(double ndeg)
 }
 
 // kalman test
-float state[4] = {0};	// 4x1 matrix, altitude, climb, accel, accel_bias
-
-#if 1
-float P[16] = 
-{
-	200, 0, 0, 0,
-	0, 200, 0, 0,
-	0, 0, 200, 0,
-	0, 0, 0, 200
-};	// 4x4 matrix, covariance
-float Q[16] = 
-{
-	4e-6, 0, 0, 0,
-	0, 1e-6, 0, 0,
-	0, 0, 1e-6, 0,
-	0, 0, 0, 1e-7,
-};
-float R[4] = 
-{
-	80, 0,
-	0, 0.0063,
-};
-
-float R2[4] = 
-{
-	600, 0,
-	0, 0.00230,
-};
-#else
-float P[16] = 
-{
-	2000, 0, 0, 0,
-	0, 2000, 0, 0,
-	0, 0, 2000, 0,
-	0, 0, 0, 2000
-};	// 4x4 matrix, covariance
-float Q[16] = 
-{
-	0.4, 0, 0, 0,
-	0, 0.1, 0, 0,
-	0, 0, 0.1, 0,
-	0, 0, 0, 0.01,
-};
-
-float R[4] = 
-{
-	480000, 0,
-	0, 230,
-};
-
-
-float R2[4] = 
-{
-	4800000, 0,
-	0, 230,
-};
-#endif
-
-int kalman()
-{
-	if (interval > 0.2f)
-		return -1;
-
-	// near ground, reject ground effected baro data
-	bool invalid_baro_data = mode == quadcopter && (!airborne || (!isnan(sonar_distance) && sonar_distance < 1.0f) || fabs(state[0] - ground_altitude) < 1.0f);
-	bool bias_baro_data = invalid_baro_data;
-	invalid_baro_data = ms5611_result == 0;
-
-
-	float dt = interval;
-	float dtsq = dt*dt;
-	float dtsq2 = dtsq/2;
-	float F[16] = 
-	{
-		1, dt, dtsq2, dtsq2,
-		0, 1, dt, dt,
-		0, 0, 1, 0,
-		0, 0, 0, 1,
-	};
-	float FT[16] = 
-	{
-		1, 0, 0, 0,
-		dt, 1, 0, 0,
-		dtsq2, dt, 1, 0,
-		dtsq2, dt, 0, 1,
-	};
-	
-	static float Hab[2*4] = 
-	{
-		1, 0, 0, 0,
-		0, 0, 1, 0,
-	};
-	static float HabT[4*2] = 
-	{
-		1, 0,
-		0, 0,
-		0, 1,
-		0, 0,
-	};
-
-	// accelerometer only
-	static float Ha[2*4] = 
-	{
-		0, 0, 1, 0,
-	};
-	static float HaT[4*2] = 
-	{
-		0,
-		0,
-		1,
-		0,
-	};
-
-	float zk_ab[2] = {a_raw_altitude, accelz};
-	float zk_a[2] = {accelz};
-
-	float *H = invalid_baro_data ? Ha : Hab;
-	float *HT = invalid_baro_data ? HaT : HabT;
-	float *zk = invalid_baro_data ? zk_a : zk_ab;
-	int observation_count = invalid_baro_data ? 1 : 2;
-
-	float state1[4];
-	float P1[16];
-	float tmp[16];
-	float tmp2[16];
-	float tmp3[16];
-	float kg[8];
-
-
-	// predict
-	matrix_mul(state1, F, 4, 4, state, 4, 1);
-	matrix_mul(tmp, P, 4, 4, FT, 4, 4);
-	matrix_mul(P1, F, 4, 4, tmp, 4, 4);
-
-	// covariance
-	matrix_add(P1, Q, 4, 4);
-
-	// controll vector
-	//state1[2] = state1[2] * 0.8f * 0.2f * (target_accel);
-// 	if (invalid_baro_data)
-// 		state1[1] *= 0.995f;
-
-	// update
-
-	// kg
-	matrix_mul(tmp, P1, 4, 4, HT, 4, observation_count);
-	matrix_mul(tmp2, H, observation_count, 4, P1, 4, 4);
-	matrix_mul(tmp3, tmp2, observation_count, 4, HT, 4, observation_count);
-	if (observation_count == 2)
-	{
-		matrix_add(tmp3, bias_baro_data ? R2 : R, observation_count, observation_count);
-		inverse_matrix2x2(tmp3);
-	}
-	else
-	{
-		tmp3[0] += R[3];
-		tmp3[0] = 1.0f / tmp3[0];
-	}
-	matrix_mul(kg, tmp, 4, observation_count, tmp3, observation_count, observation_count);
-
-
-	// update state
-	// residual
-	matrix_mul(tmp, H, observation_count, 4, state1, 4, 1);
-	matrix_sub(zk, tmp, observation_count, 1);
-
-	matrix_mul(tmp, kg, 4, observation_count, zk, observation_count, 1);
-	matrix_mov(state, state1, 4, 1);
-	matrix_add(state, tmp, 4, 1);
-
-	// update P
-	float I[16] = 
-	{
-		1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, 0,
-		0, 0, 0, 1,
-	};
-	matrix_mul(tmp, kg, 4, observation_count, H, observation_count, 4);
-	matrix_sub(I, tmp, 4, 4);
-	matrix_mul(P, I, 4, 4, P1, 4, 4);
-	
-	TRACE("\rtime=%.3f,state:%.2f,%.2f,%.2f,%.2f, ref=%.2f/%.2f/%.2f, accelz:%.3f/%.3f, temp:%.1f, ouler:%.2f,%.2f/%.2f,%.2f  ", getus()/1000000.0f, state[0], state[1], state[2], state[3], _position, a_raw_altitude, _velocity, accelz, accelz_mwc, mpu6050_temperature, euler[0]*PI180, euler[1]*PI180, euler[0] * PI180, euler[1] * PI180);
-
-	TRACE("pressure=%.2f\r", a_raw_pressure);
-
-	return 0;
-}
+altitude_estimator alt_estimator;
 
 /// calc_leash_length - calculates the horizontal leash length given a maximum speed, acceleration and position kP gain
 float calc_leash_length(float speed, float accel, float kP)
@@ -717,7 +474,7 @@ int auto_throttle(float user_climb_rate)
 	if (!airborne)
 	{
 		float alpha = interval / (interval + 1.0f/(2*3.1415926 * 0.03f));
-		target_altitude = target_altitude * (1-alpha) + alpha * state[0];
+		target_altitude = target_altitude * (1-alpha) + alpha * alt_estimator.state[0];
 	}
 
 	if (!isnan(target_altitude))
@@ -729,11 +486,11 @@ int auto_throttle(float user_climb_rate)
 		if ((!(throttle_limit & THROTTLE_LIMIT_MAX) && user_climb_rate > 0) || (!(throttle_limit & THROTTLE_LIMIT_MIN) && user_climb_rate < 0))
 			target_altitude += user_climb_rate * interval;
 
-		target_altitude = limit(target_altitude, state[0]-leash_down, state[0]+leash_up);
+		target_altitude = limit(target_altitude, alt_estimator.state[0]-leash_down, alt_estimator.state[0]+leash_up);
 
 		// new target rate, directly use linear approach since we use very tight limit 
 		// TODO: use sqrt approach on large errors (see get_throttle_althold() in Attitude.pde)
-		altitude_error_pid[0] = target_altitude - state[0];
+		altitude_error_pid[0] = target_altitude - alt_estimator.state[0];
 		altitude_error_pid[0] = limit(altitude_error_pid[0], -2.5f, 2.5f);
 		target_climb_rate = pid_quad_altitude[0] * altitude_error_pid[0];
 	}
@@ -749,7 +506,7 @@ int auto_throttle(float user_climb_rate)
 
 
 	// new climb rate error
-	float climb_rate_error = target_climb_rate - state[1];
+	float climb_rate_error = target_climb_rate - alt_estimator.state[1];
 	climb_rate_error = limit(climb_rate_error, -quadcopter_max_descend_rate, quadcopter_max_climb_rate);
 
 	// apply a 2Hz LPF to rate error
@@ -771,7 +528,7 @@ int auto_throttle(float user_climb_rate)
 
 	
 	// new accel error, +2Hz LPF
-	float accel_error = target_accel - (accelz + state[3]);
+	float accel_error = target_accel - (accelz + alt_estimator.state[3]);
 	if (isnan(accel_error_pid[0]))
 	{
 		accel_error_pid[0] = accel_error;
@@ -819,11 +576,11 @@ int auto_throttle(float user_climb_rate)
 		throttle_limit = 0;
 	}
 
-	TRACE("\rthrottle=%f, altitude = %.2f/%.2f, pid=%.2f,%.2f,%.2f, limit=%d", result, state[0], target_altitude,
+	TRACE("\rthrottle=%f, altitude = %.2f/%.2f, pid=%.2f,%.2f,%.2f, limit=%d", result, alt_estimator.state[0], target_altitude,
 		accel_error_pid[0], accel_error_pid[1], accel_error_pid[2], throttle_limit);
 
 	// update throttle_real_crusing if we're in near level state and no violent climbing/descending action
-	if (airborne && throttle_real>0 && fabs(state[1]) < 0.5f && fabs(state[3] + accelz)<0.5f && fabs(euler[0])<5*PI/180 && fabs(euler[1])<5*PI/180
+	if (airborne && throttle_real>0 && fabs(alt_estimator.state[1]) < 0.5f && fabs(alt_estimator.state[3] + accelz)<0.5f && fabs(euler[0])<5*PI/180 && fabs(euler[1])<5*PI/180
 		&& fabs(user_climb_rate) < 0.001f)
 	{
 		// 0.2Hz low pass filter
@@ -832,12 +589,14 @@ int auto_throttle(float user_climb_rate)
 
 		throttle_real_crusing = throttle_real_crusing * (1-alpha02) + alpha02 * throttle_real;
 		// TODO: estimate throttle cursing correctly
+
+		LOGE("\rthrottle_real=%f", throttle_real_crusing);
 	}
 
 	return 0;
 }
 
-int altitude_estimation_baro()
+int calculate_baro_altitude()
 {
 	// raw altitude
 	double scaling = (double)a_raw_pressure / ground_pressure;
@@ -851,7 +610,7 @@ int altitude_estimation_baro()
 	return 0;
 }
 
-int altitude_estimation_inertial()
+int altitude_estimation_complementary()
 {
 	float &dt = interval;
 
@@ -865,18 +624,14 @@ int altitude_estimation_inertial()
 
 	_position = _position_base + _position_correction;
 	_velocity = _velocity_base + _velocity_correction;
-
-	kalman();
 	
-// 	state[0] = _position;
-// 	state[1] = _velocity;
-// 	state[3] = _accel_correction_ef;
+// 	alt_estimator.state[0] = _position;
+// 	alt_estimator.state[1] = _velocity;
+// 	alt_estimator.state[3] = _accel_correction_ef;
 	
 	return 0;
 }
 
-
-float errorV[2] = {0};
 float rc_d[3] = {0};
 
 int prepare_pid()
@@ -1064,8 +819,8 @@ int prepare_pid()
 
 			// check takeoff
 			float active_throttle = throttle_result;
-			if ( (state[0] > takeoff_ground_altitude + 1.0f) ||
-				(state[0] > takeoff_ground_altitude && active_throttle > throttle_real_crusing) ||
+			if ( (alt_estimator.state[0] > takeoff_ground_altitude + 1.0f) ||
+				(alt_estimator.state[0] > takeoff_ground_altitude && active_throttle > throttle_real_crusing) ||
 				(active_throttle > throttle_real_crusing + QUADCOPTER_THROTTLE_RESERVE))
 			{
 				airborne = true;
@@ -1261,7 +1016,7 @@ int save_logs()
 
 	pilot_data pilot = 
 	{
-		state[0] * 100,
+		alt_estimator.state[0] * 100,
 		airspeed_sensor_data * 1000,
 		{error_pid[0][0]*180*100/PI, error_pid[1][0]*180*100/PI, error_pid[2][0]*180*100/PI},
 		{target[0]*180*100/PI, target[1]*180*100/PI, target[2]*180*100/PI},
@@ -1301,16 +1056,16 @@ int save_logs()
 
 	quadcopter_data2 quad2 = 
 	{
-		state[1] * 100,
+		alt_estimator.state[1] * 100,
 		airborne,
 		submode,
-		state[0] * 100,
-		state[2] * 100,
+		alt_estimator.state[0] * 100,
+		alt_estimator.state[2] * 100,
 		a_raw_altitude * 100,
 		accelz_mwc * 100,
 		loop_hz,
 		THROTTLE_IDLE + throttle_result * (THROTTLE_MAX-THROTTLE_IDLE),
-		kalman_accel_bias : state[3] * 1000,
+		kalman_accel_bias : alt_estimator.state[3] * 1000,
 		{gyro_bias[0] * 1800000/PI, gyro_bias[1] * 1800000/PI, gyro_bias[2] * 1800000/PI,}
 	};
 
@@ -1327,7 +1082,7 @@ int save_logs()
 		throttle_result*1000,
 		yaw_launch * 18000 / PI,
 		euler[2] * 18000 / PI,
-		throttle_real_crusing,
+		throttle_real_crusing*1000,
 		#ifndef LITE
 		sonar_result(),
 		#else
@@ -1698,7 +1453,7 @@ int calculate_attitude()
 	euler[1] = radian_add(euler[1], quadcopter_trim[1]);
 	euler[2] = radian_add(euler[2], quadcopter_trim[2]);
 
-	LOGE("euler:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, time:%f, bias:%.2f/%.2f/%.2f, pressure=%.2f \n ", euler[0]*PI180, euler[1]*PI180, euler[2]*PI180, roll*PI180, pitch*PI180, yaw_mag*PI180, getus()/1000000.0f, gyro_bias[0]*PI180, gyro_bias[1]*PI180, gyro_bias[2]*PI180, a_raw_pressure);
+	TRACE("euler:%.2f,%.2f,%.2f,%.2f,%.2f,%.2f, time:%f, bias:%.2f/%.2f/%.2f, pressure=%.2f \n ", euler[0]*PI180, euler[1]*PI180, euler[2]*PI180, roll*PI180, pitch*PI180, yaw_mag*PI180, getus()/1000000.0f, gyro_bias[0]*PI180, gyro_bias[1]*PI180, gyro_bias[2]*PI180, a_raw_pressure);
 
 	for(int i=0; i<3; i++)
 		accel_earth_frame.array[i] = acc_ned[i];
@@ -1706,7 +1461,6 @@ int calculate_attitude()
 // 	LOGE("angle target:%.2f,%.2f,%.2f\n", angle_target[0]*PI180, angle_target[1]*PI180, angle_target[2]*PI180);
 
 
-	// TODO: update mwc ahrs
 	ahrs_mwc_update(gyro_radian, accel, mag, interval);
 	roll = radian_add(roll, quadcopter_trim[0]);
 	pitch = radian_add(pitch, quadcopter_trim[1]);
@@ -1723,13 +1477,15 @@ int calculate_attitude()
 
 		a_raw_pressure = ms5611[0] / 100.0f;
 		a_raw_temperature = ms5611[1] / 100.0f;
-		altitude_estimation_baro();
+		calculate_baro_altitude();
 	}
 
 	accelz_mwc = accelz;
 	accelz = acc_ned[2];
 
-	altitude_estimation_inertial();
+	altitude_estimation_complementary();
+	alt_estimator.set_land_effect(mode == quadcopter && (!airborne || (!isnan(sonar_distance) && sonar_distance < 1.0f) || fabs(alt_estimator.state[0] - ground_altitude) < 1.0f));
+	alt_estimator.update(accelz, ms5611_result == 0 ? a_raw_altitude : NAN, interval);
 
 	return 0;
 }
@@ -2127,7 +1883,7 @@ int set_submode(copter_mode newmode)
 	if (!has_alt_controller && to_use_alt_controller)
 	{
 		// TODO: reset alt controller
-		target_altitude = airborne ? state[0] : (state[0]-1);
+		target_altitude = airborne ? alt_estimator.state[0] : (alt_estimator.state[0]-1);
  		accel_error_pid[0] = NAN;
 		accel_error_pid[1] = 0;
 		accel_error_pid[2] = NAN;
@@ -2153,7 +1909,7 @@ int set_mode(fly_mode newmode)
 	target[1] = pos[1];
 	target[2] = pos[2];
 
-	takeoff_ground_altitude = state[0];
+	takeoff_ground_altitude = alt_estimator.state[0];
 	yaw_launch = euler[2];
 	collision_detected = 0;
 	tilt_us = 0;
@@ -2292,9 +2048,9 @@ int osd()
 	}
 
 	// climb rate & altitude
-	sprintf(climb_rate_string, "%c%.1f", state[0] >0 ? '+' : '-', fabs(state[0]));
+	sprintf(climb_rate_string, "%c%.1f", alt_estimator.state[0] >0 ? '+' : '-', fabs(alt_estimator.state[0]));
 	MAX7456_PrintDigitString(climb_rate_string, 0, 8);
-	sprintf(climb_rate_string, "%c%.1f", state[1] >0 ? '+' : '-', fabs(state[1]));
+	sprintf(climb_rate_string, "%c%.1f", alt_estimator.state[1] >0 ? '+' : '-', fabs(alt_estimator.state[1]));
 	MAX7456_PrintDigitString(climb_rate_string, 0, 9);
 
 	if (isnan(target_altitude))
@@ -2313,8 +2069,8 @@ int64_t land_detect_us = 0;
 int land_detector()
 {
 	if (rc[2] < 0.1f				// low throttle
-		&& fabs(state[1]) < (quadcopter_max_descend_rate/4.0f)			// low climb rate : 25% of max descend rate should be reached in such low throttle, or ground was touched
-// 		&& fabs(state[2] + state[3]) < 0.5f			// low acceleration
+		&& fabs(alt_estimator.state[1]) < (quadcopter_max_descend_rate/4.0f)			// low climb rate : 25% of max descend rate should be reached in such low throttle, or ground was touched
+// 		&& fabs(alt_estimator.state[2] + alt_estimator.state[3]) < 0.5f			// low acceleration
 	)
 	{
 		land_detect_us = land_detect_us == 0 ? getus() : land_detect_us;
@@ -2637,7 +2393,7 @@ int loop(void)
 
 	if (ms5611_result == 0)
 	{
-// 		LOGE("%.2f    %.2f    %.2f    %.2f\n", getus()/1000000.0f, a_raw_altitude, state[0], mpu6050_temperature);
+// 		LOGE("%.2f    %.2f    %.2f    %.2f\n", getus()/1000000.0f, a_raw_altitude, alt_estimator.state[0], mpu6050_temperature);
 	}
 
 	return 0;

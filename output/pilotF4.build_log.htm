@@ -22,10 +22,15 @@ Dialog DLL:      TCM.DLL V1.14.2.0
  
 <h2>Project:</h2>
 C:\pilot\project\keil\pilotF4.uvprojx
-Project File Date:  03/06/2015
+Project File Date:  03/09/2015
 
 <h2>Output:</h2>
 Build target 'pilotF4'
+compiling pilot.cpp...
+compiling altitude_estimator.cpp...
+linking...
+Program Size: Code=93624 RO-data=2732 RW-data=2016 ZI-data=106256  
+FromELF: creating hex file...
 "..\..\output\pilotF4.axf" - 0 Error(s), 0 Warning(s).
 
 <h2>Collection of Component include folders:</h2>
@@ -33,50 +38,33 @@ Build target 'pilotF4'
   C:\Keil_v5\ARM\PACK\Keil\STM32F4xx_DFP\1.0.8\Device\Include
 
 <h2>Collection of Component Files used:</h2>
-Load "..\\..\\output\\pilotF4.axf" 
-Set JLink Project File to "C:\pilot\project\keil\JLinkSettings.ini"
-* JLink Info: Device "STM32F405RG" selected (1024 KB flash, 128 KB RAM).
- 
-JLink info:
-------------
-DLL: V4.91b, compiled Sep 15 2014 09:17:56
-Firmware: J-Link ARM V8 compiled Jan 31 2018 18:34:52
-Hardware: V8.00
-S/N : 20080643 
-Feature(s) : RDI,FlashDL,FlashBP,JFlash,GDBFull 
- 
-* JLink Info: Found SWD-DP with ID 0x2BA01477
-* JLink Info: Found SWD-DP with ID 0x2BA01477
-* JLink Info: Found Cortex-M4 r0p1, Little endian.
-* JLink Info: FPUnit: 6 code (BP) slots and 2 literal slots
-* JLink Info: TPIU fitted.
-* JLink Info: ETM fitted.
-ROMTableAddr = 0xE00FF003
- 
-Target info:
-------------
-Device: STM32F405RG
-VTarget = 3.306V
-State of Pins: 
-TCK: 0, TDI: 0, TDO: 0, TMS: 0, TRES: 1, TRST: 0
-Hardware-Breakpoints: 6
-Software-Breakpoints: 8192
-Watchpoints:          4
-JTAG speed: 500 kHz
- 
-Erase Done.
-Programming Done.
-Verify OK.
-Application running ...
-akpoints: 8192
-Watchpoints:          4
-JTAG speed: 500 kHz
- 
-Erase Done.
-Programming Done.
-Verify OK.
-Application running ...
-eclaration ads1256_end - give arg types
+</pre>
+</body>
+</html>
+*" is incompatible with parameter of type "const uint8_t *"
+                        Max7456_Update_Char(i+1, character);
+..\..\osd\MAX7456.c(507): warning:  #167-D: argument of type "char *" is incompatible with parameter of type "const uint8_t *"
+                Max7456_Update_Char(30, minus);
+..\..\osd\MAX7456.c(508): warning:  #167-D: argument of type "char *" is incompatible with parameter of type "const uint8_t *"
+                Max7456_Update_Char(31, add);
+..\..\osd\MAX7456.c: 5 warnings, 0 errors
+compiling pilot.cpp...
+compiling ahrs.cpp...
+compiling pos_controll.cpp...
+compiling pos_estimator.cpp...
+compiling data_protocol.cpp...
+compiling stm32f4xx_it.c...
+compiling of_controller.cpp...
+compiling altitude_controller.cpp...
+compiling altitude_estimator.cpp...
+compiling motor_mixer.cpp...
+compiling ahrs2.cpp...
+compiling log.cpp...
+compiling adc.c...
+compiling ads1115.c...
+compiling ads1115_worker.c...
+compiling ads1256.c...
+..\..\common\ads1256.h(125): warning:  #1295-D: Deprecated declaration ads1256_end - give arg types
   void ads1256_end();
 ..\..\common\ads1256.h(126): warning:  #1295-D: Deprecated declaration ads1256_begin - give arg types
   void ads1256_begin();
@@ -191,14 +179,47 @@ compiling stm32f4xx_tim.c...
 compiling stm32f4xx_usart.c...
 compiling stm32f4xx_wwdg.c...
 linking...
-..\..\output\pilotF4.axf: Error: L6218E: Undefined symbol accel_ef (referred from ahrs2.o).
-Not enough information to list image symbols.
-Finished: 1 information, 0 warning and 1 error messages.
-"..\..\output\pilotF4.axf" - 1 Error(s), 14 Warning(s).
+Program Size: Code=93624 RO-data=2732 RW-data=2016 ZI-data=106256  
+FromELF: creating hex file...
+"..\..\output\pilotF4.axf" - 0 Error(s), 14 Warning(s).
 
 <h2>Collection of Component include folders:</h2>
   C:\pilot\project\keil\RTE
   C:\Keil_v5\ARM\PACK\Keil\STM32F4xx_DFP\1.0.8\Device\Include
 
 <h2>Collection of Component Files used:</h2>
-Target not created.
+Load "..\\..\\output\\pilotF4.axf" 
+Set JLink Project File to "C:\pilot\project\keil\JLinkSettings.ini"
+* JLink Info: Device "STM32F405RG" selected (1024 KB flash, 128 KB RAM).
+ 
+JLink info:
+------------
+DLL: V4.91b, compiled Sep 15 2014 09:17:56
+Firmware: J-Link ARM V8 compiled Jan 31 2018 18:34:52
+Hardware: V8.00
+S/N : 20080643 
+Feature(s) : RDI,FlashDL,FlashBP,JFlash,GDBFull 
+ 
+* JLink Info: Found SWD-DP with ID 0x2BA01477
+* JLink Info: Found SWD-DP with ID 0x2BA01477
+* JLink Info: Found Cortex-M4 r0p1, Little endian.
+* JLink Info: FPUnit: 6 code (BP) slots and 2 literal slots
+* JLink Info: TPIU fitted.
+* JLink Info: ETM fitted.
+ROMTableAddr = 0xE00FF003
+ 
+Target info:
+------------
+Device: STM32F405RG
+VTarget = 3.306V
+State of Pins: 
+TCK: 0, TDI: 0, TDO: 1, TMS: 0, TRES: 1, TRST: 0
+Hardware-Breakpoints: 6
+Software-Breakpoints: 8192
+Watchpoints:          4
+JTAG speed: 500 kHz
+ 
+Erase Done.
+Programming Done.
+Verify OK.
+Application running ...
