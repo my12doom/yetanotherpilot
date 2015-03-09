@@ -11,7 +11,8 @@ int I2C_SW_WriteByte(uint8_t deviceAddr, uint8_t writeReg, uint8_t writeValue);
 uint8_t I2C_SW_ReadByte(uint8_t deviceAddr, uint8_t readReg);
 int I2C_SW_ReadReg(uint8_t SlaveAddress, uint8_t startRegister, uint8_t*out, int count);
 int I2C_SW_WriteReg(uint8_t SlaveAddress, uint8_t startRegister, const uint8_t*data, int count);
-
+int I2C_SW_WriteCmd(uint8_t SlaveAddress, uint8_t cmd);
+	
 #ifdef __cplusplus
 }
 #endif

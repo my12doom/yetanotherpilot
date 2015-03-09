@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 
-double _time_constant_xy = 2.5f;
+double _time_constant_xy = 3.5f;
 double _k1_xy = 3 / _time_constant_xy;
 double _k2_xy = 3 / (_time_constant_xy*_time_constant_xy);
 double _k3_xy = 1 / (_time_constant_xy*_time_constant_xy*_time_constant_xy);
@@ -144,6 +144,13 @@ int pos_estimator::update_gps(COORDTYPE lat, COORDTYPE lon, float hdop, int64_t 
 	// update ratios
 	longtitude_to_meter = (40007000.0f/COORDTIMES/360*cos(est.latitude* PI / 180/COORDTIMES));
 	latitude_to_meter = (40007000.0f/COORDTIMES/360);
+
+	// update raw meter
+	meter_raw.longtitude = (lon - home.longtitude) * longtitude_to_meter;
+	meter_raw.latitude = (lat - home. latitude) * latitude_to_meter;
+	meter_raw.vlongtitude = 0;
+	meter_raw.vlatitude = 0;
+
 
 	return 0;
 }

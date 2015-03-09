@@ -54,6 +54,7 @@ public:
 
 	position get_estimation();
 	position_meter get_estimation_meter(){return meter;}
+	position_meter get_raw_meter(){return meter_raw;}
 	position get_home(){return home;}
 	
 	double error_lon;
@@ -76,6 +77,7 @@ protected:
 
 	position est;
 	position_meter meter;
+	position_meter meter_raw;
 	position home;
 
 	CircularQueue<position, 20> history_pos;

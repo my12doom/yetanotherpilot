@@ -9,7 +9,11 @@ public:
 	~OpticalFlowController();
 
 	int reset();
-	int update_controller(float flow_roll, float flow_pitch, float user_roll, float user_pitch, float dt);		// unit:meter/s for flow, radian for lean angles
+
+	// unit:meter/s for flow, radian for lean angles
+	// axis: positive for moving forward or left
+	int update_controller(float flow_roll, float flow_pitch, float user_roll, float user_pitch, float dt);
+
 	int get_result(float *result_roll, float *result_pitch);		// unit: radian
 
 protected:	

@@ -23,7 +23,7 @@ error:
 	$(error Invalid configuration, please check your inputs)
 endif
 
-SOURCEFILES := ../../library/ahrs.cpp ../../library/of_controller.cpp ../../main/pilot.cpp ../../library/pos_controll.cpp ../../library/pos_estimator.cpp $(BSP_ROOT)/STM32F1xxxx/CMSIS/CM3/CoreSupport/core_cm3.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/misc.c $(BSP_ROOT)/STM32F1xxxx/Startup/startup_stm32f10x_xl.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_adc.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_bkp.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_can.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_cec.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_crc.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_dac.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_dbgmcu.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_dma.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_exti.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_flash.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_fsmc.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_gpio.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_i2c.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_iwdg.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_pwr.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_rcc.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_rtc.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_sdio.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_spi.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_tim.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_usart.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_wwdg.c $(BSP_ROOT)/STM32F1xxxx/CMSIS/CM3/DeviceSupport/ST/STM32F10x/system_stm32f10x.c ../../fat/diskio.c ../../fat/ff.c ../../fat/sdcard.c ../../sensors/adis16405.c ../../sensors/adxrs453.c ../../sensors/HMC5883.c ../../sensors/mag_offset.cpp ../../sensors/MPU6050.c ../../sensors/MPU9250.c ../../sensors/MS5611.c ../../sensors/px4flow.cpp ../../sensors/sonar.c ../../stm32/usb_com/hw_config.c ../../stm32/usb_com/interrupt.c ../../stm32/usb_com/otgd_fs_cal.c ../../stm32/usb_com/otgd_fs_dev.c ../../stm32/usb_com/otgd_fs_int.c ../../stm32/usb_com/otgd_fs_pcd.c ../../stm32/usb_com/usb_core.c ../../stm32/usb_com/usb_desc.c ../../stm32/usb_com/usb_endp.c ../../stm32/usb_com/usb_init.c ../../stm32/usb_com/usb_int.c ../../stm32/usb_com/usb_istr.c ../../stm32/usb_com/usb_mem.c ../../stm32/usb_com/usb_prop.c ../../stm32/usb_com/usb_pwr.c ../../stm32/usb_com/usb_regs.c ../../stm32/usb_com/usb_sil.c ../../osd/MAX7456.c ../../nmea/context.c ../../nmea/gmath.c ../../nmea/info.c ../../nmea/parse.c ../../nmea/parser.c ../../nmea/sentence.c ../../nmea/time.c ../../nmea/tok.c ../../common/adc.c ../../common/ads1115.c ../../common/ads1115_worker.c ../../common/ads1256.c ../../common/build.c ../../common/console.cpp ../../common/gps.c ../../common/I2C.c ../../common/i2c_sw.c ../../common/matrix.cpp ../../common/NRF24L01.c ../../common/param.cpp ../../common/PPM.c ../../common/printf.c ../../common/space.cpp ../../common/spaceIO.cpp ../../common/timer.c ../../common/vector.c
+SOURCEFILES := ../../library/ahrs.cpp ../../library/ahrs2.cpp ../../library/log.cpp ../../library/of_controller.cpp ../../main/pilot.cpp ../../library/pos_controll.cpp ../../library/pos_estimator.cpp $(BSP_ROOT)/STM32F1xxxx/CMSIS/CM3/CoreSupport/core_cm3.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/misc.c $(BSP_ROOT)/STM32F1xxxx/Startup/startup_stm32f10x_xl.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_adc.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_bkp.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_can.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_cec.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_crc.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_dac.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_dbgmcu.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_dma.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_exti.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_flash.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_fsmc.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_gpio.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_i2c.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_iwdg.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_pwr.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_rcc.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_rtc.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_sdio.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_spi.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_tim.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_usart.c $(BSP_ROOT)/STM32F1xxxx/STM32F10x_StdPeriph_Driver/src/stm32f10x_wwdg.c $(BSP_ROOT)/STM32F1xxxx/CMSIS/CM3/DeviceSupport/ST/STM32F10x/system_stm32f10x.c ../../fat/diskio.c ../../fat/ff.c ../../fat/sdcard.c ../../sensors/adis16405.c ../../sensors/adxrs453.c ../../sensors/HMC5883.c ../../sensors/HMC5983.c ../../sensors/hp203b.c ../../sensors/mag_offset.cpp ../../sensors/MPU6050.c ../../sensors/MPU9250.c ../../sensors/MPU9250SPI.c ../../sensors/MS5611.c ../../sensors/MS5611SPI.c ../../sensors/px4flow.cpp ../../sensors/sonar.c ../../stm32/usb_com/hw_config.c ../../stm32/usb_com/interrupt.c ../../stm32/usb_com/otgd_fs_cal.c ../../stm32/usb_com/otgd_fs_dev.c ../../stm32/usb_com/otgd_fs_int.c ../../stm32/usb_com/otgd_fs_pcd.c ../../stm32/usb_com/usb_core.c ../../stm32/usb_com/usb_desc.c ../../stm32/usb_com/usb_endp.c ../../stm32/usb_com/usb_init.c ../../stm32/usb_com/usb_int.c ../../stm32/usb_com/usb_istr.c ../../stm32/usb_com/usb_mem.c ../../stm32/usb_com/usb_prop.c ../../stm32/usb_com/usb_pwr.c ../../stm32/usb_com/usb_regs.c ../../stm32/usb_com/usb_sil.c ../../osd/MAX7456.c ../../nmea/context.c ../../nmea/gmath.c ../../nmea/info.c ../../nmea/parse.c ../../nmea/parser.c ../../nmea/sentence.c ../../nmea/time.c ../../nmea/tok.c ../../common/adc.c ../../common/ads1115.c ../../common/ads1115_worker.c ../../common/ads1256.c ../../common/build.c ../../common/console.cpp ../../common/gps.c ../../common/I2C.c ../../common/i2c_sw.c ../../common/matrix.cpp ../../common/NRF24L01.c ../../common/param.cpp ../../common/PPM.c ../../common/printf.c ../../common/space.cpp ../../common/spaceIO.cpp ../../common/timer.c ../../common/vector.c
 EXTERNAL_LIBS := 
 EXTERNAL_LIBS_COPIED := $(foreach lib, $(EXTERNAL_LIBS),$(BINARYDIR)/$(notdir $(lib)))
 
@@ -132,6 +132,14 @@ $(BINARYDIR)/%.o : %.s $(all_make_files) |$(BINARYDIR)
 
 
 $(BINARYDIR)/ahrs.o : ../../library/ahrs.cpp $(all_make_files) |$(BINARYDIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/ahrs2.o : ../../library/ahrs2.cpp $(all_make_files) |$(BINARYDIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/log.o : ../../library/log.cpp $(all_make_files) |$(BINARYDIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
@@ -279,6 +287,14 @@ $(BINARYDIR)/HMC5883.o : ../../sensors/HMC5883.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
+$(BINARYDIR)/HMC5983.o : ../../sensors/HMC5983.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/hp203b.o : ../../sensors/hp203b.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
 $(BINARYDIR)/mag_offset.o : ../../sensors/mag_offset.cpp $(all_make_files) |$(BINARYDIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
@@ -291,7 +307,15 @@ $(BINARYDIR)/MPU9250.o : ../../sensors/MPU9250.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 
+$(BINARYDIR)/MPU9250SPI.o : ../../sensors/MPU9250SPI.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
 $(BINARYDIR)/MS5611.o : ../../sensors/MS5611.c $(all_make_files) |$(BINARYDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
+
+
+$(BINARYDIR)/MS5611SPI.o : ../../sensors/MS5611SPI.c $(all_make_files) |$(BINARYDIR)
 	$(CC) $(CFLAGS) -c $< -o $@ -MD -MF $(@:.o=.dep)
 
 

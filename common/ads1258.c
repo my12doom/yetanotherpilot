@@ -12,7 +12,7 @@
 #define LOW_THRESH 2
 #define HIGH_THRESH 3
 
-int channel_data[29];
+int channel_data[32];
 int last_update_channel = -1;
 
 void ads1258_begin()
@@ -222,6 +222,8 @@ int ads1258_go(void)
 		p[0] = (p[1] & 0x80) ? 0xff : 0x00;
 		swap(p,4);
 
+		if (channel > 25)	// ADS1258 system reading bug fix
+			channel --;
 		channel_data[channel] = *(int*)p;
 		last_update_channel = channel;
 		

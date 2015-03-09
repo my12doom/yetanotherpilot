@@ -13,7 +13,8 @@ int I2C_init(uint8_t OwnAddress1);
 int I2C_ReadReg(uint8_t SlaveAddress, uint8_t startRegister, uint8_t*out, int count);
 int I2C_WriteReg(uint8_t SlaveAddress, uint8_t Register, uint8_t data);
 int I2C_WriteRegs(uint8_t SlaveAddress, uint8_t startRegister, const uint8_t*data, int count);
-
+int I2C_WriteCmd(uint8_t SlaveAddress, uint8_t cmd);
+	
 #ifdef __cplusplus
 }
 #endif

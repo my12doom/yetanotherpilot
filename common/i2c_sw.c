@@ -2,6 +2,7 @@
 #include "i2c_sw.h"
 #include "i2c_sw_priv.h"
 
+int I2C_speed = 5;
 
 volatile int SCL_PIN = DEFAULT_SCL_PIN;
 GPIO_TypeDef * volatile SCL_PORT = DEFAULT_SCL_PORT;
@@ -95,6 +96,27 @@ int I2C_SW_WriteByte(uint8_t deviceAddr, uint8_t writeReg, uint8_t writeValue)
     I2C_WaitAck();
 
     I2C_SendByte(writeValue&0xFF);
+    I2C_WaitAck();
+
+    I2C_Stop();
+
+	return 0;
+}
+
+int I2C_SW_WriteCmd(uint8_t deviceAddr, uint8_t cmd)
+{
+    if (!I2C_Start()) {
+        return -1;
+    }
+
+    I2C_SendByte(deviceAddr&0xFE);
+
+    if (!I2C_WaitAck()) {
+        I2C_Stop();
+        return -1;
+    }
+
+    I2C_SendByte(cmd);
     I2C_WaitAck();
 
     I2C_Stop();
@@ -205,10 +227,10 @@ int I2C_SW_ReadReg(uint8_t SlaveAddress, uint8_t startRegister, uint8_t*out, int
 static void I2C_Delay(void)
 {
 	#ifdef STM32F1
-    volatile int speedTick = 5;
+    volatile int speedTick = I2C_speed;
 	#endif
 	#ifdef STM32F4
-    volatile int speedTick = 5;
+    volatile int speedTick = I2C_speed;
 	#endif
     while (speedTick) {
        speedTick--;
@@ -289,9 +311,9 @@ static uint8_t I2C_WaitAck(void)
 
 static uint8_t I2C_SCLHigh(void)
 {
-	static int retry = 25;
+	volatile int retry = 99999;
 	SCL_HI;
-	while(retry && SCL_STATE)
+	while(retry && !SCL_STATE)
 		retry --;
 
 	return retry > 0;

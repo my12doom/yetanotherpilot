@@ -641,7 +641,7 @@ int main(int argc, char **argv)
 {
 // 	sanity_test();
 	int ssize = sizeof(quadcopter_data2);
-	tobin();
+// 	tobin();
 
 	int size =  sizeof(rf_data);
 	int gyros_counter = 0;
@@ -713,22 +713,6 @@ int main(int argc, char **argv)
 
 	}
 
-	FILE * ff = fopen("Z:\\out.csv", "wb");
-	fprintf(ff, "i,x,y,z\r\n");
-
- 	for(int i=-100; i<=100; i++)
-	{
-		vector test = {1,1,1};
-		vector test2 = test;
-		vector gyro = {0,0,PI*i/100/2,};
-		
-		vector_rotate(&test, gyro.array);
-
-		vector delta = vector_delta_angle(test, test2);
-
-		fprintf(ff, "%f,%f,%f,%f\r\n", PI*i/100/2, (delta.array[0]), delta.array[1], delta.array[2]);
-	}
-	fclose(ff);
 	if (argc<=1)
 	{
 		printf("dat2csv file\r\n");
@@ -781,20 +765,21 @@ int main(int argc, char **argv)
 	int64_t time;
 	while (fread(&rf, 1, 32, f) == 32)
 	{
-		time = rf.time & ~TAG_MASK;
-		if ((rf.time & TAG_MASK) ==  TAG_IMU_DATA)
+		time = rf.time & ~((uint64_t)0xff << 56);
+		uint8_t tag = rf.time >> 56;
+		if (tag ==  TAG_IMU_DATA)
 			imu = rf.data.imu;
-		else if ((rf.time & TAG_MASK) ==  TAG_ADV_SENSOR_DATA1)
+		else if (tag ==  TAG_ADV_SENSOR_DATA1)
 			adv_sensor[0] = rf.data.adv_sensor;
-		else if ((rf.time & TAG_MASK) ==  TAG_ADV_SENSOR_DATA2)
+		else if (tag ==  TAG_ADV_SENSOR_DATA2)
 			adv_sensor[1] = rf.data.adv_sensor;
-		else if ((rf.time & TAG_MASK) ==  TAG_ADV_SENSOR_DATA3)
+		else if (tag ==  TAG_ADV_SENSOR_DATA3)
 			adv_sensor[2] = rf.data.adv_sensor;
-		else if ((rf.time & TAG_MASK) ==  TAG_PILOT_DATA)
+		else if (tag ==  TAG_PILOT_DATA)
 			pilot = rf.data.pilot;
-		else if ((rf.time & TAG_MASK) ==  TAG_PILOT_DATA2)
+		else if (tag ==  TAG_PILOT_DATA2)
 			pilot2 = rf.data.pilot2;
-		else if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA)
+		else if (tag ==  TAG_GPS_DATA)
 		{
 			gps = rf.data.gps;
 			position2 s = {gps.longitude*double(TIMES/10000000), gps.latitude*double(TIMES/10000000), 0, 0, time};
@@ -807,7 +792,7 @@ int main(int argc, char **argv)
 			}
 
 		}
-		else if ((rf.time & TAG_MASK) ==  TAG_NED_DATA)
+		else if (tag ==  TAG_NED_DATA)
 		{
 			if (rf.data.ned.id > 0 && rf.data.ned.id<3)
 				ned[rf.data.ned.id] = rf.data.ned;
@@ -815,11 +800,11 @@ int main(int argc, char **argv)
 				ned0 = rf.data.ned;
 
 		}
-// 		else if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA_V1)
+// 		else if (tag ==  TAG_GPS_DATA_V1)
 // 			gps_v1 = rf.data.gps_v1;
- 		else if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA_V3)
+ 		else if (tag ==  TAG_GPS_DATA_V3)
  			;//do nothing
-		else if ((rf.time & TAG_MASK) ==  TAG_GPS_DATA_V2)
+		else if (tag ==  TAG_GPS_DATA_V2)
 		{
 			gps_v2 = rf.data.gps_v2;
 
@@ -833,7 +818,7 @@ int main(int argc, char **argv)
 			}
 
 		}
-		else if ((rf.time & TAG_MASK) ==  TAG_SENSOR_DATA)
+		else if (tag ==  TAG_SENSOR_DATA)
 		{
 			sensor = rf.data.sensor;
 			fwrite(sensor.gyro, 1, 6, gyrof);
@@ -915,22 +900,23 @@ int main(int argc, char **argv)
 			}
 
 		}
-		else if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA)
+		else if (tag ==  TAG_QUADCOPTER_DATA)
 		{
 			quad = rf.data.quadcopter;
 		}
-		else if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA2)
+		else if (tag ==  TAG_QUADCOPTER_DATA2)
 		{
 			quad2 = rf.data.quadcopter2;
 		}
-		else if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA3)
+		else if (tag ==  TAG_QUADCOPTER_DATA3)
 		{
 			quad3 = rf.data.quadcopter3;
 		}
-		else if ((rf.time & TAG_MASK) ==  TAG_PX4FLOW_DATA)
+		else if (tag ==  TAG_PX4FLOW_DATA)
 		{
 
 // 			if (rf.data.px4flow.ground_distance > 300 && rf.data.px4flow.ground_distance < 30000)
+// 			if (rf.data.px4flow.qual > 100)
 			{
 				px4flow = rf.data.px4flow;
 				
@@ -952,22 +938,22 @@ int main(int argc, char **argv)
 				last_integral_time = time;
 			}
 		}
-		else if ((rf.time & TAG_MASK) ==  TAG_POS_CONTROLLER_DATA1)
+		else if (tag ==  TAG_POS_CONTROLLER_DATA1)
 			posc_data1 = rf.data.pos_controller;
-		else if ((rf.time & TAG_MASK) ==  TAG_POS_CONTROLLER_DATA2)
+		else if (tag ==  TAG_POS_CONTROLLER_DATA2)
 			posc_data2 = rf.data.pos_controller2;
-		else if ((rf.time & TAG_MASK) ==  TAG_DOUBLE_SENSOR_DATA)
+		else if (tag ==  TAG_DOUBLE_SENSOR_DATA)
 		{
 			double_sensor = rf.data.double_sensor;
  			motion_detect_accel_16405(double_sensor, time/1000000.0f);
 		}
-		else if ((rf.time & TAG_MASK) ==  TAG_PPM_DATA)
+		else if (tag ==  TAG_PPM_DATA)
 			ppm = rf.data.ppm;
-		else if ((rf.time & TAG_MASK) ==  TAG_CTRL_DATA)
+		else if (tag ==  TAG_CTRL_DATA)
 			;// ignore controll data packets
 		else
 		{
-			printf("unknown data %x, skipping\r\n", int((rf.time & TAG_MASK)>>56));
+			printf("unknown data %x, skipping\r\n", int(tag));
 		}
 
 		// test
@@ -1031,14 +1017,14 @@ int main(int argc, char **argv)
 
 
 				sanity_test_packet packet = {0, gps_sample.latitude*double(COORDTIMES/TIMES), gps_sample.longtitude*double(COORDTIMES/TIMES),0,0,time};
-				fwrite(&packet, 1, sizeof(packet), sanity);
-				fflush(sanity);
+// 				fwrite(&packet, 1, sizeof(packet), sanity);
+// 				fflush(sanity);
 			}
 			estimator.update_accel(ned0.accel_NED2[0] / 1000.0f, ned0.accel_NED2[1] / 1000.0f, time);
 			// 			estimator2.update_accel(ned.accel_NED2[0] / 1000.0f, ned.accel_NED2[1] / 1000.0f, time);
 			sanity_test_packet packet = {1, 0, 0,ned0.accel_NED2[0] / 1000.0f,ned0.accel_NED2[1] / 1000.0f,time};
-			fwrite(&packet, 1, sizeof(packet), sanity);
-			fflush(sanity);
+// 			fwrite(&packet, 1, sizeof(packet), sanity);
+// 			fflush(sanity);
 
 			static int i = 0;
 			if (i++%150==0)
@@ -1128,7 +1114,7 @@ int main(int argc, char **argv)
 			imu.temperature = temp;
 		}
 
-		if ((rf.time & TAG_MASK) !=  TAG_SENSOR_DATA)
+		if (tag !=  TAG_SENSOR_DATA)
 			continue;
 
 		double pressure = (imu.pressure)/100.0;
@@ -1192,7 +1178,7 @@ int main(int argc, char **argv)
  		fprintf(fo, "%.4f,%.5f,%.5f,%2f,%f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d,%d\r\n",
-				float(time/1000000.0f), float(quad3.altitude_target/100.0f), float(quad2.altitude_baro_raw/100.0f), float(quad3.altitude/100.0f), float(quad2.altitude_kalman/100.0f),
+				float(time/1000000.0f), float(flow_pos[0]), float(flow_pos[1]), float(px4flow.qual), float(px4flow.ground_distance/1000.0f),
  				quad2.accel_z, quad2.accel_z_kalman, sensor.accel[2], px4flow.qual, pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[1], pilot2.D[0],
 				roll*180/PI, pitch*180/PI, roll_acc * 180 / PI, pitch_acc*180/PI, pilot.target[0]/100.0, pilot.target[2]/100.0, 
 				(ppm.in[2]-1113)/50, pilot.fly_mode,
@@ -1206,9 +1192,11 @@ int main(int argc, char **argv)
 				// estAcc[0], 机翼方向，右机翼方向为正
 				// estAcc[1], 前进方向，机头方向为正
 				// estAcc[2], 垂直方向，往上为正
+				// px4flow.x : 向后为正
+				// px4flow.y : 向左为正
 		fflush(fo);
 
-// 		if ((rf.time & TAG_MASK) ==  TAG_QUADCOPTER_DATA || (rf.time & TAG_MASK) ==  TAG_GPS_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA || (rf.time & TAG_MASK) ==  TAG_PILOT_DATA2)
+// 		if (tag ==  TAG_QUADCOPTER_DATA || tag ==  TAG_GPS_DATA || tag ==  TAG_PILOT_DATA || tag ==  TAG_PILOT_DATA2)
 		{
 //  			if (
 // 				1 &&
@@ -1232,7 +1220,7 @@ int main(int argc, char **argv)
 				fprintf(gpso, "%.4f", float(time/1000000.0f));
 				fprintf(gpso, ",%d,%d,%d,%d", quad.angle_pos[1], quad.angle_target[1], quad.speed[1], quad.speed_target[1]);
 				fprintf(gpso, ",%d,%d,%d,%d,%f,%f,%f,", quad.angle_pos[0], quad.angle_target[0],quad.speed[0], quad.speed_target[0], quad2.gyro_bias[0]/100.0f, quad2.gyro_bias[1]/100.0f, quad2.gyro_bias[2]/100.0f);
-				fprintf(gpso, "%.1f/%d/%d/%d,%f,%f,%f,%f,%f", gps.DOP[1]/100.0f, gps.satelite_in_use, gps.fix, gps.direction, quad2.accel_z_kalman/100.0f, ned[1].accel_NED2[2]/1000.0f, quad2.altitude_baro_raw/100.0f, quad3.altitude/100.00f, quad3.altitude_target/100.0f);
+				fprintf(gpso, "%.1f/%d/%d/%d,%f,%f,%f,%f,%f", gps.DOP[1]/100.0f, gps.satelite_in_use, gps.satelite_in_view, gps.direction, quad2.accel_z_kalman/100.0f, ned[1].accel_NED2[2]/1000.0f, quad2.altitude_baro_raw/100.0f, quad3.altitude/100.00f, quad3.altitude_target/100.0f);
 				fprintf(gpso, "\r\n");
 
 				fflush(gpso);

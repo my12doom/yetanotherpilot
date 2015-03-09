@@ -49,6 +49,11 @@
 
 extern float q0, q1, q2, q3;    // quaternion of sensor frame relative to auxiliary frame
 extern float gyro_bias[3];
+extern float Rot_matrix[9];
+extern float euler[3];
+extern float NED2BODY[3][3];
+extern float BODY2NED[3][3];
+extern float acc_ned[3];
 
 //---------------------------------------------------------------------------------------------------
 // Function declarations

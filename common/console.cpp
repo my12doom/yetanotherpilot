@@ -233,8 +233,9 @@ extern "C" int parse_command_line(const char *line, char *out)
 			sprintf(tmp+strlen(tmp), "%d,", info->satinfo.sat[i].sig);
 		}
 		position_meter pos = estimator.get_estimation_meter();
-		sprintf(out, "%.2f/%.2fm, %.2f/%.2fm/s, %d/%d sat, hdop%d.%02d, %d-%ddb(", pos.latitude, pos.longtitude,
-			pos.vlatitude, pos.vlongtitude, info->satinfo.inuse, info->satinfo.inview, hdop, hdop_frac, db_min, db_max);
+		position_meter pos_raw = estimator.get_raw_meter();
+		sprintf(out, "%.2f/%.2fm, raw%.2f/%.2fm, %.2f/%.2fm/s, %d/%d sat, hdop%d.%02d, %d-%ddb(", pos.latitude, pos.longtitude, pos_raw.latitude, pos_raw.longtitude,
+				pos.vlatitude, pos.vlongtitude, info->satinfo.inuse, info->satinfo.inview, hdop, hdop_frac, db_min, db_max);
 		strcat(out, tmp);
 		strcat(out, ")\n");
 		

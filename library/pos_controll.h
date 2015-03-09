@@ -1,4 +1,5 @@
 #pragma once
+#include <stdio.h>
 
 class pos_controller_base
 {
@@ -64,4 +65,9 @@ public:
 
 	float sin_yaw;
 	float cos_yaw;
+
+#ifdef WIN32
+	FILE * f;
+	unsigned int tick;
+#endif
 };

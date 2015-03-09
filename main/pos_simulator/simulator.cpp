@@ -112,7 +112,7 @@ DWORD WINAPI update_state(LPVOID p)
 		for(int axis=0; axis<3; axis++)
 		{
 			// 0.5hz LPF to simulate airframe response time
-			float alpha = dt / (dt + 1.0f/(2*PI * 2.5f)); 
+			float alpha = dt / (dt + 1.0f/(2*PI * 1.5f)); 
 			euler[axis] = euler[axis] * (1-alpha) + (target_euler[axis]) * alpha;
 
 			// simulate controll noise, 2 degree P-P white noise
@@ -184,10 +184,10 @@ DWORD WINAPI update_controller(LPVOID p)
 			float sp[2] = {0, 0};
 			controller.set_setpoint(sp);
 		}
-		if (GetTickCount() - start_time > 18000 && GetTickCount() - start_time < 28000)
-		{
-			use_pos_controller = false;
-		}
+// 		if (GetTickCount() - start_time > 18000 && GetTickCount() - start_time < 28000)
+// 		{
+// 			use_pos_controller = false;
+// 		}
 		if (GetTickCount() - start_time > 28000 && GetTickCount() - start_time < 29000)
 		{
 			controller.reset();

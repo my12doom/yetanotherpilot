@@ -2,6 +2,8 @@
 #include "../common/I2C.h"
 
 int PX4FLOW_ADDRESS = 0x84;
+extern int I2C_speed;// = 5;
+
 
 int init_px4flow(void)
 {
@@ -14,12 +16,20 @@ int init_px4flow(void)
 
 int read_px4flow(px4_frame *frame)
 {
-	return I2C_ReadReg(PX4FLOW_ADDRESS, 0, (uint8_t*)frame, sizeof(px4_frame));
+	volatile int speed = I2C_speed;
+	I2C_speed = 10;
+	int o = I2C_ReadReg(PX4FLOW_ADDRESS, 0, (uint8_t*)frame, sizeof(px4_frame));
+	I2C_speed = speed;
+	return o;
 }
 
 int read_px4flow_integral(px4_integral_frame *frame)
 {
-	return I2C_ReadReg(PX4FLOW_ADDRESS, 0, (uint8_t*)frame, sizeof(px4_integral_frame));
+	volatile int speed = I2C_speed;
+	I2C_speed = 10;
+	int o = I2C_ReadReg(PX4FLOW_ADDRESS, 0, (uint8_t*)frame, sizeof(px4_integral_frame));
+	I2C_speed = speed;
+	return o;
 }
 
 int check_px4flow(void)

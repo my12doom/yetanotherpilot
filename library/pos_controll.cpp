@@ -13,7 +13,7 @@ static float max_speed = 5.0f;
 static float max_speed_ff = 2.0f;
 static bool use_desired_feed_forward = false;
 static float feed_forward_factor = 1;
-static float rate2accel[4] = {1.0f, 0.5f, 0.0f, 2.0f};
+static float rate2accel[4] = {1.0f, 0.5f, 0.2f, 2.0f};
 static float pos2rate_P = 1.0f;
 
 // win32 helper
@@ -35,9 +35,22 @@ static float length(float a, float b, float c)
 	return sqrt(a*a+b*b+c*c);
 }
 
+static float sqrt2(float in)
+{
+	float o = in>0?1:-1;
+	return o*sqrt(fabs(in));
+}
+
 pos_controller::pos_controller()
 {
+#ifdef WIN32
+	f = fopen("Z:\\log.csv", "wb");
+	fprintf(f, "time,v,tv,p,sp\r\n");
+	tick = GetTickCount();
 
+	float v = atan2(1, 9.8);
+	printf("%f\n", v * 180 / PI);
+#endif
 }
 
 pos_controller::~pos_controller()
@@ -70,6 +83,11 @@ int pos_controller::update_controller(float dt)
 	rate_to_accel(dt);
 
 	accel_to_lean_angles();
+
+#ifdef WIN32
+	fprintf(f, "%.3f,%f,%f,%f,%f\r\n", (GetTickCount()-tick)/1000.0f, velocity[0],target_velocity[0], pid[0][0], pid[0][1]);
+	fflush(f);
+#endif
 
 	return 0;
 }
@@ -157,6 +175,8 @@ int pos_controller::move_desire_pos(float dt)
 int pos_controller::pos_to_rate(float dt)
 {
 	float error[2] = {setpoint[0] - pos[0], setpoint[1] - pos[1]};
+// 	error[0] = sqrt2(error[0]);
+// 	error[1] = sqrt2(error[1]);
 	float distance_to_target = length(error[0], error[1]);
 
 	// limit distance target
@@ -226,7 +246,7 @@ int pos_controller::rate_to_accel(float dt)
 	last_target_velocity[1] = target_velocity[1];
 
 	// 30hz LPF for D term
-	float alpha30 = dt / (dt + 1.0f/(2*PI * 30.0f));
+	float alpha30 = dt / (dt + 1.0f/(2*PI * 5.0f));
 
 	for(int axis=0; axis<2; axis++)
 	{
@@ -239,7 +259,7 @@ int pos_controller::rate_to_accel(float dt)
 		// update I only if we did not hit accel/angle limit or throttle limit or I term will reduce
 		if (true)
 		{
-			pid[axis][1] += p * dt;
+			pid[axis][1] += pow((double)fabs(p), 0.3) * (p>0?1:-1) * dt;
 			pid[axis][1] = limit(pid[axis][1], -rate2accel[3], rate2accel[3]);
 		}
 
@@ -264,7 +284,7 @@ int pos_controller::accel_to_lean_angles()
 
 	// accel to lean angle
 	target_euler[1] = atan2(-accel_forward, g);
-	target_euler[0] = atan2(accel_right/**cos(target_euler[1])*/, g);		// maybe target_pitch not needed?
+	target_euler[0] = atan2(accel_right/**cos(eulers[1])*/, g);		// maybe target_pitch not needed?
 
 	// TODO: handle angle limitation correctly
 	target_euler[0] = limit(target_euler[0], -PI/4, PI/4);

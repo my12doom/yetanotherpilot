@@ -129,6 +129,10 @@ int I2C_WriteReg(uint8_t SlaveAddress, uint8_t Register, uint8_t data)
 {
 	return I2C_SW_WriteByte(SlaveAddress, Register, data);
 }
+int I2C_WriteCmd(uint8_t SlaveAddress, uint8_t cmd)
+{
+	return I2C_SW_WriteCmd(SlaveAddress, cmd);
+}
 int I2C_WriteRegs(uint8_t SlaveAddress, uint8_t startRegister, const uint8_t*data, int count)
 {
 	return I2C_SW_WriteReg(SlaveAddress, startRegister, data, count);

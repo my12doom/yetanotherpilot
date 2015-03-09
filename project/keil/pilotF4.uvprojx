@@ -347,7 +347,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>1</Optim>
+            <Optim>4</Optim>
             <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
@@ -687,6 +687,21 @@
               <FileName>sonar.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\sensors\sonar.c</FilePath>
+            </File>
+            <File>
+              <FileName>MS5611SPI.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\sensors\MS5611SPI.c</FilePath>
+            </File>
+            <File>
+              <FileName>HMC5983.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\sensors\HMC5983.c</FilePath>
+            </File>
+            <File>
+              <FileName>MPU9250SPI.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\sensors\MPU9250SPI.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1652,6 +1667,21 @@
               <FileType>1</FileType>
               <FilePath>..\..\sensors\sonar.c</FilePath>
             </File>
+            <File>
+              <FileName>MS5611SPI.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\sensors\MS5611SPI.c</FilePath>
+            </File>
+            <File>
+              <FileName>HMC5983.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\sensors\HMC5983.c</FilePath>
+            </File>
+            <File>
+              <FileName>MPU9250SPI.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\sensors\MPU9250SPI.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -2616,6 +2646,21 @@
               <FileType>1</FileType>
               <FilePath>..\..\sensors\sonar.c</FilePath>
             </File>
+            <File>
+              <FileName>MS5611SPI.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\sensors\MS5611SPI.c</FilePath>
+            </File>
+            <File>
+              <FileName>HMC5983.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\sensors\HMC5983.c</FilePath>
+            </File>
+            <File>
+              <FileName>MPU9250SPI.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\sensors\MPU9250SPI.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -3579,6 +3624,21 @@
               <FileName>sonar.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\sensors\sonar.c</FilePath>
+            </File>
+            <File>
+              <FileName>MS5611SPI.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\sensors\MS5611SPI.c</FilePath>
+            </File>
+            <File>
+              <FileName>HMC5983.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\sensors\HMC5983.c</FilePath>
+            </File>
+            <File>
+              <FileName>MPU9250SPI.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\sensors\MPU9250SPI.c</FilePath>
             </File>
           </Files>
         </Group>

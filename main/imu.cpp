@@ -140,7 +140,7 @@ int main()
 
 	ads1258_config1 config1;
 	ads1258_read_registers(REG_CONFIG1, 1, &config1);
-	config1.DRATE = 2;
+	config1.DRATE = 0;
 	config1.DLY = 0;
 	ads1258_write_registers(REG_CONFIG1, 1, &config1);
 	ads1258_read_registers(REG_CONFIG1, 1, &config1);
@@ -148,23 +148,23 @@ int main()
 
 	ads1258_config0 config0;
 	ads1258_read_registers(REG_CONFIG0, 1, &config0);
-	config0.BYPAS = 1;
+	config0.BYPAS = 0;
 	config0.CHOP = 0;
 	ads1258_write_registers(REG_CONFIG0, 1, &config0);
 	ads1258_read_registers(REG_CONFIG0, 1, &config0);
 	
 	ads1258_SYSRED sys;
 	ads1258_read_registers(REG_SYSRED, 1, &sys);
+	memset(&sys, 0, 1);
+	sys.VCC = 1;
+	sys.REF = 1;
 	/*
 	sys._OFFSET = 1;
-	sys.REF = 1;
 	sys.GAIN = 1;
-	sys.VCC = 1;
 	sys.zero = 1;
 	sys.TEMP = 1;
 	*/
 
-	memset(&sys, 0, 1);
 	ads1258_write_registers(REG_SYSRED, 1, &sys);
 	ads1258_read_registers(REG_SYSRED, 1, &sys);
 
@@ -208,7 +208,17 @@ int main()
 		
 		//printf("\r%d", int(getus()));
 		
+		if (last_update_channel == 22)
+		{
+			float vcc = channel_data[25] / 786432.0f;
+			float vref = channel_data[28] / 786432.0f;
+			float vtemp = channel_data[10] * 5.3 / 8388607.0f;
+			float vcc2 = channel_data[11] * 5.3 / 8388607.0f;
+			
+			LOGE("\r%f,%f,%f,%f", vcc, vref, vtemp, vcc2);
+		}
 
+		
 		/*
 		if (last_update_channel == 22)
 		{

@@ -66,32 +66,40 @@ int read_hp203b(int *data)
 	uint8_t tmp[8] = {0};
 
 	// check if data ready
-	I2C_ReadReg(ADDR, _READ_REG + INT_SRC, tmp, 1);
+	I2C_ReadReg(ADDR, INT_SRC, tmp, 1);
 	LOGE("tmp=%02x\n", tmp[0]);
-	if ((tmp[0] & T_RDY) && (tmp[0] & PA_RDY))
+	if (tmp[0] == 0x40)
 	{
 		// read out data
-		I2C_ReadReg(ADDR, _READ_REG + READ_P, tmp+1, 3);
-		tmp[0] = tmp[1] & 0x80 ? 0xff : 0x00;
-		data[0] = *(int*)tmp;
-
-		I2C_ReadReg(ADDR, _READ_REG + READ_T, tmp+1, 3);
-		tmp[0] = tmp[1] & 0x80 ? 0xff : 0x00;
-		data[1] = *(int*)tmp;
-
-		// start new data converting
-		I2C_WriteReg(ADDR, ADC_CVT + OSR4096 + CHANNEL_PRESSURE_AND_TEMPERATURE, 0);
+// 		I2C_ReadReg(ADDR, READ_P, tmp+1, 3);
+// 		tmp[0] = tmp[1] & 0x80 ? 0xff : 0x00;
+// 		data[0] = *(int*)tmp;
+// 
+// 		I2C_ReadReg(ADDR, READ_T, tmp+1, 3);
+// 		tmp[0] = tmp[1] & 0x80 ? 0xff : 0x00;
+// 		data[1] = *(int*)tmp;
+// 
+// 		// start new data converting
+		I2C_WriteCmd(ADDR, ADC_CVT + OSR4096 + CHANNEL_PRESSURE_AND_TEMPERATURE);
 		last_convert = getus();
+
+		delayms(100);
+
+		I2C_ReadReg(ADDR, READ_PT, tmp+2, 4);
+		data[0] = *(int*)tmp;
+		tmp[1] = tmp[2] & 0x80 ? 0xff : 0x00;
+		data[1] = *(int*)(tmp+1);
+
 	}
 	else
 	{
-		// time out, start new data converting
-		if (getus() - last_convert > 100000)
-		{
-			I2C_WriteReg(ADDR, ADC_CVT + OSR4096 + CHANNEL_PRESSURE_AND_TEMPERATURE, 0);
-			last_convert = getus();
-		}
-		return -1;
+// 		// time out, start new data converting
+// 		if (getus() - last_convert > 100000)
+// 		{
+// 			I2C_WriteReg(ADDR, ADC_CVT + OSR4096 + CHANNEL_PRESSURE_AND_TEMPERATURE, 0);
+// 			last_convert = getus();
+// 		}
+// 		return -1;
 	}
 	
 	return 0;

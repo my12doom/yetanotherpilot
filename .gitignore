@@ -1,0 +1,17 @@
+*.bak
+*.old
+*.mo
+*.suo
+*.ncb
+*.user
+*.log
+*.csv
+*.schdocpreview
+*.pcbdocpreview
+output/
+project/visualstudio2008/debug/
+project/visualstudio2008/visualGDBCache/
+main/groundcontroll/debug/
+main/pos_simulator/debug/
+main/dat2csv/debug/
+main/grapher/debug/
