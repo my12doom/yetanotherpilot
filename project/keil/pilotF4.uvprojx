@@ -508,6 +508,11 @@
               <FileType>8</FileType>
               <FilePath>..\..\library\log.cpp</FilePath>
             </File>
+            <File>
+              <FileName>altitude_estimatorCF.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\altitude_estimatorCF.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1511,6 +1516,11 @@
               <FileName>log.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>..\..\library\log.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>altitude_estimatorCF.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\altitude_estimatorCF.cpp</FilePath>
             </File>
           </Files>
         </Group>
@@ -2516,6 +2526,11 @@
               <FileType>8</FileType>
               <FilePath>..\..\library\log.cpp</FilePath>
             </File>
+            <File>
+              <FileName>altitude_estimatorCF.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\altitude_estimatorCF.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -3519,6 +3534,11 @@
               <FileName>log.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>..\..\library\log.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>altitude_estimatorCF.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\library\altitude_estimatorCF.cpp</FilePath>
             </File>
           </Files>
         </Group>

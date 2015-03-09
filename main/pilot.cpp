@@ -22,6 +22,7 @@
 #include "../library/ahrs.h"
 #include "../library/ahrs2.h"
 #include "../library/altitude_estimator.h"
+#include "../library/altitude_estimatorCF.h"
 #include "../library/log.h"
 
 #ifndef LITE
@@ -360,28 +361,9 @@ float pid_result[3] = {0}; // total pid for roll, pitch, yaw
 float a_raw_pressure = 0;
 float a_raw_temperature = 0;
 float a_raw_altitude = 0;
-float a_altitude = NAN;
-float a_raw_climb = 0;
-float a_climb = 0;
-float a_climb2_tick = 0;
-float a_climb_rate_filter[7] = {0};			// 7 point Derivative Filter(copied from ArduPilot), see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/#noiserobust_2
-float a_climb_rate_filter_time[7] = {0};
 
 
-float _time_constant_z = 5.0f;
-float _k1_z = 3 / _time_constant_z;
-float _k2_z = 3 / (_time_constant_z*_time_constant_z);
-float _k3_z = 1 / (_time_constant_z*_time_constant_z*_time_constant_z);
-float _position_error = 0;            // current position error in cm - is set by the check_* methods and used by update method to calculate the correction terms
-float _position_base = 0;             // (uncorrected) position estimate in cm - relative to the home location (_base_lat, _base_lon, 0)
-float _position_correction = 0;       // sum of corrections to _position_base from delayed 1st order samples in cm
-float _velocity_base = 0;             // latest velocity estimate (integrated from accelerometer values) in cm/s
-float _velocity_correction = 0;       // latest velocity estimate (integrated from accelerometer values) in cm/s
-float _position = 0;                  // sum(_position_base, _position_correction) - corrected position estimate in cm - relative to the home location (_base_lat, _base_lon, 0)
-float _velocity = 0;				  // latest velocity estimate (integrated from accelerometer values) in cm/s
-float _accel_correction_ef = 0;		  // accelerometer corrections
 
-float altitude_controller_rate_factor = 1.0f;
 float target_altitude = 0;
 float ground_altitude = NAN;
 float target_climb_rate = 0;
@@ -436,6 +418,7 @@ double NDEG2DEG(double ndeg)
 
 // kalman test
 altitude_estimator alt_estimator;
+altitude_estimatorCF alt_estimatorCF;
 
 /// calc_leash_length - calculates the horizontal leash length given a maximum speed, acceleration and position kP gain
 float calc_leash_length(float speed, float accel, float kP)
@@ -605,30 +588,6 @@ int calculate_baro_altitude()
 	if (fabs(a_raw_altitude) < 5.0f)
 		ground_temperature = a_raw_temperature;
 
- 	_position_error = a_raw_altitude - (_position_base + _position_correction);
-
-	return 0;
-}
-
-int altitude_estimation_complementary()
-{
-	float &dt = interval;
-
-	_accel_correction_ef += _position_error * _k3_z  * dt;
-	_velocity_correction += _position_error * _k2_z  * dt;
-	_position_correction += _position_error * _k1_z  * dt;
-
-	const float velocity_increase = (accelz + _accel_correction_ef) * dt;
-	_position_base += (_velocity_base + _velocity_correction + velocity_increase*0.5f) * dt;
-	_velocity_base += velocity_increase;
-
-	_position = _position_base + _position_correction;
-	_velocity = _velocity_base + _velocity_correction;
-	
-// 	alt_estimator.state[0] = _position;
-// 	alt_estimator.state[1] = _velocity;
-// 	alt_estimator.state[3] = _accel_correction_ef;
-	
 	return 0;
 }
 
@@ -1074,11 +1033,11 @@ int save_logs()
 	quadcopter_data3 quad3 = 
 	{
 		target_altitude * 100,
-		_position * 100,
+		alt_estimatorCF.state[0] * 100,
 		target_climb_rate * 100,
-		_velocity * 100,
+		alt_estimatorCF.state[1] * 100,
 		target_accel * 100,
-		(accelz + _accel_correction_ef) * 100,
+		(accelz + alt_estimatorCF.state[3]) * 100,
 		throttle_result*1000,
 		yaw_launch * 18000 / PI,
 		euler[2] * 18000 / PI,
@@ -1483,9 +1442,10 @@ int calculate_attitude()
 	accelz_mwc = accelz;
 	accelz = acc_ned[2];
 
-	altitude_estimation_complementary();
 	alt_estimator.set_land_effect(mode == quadcopter && (!airborne || (!isnan(sonar_distance) && sonar_distance < 1.0f) || fabs(alt_estimator.state[0] - ground_altitude) < 1.0f));
 	alt_estimator.update(accelz, ms5611_result == 0 ? a_raw_altitude : NAN, interval);
+	alt_estimatorCF.set_land_effect(mode == quadcopter && (!airborne || (!isnan(sonar_distance) && sonar_distance < 1.0f) || fabs(alt_estimator.state[0] - ground_altitude) < 1.0f));
+	alt_estimatorCF.update(accelz, ms5611_result == 0 ? a_raw_altitude : NAN, interval);
 
 	return 0;
 }

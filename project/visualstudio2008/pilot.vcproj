@@ -95,6 +95,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\library\altitude_estimatorCF.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\library\log.cpp"
 				>
 			</File>
@@ -811,6 +815,10 @@
 			Name="Header files"
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			>
+			<File
+				RelativePath="..\..\library\altitude_estimatorCF.h"
+				>
+			</File>
 			<Filter
 				Name="Device-specific files"
 				>
