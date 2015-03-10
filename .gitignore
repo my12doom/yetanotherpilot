@@ -8,6 +8,8 @@
 *.csv
 *.schdocpreview
 *.pcbdocpreview
+JLinkLog.txt
+gyro.dat
 output/
 project/visualstudio2008/debug/
 project/visualstudio2008/visualGDBCache/
