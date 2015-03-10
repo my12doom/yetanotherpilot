@@ -191,7 +191,7 @@
           <Type>0</Type>
           <LineNumber>48</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134274932</Address>
+          <Address>134276360</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -207,7 +207,7 @@
           <Type>0</Type>
           <LineNumber>70</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134235692</Address>
+          <Address>134235752</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -224,6 +224,31 @@
           <count>0</count>
           <WinNumber>1</WinNumber>
           <ItemText>m_user</ItemText>
+        </Ww>
+        <Ww>
+          <count>1</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>alt_estimator</ItemText>
+        </Ww>
+        <Ww>
+          <count>2</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>alt_controller</ItemText>
+        </Ww>
+        <Ww>
+          <count>3</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>alt_controller</ItemText>
+        </Ww>
+        <Ww>
+          <count>4</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>target_climb_rate</ItemText>
+        </Ww>
+        <Ww>
+          <count>5</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>throttle_real_crusing</ItemText>
         </Ww>
       </WatchWindow1>
       <Tracepoint>

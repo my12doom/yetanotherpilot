@@ -23,6 +23,7 @@
 #include "../library/ahrs2.h"
 #include "../library/altitude_estimator.h"
 #include "../library/altitude_estimatorCF.h"
+#include "../library/altitude_controller.h"
 #include "../library/log.h"
 
 #ifndef LITE
@@ -269,7 +270,6 @@ static float f_max(float a, float b)
 }
 
 // states
-bool launched = false;
 float mpu6050_temperature = 0;
 float angle_pos[3] = {0};
 float angle_posD[3] = {0};
@@ -293,10 +293,6 @@ struct
 float ground_pressure = 0;
 float ground_temperature = 0;
 float rc[8] = {0};			// ailerron : full left -1, elevator : full down -1, throttle: full down 0, rudder, full left -1
-// float climb_rate = 0;
-// float climb_rate_lowpass = 0;
-// float climb_rate_filter[7] = {0};			// 7 point Derivative Filter(copied from ArduPilot), see http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/#noiserobust_2
-// float climb_rate_filter_time[7] = {0};
 float accelz = 0;
 bool airborne = false;
 bool nearground = false;
@@ -343,6 +339,10 @@ static unsigned short gps_id = 0;
 adis16405_burst_packet adis16405_packet;
 pos_estimator estimator;
 pos_controller controller;
+altitude_estimator alt_estimator;
+float ground_altitude;
+altitude_estimatorCF alt_estimatorCF;
+altitude_controller alt_controller;
 OpticalFlowController of_controller;
 float ground_speed_north;		// unit: m/s
 float ground_speed_east;		// unit: m/s
@@ -364,19 +364,8 @@ float a_raw_altitude = 0;
 
 
 
-float target_altitude = 0;
-float ground_altitude = NAN;
-float target_climb_rate = 0;
-float target_accel = 0;
-float altitude_error_pid[3] = {0};
-float climb_rate_error_pid[3] = {0};
-float accel_error_pid[3] = {0};
-float throttle_result = 0;
-int throttle_limit = 0;
-#define THROTTLE_LIMIT_MAX 1
-#define THROTTLE_LIMIT_MIN 1
 float throttle_real = 0;
-float throttle_real_crusing = THROTTLE_CRUISE;
+float throttle_result = 0;
 
 int16_t ads1115_2_5V = 0;
 int16_t ads1115_airspeed = 0;
@@ -416,168 +405,6 @@ double NDEG2DEG(double ndeg)
 	return degree + minute/60.0 + modf(ndeg, &ndeg)/60.0;
 }
 
-// kalman test
-altitude_estimator alt_estimator;
-altitude_estimatorCF alt_estimatorCF;
-
-/// calc_leash_length - calculates the horizontal leash length given a maximum speed, acceleration and position kP gain
-float calc_leash_length(float speed, float accel, float kP)
-{
-	float leash_length;
-
-	// sanity check acceleration and avoid divide by zero
-	if (accel <= 0.0f) {
-		accel = 5.0f;
-	}
-
-	// avoid divide by zero
-	if (kP <= 0.0f) {
-		return 1;
-	}
-
-	// calculate leash length
-	if(speed <= accel / kP) {
-		// linear leash length based on speed close in
-		leash_length = speed / kP;
-	}else{
-		// leash length grows at sqrt of speed further out
-		leash_length = (accel / (2.0f*kP*kP)) + (speed*speed / (2.0f*accel));
-	}
-
-	// ensure leash is at least 1m long
-	if( leash_length < 1 ) {
-		leash_length = 1;
-	}
-
-	return leash_length;
-}
-
-int auto_throttle(float user_climb_rate)
-{
-	if (!airborne)
-	{
-		float alpha = interval / (interval + 1.0f/(2*3.1415926 * 0.03f));
-		target_altitude = target_altitude * (1-alpha) + alpha * alt_estimator.state[0];
-	}
-
-	if (!isnan(target_altitude))
-	{
-		float leash_up = calc_leash_length(quadcopter_max_climb_rate, quadcopter_max_acceleration, pid_quad_altitude[0]);
-		float leash_down = calc_leash_length(quadcopter_max_descend_rate, quadcopter_max_acceleration, pid_quad_altitude[0]);
-		
-		// only move altitude target if throttle didn't hit limits
-		if ((!(throttle_limit & THROTTLE_LIMIT_MAX) && user_climb_rate > 0) || (!(throttle_limit & THROTTLE_LIMIT_MIN) && user_climb_rate < 0))
-			target_altitude += user_climb_rate * interval;
-
-		target_altitude = limit(target_altitude, alt_estimator.state[0]-leash_down, alt_estimator.state[0]+leash_up);
-
-		// new target rate, directly use linear approach since we use very tight limit 
-		// TODO: use sqrt approach on large errors (see get_throttle_althold() in Attitude.pde)
-		altitude_error_pid[0] = target_altitude - alt_estimator.state[0];
-		altitude_error_pid[0] = limit(altitude_error_pid[0], -2.5f, 2.5f);
-		target_climb_rate = pid_quad_altitude[0] * altitude_error_pid[0];
-	}
-	else
-	{
-		target_climb_rate = 0;
-	}
-
-	target_climb_rate += user_climb_rate * 0.35f;		// feed forward 45%
-
-
-	TRACE("\rtarget_climb_rate=%.2f/%.2f, user=%.2f, out=%2f.     ", target_climb_rate, target_climb_rate-user_climb_rate, user_climb_rate, throttle_result);
-
-
-	// new climb rate error
-	float climb_rate_error = target_climb_rate - alt_estimator.state[1];
-	climb_rate_error = limit(climb_rate_error, -quadcopter_max_descend_rate, quadcopter_max_climb_rate);
-
-	// apply a 2Hz LPF to rate error
-	const float RC = 1.0f/(2*3.1415926 * 5.0f);
-	float alpha = interval / (interval + RC);
-	// 5Hz LPF filter
-	const float RC5 = 1.0f/(2*3.1415926 * 2.0f);
-	float alpha5 = interval / (interval + RC5);
-	// 30Hz LPF for derivative factor
-	const float RC30 = 1.0f/(2*3.1415926 * 30.0f);
-	float alpha30 = interval / (interval + RC30);
-
-	// TODO: add feed forward
-	// reference: get_throttle_rate()
-
-	climb_rate_error_pid[0] = isnan(climb_rate_error_pid[0]) ? (climb_rate_error) : (climb_rate_error_pid[0] * (1-alpha) + alpha * climb_rate_error);
-	target_accel = climb_rate_error_pid[0] * pid_quad_alt_rate[0];
-	target_accel = limit(target_accel,  airborne ? -quadcopter_max_acceleration : -2 * quadcopter_max_acceleration, quadcopter_max_acceleration);
-
-	
-	// new accel error, +2Hz LPF
-	float accel_error = target_accel - (accelz + alt_estimator.state[3]);
-	if (isnan(accel_error_pid[0]))
-	{
-		accel_error_pid[0] = accel_error;
-	}
-	else
-	{
-		accel_error = accel_error_pid[0] * (1-alpha) + alpha * accel_error;
-	}
-
-	// core pid
-	// only integrate if throttle didn't hit limits or I term will reduce
-	if (airborne)
-	if ((!(throttle_limit & THROTTLE_LIMIT_MAX) && accel_error_pid[0] > 0) || (!(throttle_limit & THROTTLE_LIMIT_MIN) && accel_error_pid[0] < 0))
-	{
-		accel_error_pid[1] += accel_error_pid[0] * interval;
-		accel_error_pid[1] = limit(accel_error_pid[1], -pid_quad_accel[3], pid_quad_accel[3]);
-	}
-	float D = (accel_error - accel_error_pid[0])/interval;
-	accel_error_pid[2] = isnan(accel_error_pid[2])? D : (accel_error_pid[2] * (1-alpha30) + alpha30 * D);
-	accel_error_pid[0] = accel_error;
-
-
-	float output = 0;
-	output += accel_error_pid[0] * pid_quad_accel[0];
-	output += accel_error_pid[1] * pid_quad_accel[1];
-	output += accel_error_pid[2] * pid_quad_accel[2];
-
-	float result = throttle_result;
-	throttle_result  = output + throttle_real_crusing;
-	float angle_boost_factor = limit(1/ cos(euler[0]) / cos(euler[1]), 1.0f, 1.5f);
-	throttle_result = throttle_result * angle_boost_factor;
-	
-	if (throttle_result > 1 - QUADCOPTER_THROTTLE_RESERVE)
-	{
-		throttle_result = 1 - QUADCOPTER_THROTTLE_RESERVE;
-		throttle_limit = THROTTLE_LIMIT_MAX;
-	}
-	else if (throttle_result < (airborne ? QUADCOPTER_THROTTLE_RESERVE : 0))
-	{
-		throttle_result = airborne ? QUADCOPTER_THROTTLE_RESERVE : 0;
-		throttle_limit = THROTTLE_LIMIT_MIN;
-	}
-	else
-	{
-		throttle_limit = 0;
-	}
-
-	TRACE("\rthrottle=%f, altitude = %.2f/%.2f, pid=%.2f,%.2f,%.2f, limit=%d", result, alt_estimator.state[0], target_altitude,
-		accel_error_pid[0], accel_error_pid[1], accel_error_pid[2], throttle_limit);
-
-	// update throttle_real_crusing if we're in near level state and no violent climbing/descending action
-	if (airborne && throttle_real>0 && fabs(alt_estimator.state[1]) < 0.5f && fabs(alt_estimator.state[3] + accelz)<0.5f && fabs(euler[0])<5*PI/180 && fabs(euler[1])<5*PI/180
-		&& fabs(user_climb_rate) < 0.001f)
-	{
-		// 0.2Hz low pass filter
-		const float RC02 = 1.0f/(2*3.1415926 * 0.2f);
-		float alpha02 = interval / (interval + RC02);
-
-		throttle_real_crusing = throttle_real_crusing * (1-alpha02) + alpha02 * throttle_real;
-		// TODO: estimate throttle cursing correctly
-
-		LOGE("\rthrottle_real=%f", throttle_real_crusing);
-	}
-
-	return 0;
-}
 
 int calculate_baro_altitude()
 {
@@ -590,8 +417,6 @@ int calculate_baro_altitude()
 
 	return 0;
 }
-
-float rc_d[3] = {0};
 
 int prepare_pid()
 {
@@ -633,7 +458,13 @@ int prepare_pid()
 					user_rate = (v+0.05f)/0.45f;
 					user_rate = -user_rate * user_rate * quadcopter_max_descend_rate;
 				}
-				auto_throttle(user_rate);
+
+				float alt_state[3] = {alt_estimator.state[0], alt_estimator.state[1], alt_estimator.state[3] + accelz};
+				alt_controller.provide_states(alt_state, euler, throttle_real, MOTOR_LIMIT_NONE, airborne);
+				alt_controller.update(interval, user_rate);
+				throttle_result = alt_controller.get_result();
+
+				LOGE("\rthr=%f/%f", throttle_result, alt_controller.get_result());
 			}
 			else
 			{
@@ -734,14 +565,12 @@ int prepare_pid()
 #endif
 
 			// yaw:
-			//target[2] = limit((g_ppm_input[3] - RC_CENTER) * rc_reverse[2] / RC_RANGE, -1, 1) * quadcopter_range[2] + yaw_gyro + quadcopter_trim[2];
-			rc_d[2] = ((fabs(rc[3]) < (float)RC_DEAD_ZONE/RC_RANGE) ? 0 : -rc[3]) * interval * QUADCOPTER_ACRO_YAW_RATE;
+			float delta_yaw = ((fabs(rc[3]) < (float)RC_DEAD_ZONE/RC_RANGE) ? 0 : -rc[3]) * interval * QUADCOPTER_ACRO_YAW_RATE;
 
-			float trimmed_pos = radian_add(angle_pos[2], quadcopter_trim[2]);
-			float new_target = radian_add(angle_target[2], rc_d[2]);
-			float new_error = abs(radian_sub(trimmed_pos, new_target));
+			float new_target = radian_add(angle_target[2], delta_yaw);
+			float new_error = abs(radian_sub(angle_pos[2], new_target));
 			if (new_error > (airborne?QUADCOPTER_MAX_YAW_OFFSET:(QUADCOPTER_MAX_YAW_OFFSET/5)) && new_error > abs(angle_error[2]))
-				rc_d[2] = 0;
+				;
 			else
 				angle_target[2] = new_target;
 
@@ -777,10 +606,9 @@ int prepare_pid()
 			TRACE("angle pos,target=%f,%f, air=%s\r\n", angle_pos[2] * PI180, angle_target[2] * PI180, airborne ? "true" : "false");
 
 			// check takeoff
-			float active_throttle = throttle_result;
 			if ( (alt_estimator.state[0] > takeoff_ground_altitude + 1.0f) ||
-				(alt_estimator.state[0] > takeoff_ground_altitude && active_throttle > throttle_real_crusing) ||
-				(active_throttle > throttle_real_crusing + QUADCOPTER_THROTTLE_RESERVE))
+				(alt_estimator.state[0] > takeoff_ground_altitude && throttle_result > alt_controller.throttle_hover) ||
+				(throttle_result > alt_controller.throttle_hover + QUADCOPTER_THROTTLE_RESERVE))
 			{
 				airborne = true;
 				gyro_bias_estimating_end = true;
@@ -797,10 +625,9 @@ int pid()
 {
 	for(int i=0; i<3; i++)
 	{
-		float new_p;
-			new_p = (pos[i]-target[i]) * sensor_reverse[i];
+		float new_p = (target[i]-pos[i]);
 
-		if (i ==0 && QUADCOPTER == 1)
+		if (i == 1 && QUADCOPTER == 1)
 			new_p = -new_p;
 
 		TRACE("p[%d]=%f", i, new_p*PI180);
@@ -814,7 +641,7 @@ int pid()
 		// D, with 40hz 4th order low pass filter
 		static const float lpf_RC = 1.0f/(2*PI * 40.0f);
 		float alpha = interval / (interval + lpf_RC);
-		float derivative = (new_p - error_pid[i][0] + rc_d[i]* sensor_reverse[i])/interval;
+		float derivative = (new_p - error_pid[i][0] )/interval;
 
 		for(int j=0; j<lpf_order; j++)
 			errorD_lpf[j][i] = errorD_lpf[j][i] * (1-alpha) + alpha * (j==0?derivative:errorD_lpf[j-1][i]);
@@ -1032,22 +859,22 @@ int save_logs()
 
 	quadcopter_data3 quad3 = 
 	{
-		target_altitude * 100,
+		alt_controller.target_altitude * 100,
 		alt_estimatorCF.state[0] * 100,
-		target_climb_rate * 100,
+		alt_controller.target_climb_rate * 100,
 		alt_estimatorCF.state[1] * 100,
-		target_accel * 100,
+		alt_controller.target_accel * 100,
 		(accelz + alt_estimatorCF.state[3]) * 100,
 		throttle_result*1000,
 		yaw_launch * 18000 / PI,
 		euler[2] * 18000 / PI,
-		throttle_real_crusing*1000,
+		alt_controller.throttle_hover*1000,
 		#ifndef LITE
 		sonar_result(),
 		#else
 		0xffff,
 		#endif
-		accel_error_pid[1]*1000,
+		alt_controller.accel_error_pid[1]*1000,
 	};
 
 	log(&quad3, TAG_QUADCOPTER_DATA3, time);
@@ -1842,12 +1669,9 @@ int set_submode(copter_mode newmode)
 
 	if (!has_alt_controller && to_use_alt_controller)
 	{
-		// TODO: reset alt controller
-		target_altitude = airborne ? alt_estimator.state[0] : (alt_estimator.state[0]-1);
- 		accel_error_pid[0] = NAN;
-		accel_error_pid[1] = 0;
-		accel_error_pid[2] = NAN;
-		climb_rate_error_pid[0] = NAN;
+		float alt_state[3] = {alt_estimator.state[0], alt_estimator.state[1], alt_estimator.state[3] + accelz};
+		alt_controller.provide_states(alt_state, euler, throttle_real, MOTOR_LIMIT_NONE, airborne);
+		alt_controller.reset();
 	}
 
 	if (newmode == optical_flow && submode != optical_flow)
@@ -1875,9 +1699,11 @@ int set_mode(fly_mode newmode)
 	tilt_us = 0;
 	throttle_result = 0;
 	airborne = false;
-// 	accel_error_pid[1] = -throttle_real_crusing / pid_quad_accel[1];
-// 	accel_error_pid[1] = limit(accel_error_pid[1], -pid_quad_accel[3], pid_quad_accel[3]);
-	accel_error_pid[0] = -quadcopter_max_acceleration*2;
+
+	float alt_state[3] = {alt_estimator.state[0], alt_estimator.state[1], alt_estimator.state[3] + accelz};
+	alt_controller.provide_states(alt_state, euler, throttle_real, MOTOR_LIMIT_NONE, airborne);
+	alt_controller.reset();
+
 
 #if QUADCOPTER == 1
 	for(int i=0; i<3; i++)
@@ -2013,8 +1839,8 @@ int osd()
 	sprintf(climb_rate_string, "%c%.1f", alt_estimator.state[1] >0 ? '+' : '-', fabs(alt_estimator.state[1]));
 	MAX7456_PrintDigitString(climb_rate_string, 0, 9);
 
-	if (isnan(target_altitude))
-		MAX7456_PrintDigitString(target_climb_rate>0 ? "+":"-", 0, 10);
+	if (isnan(alt_controller.target_altitude))
+		MAX7456_PrintDigitString(alt_controller.target_climb_rate>0 ? "+":"-", 0, 10);
 	else
 		MAX7456_PrintDigitString(" ", 0, 10);
 

@@ -33,10 +33,8 @@
 #define RC_RANGE 400
 #define RC_DEAD_ZONE 15
 #define RC_CENTER 1520
-#define BARO_OSS 50
 #define hall_sensor_sensitivity	0.0666		// unit: mV / mA
 #define VOLTAGE_DIVIDER_BASE 6		// uncalibrated voltage divider ratio
-#define MAX_GYRO_BIAS_DRIFT 30
 #define THROTTLE_STOP (max((int)(rc_setting[2][0]-20),1000))
 #define THROTTLE_MAX (min((int)(rc_setting[2][2]-20),2000))
 #define THROTTLE_CRUISE 0.45f
@@ -86,21 +84,5 @@ static float FLY_BY_WIRE_MAX_OFFSET[3] =
 
 static float QUADCOPTER_MAX_YAW_OFFSET = PI/4;
 #define QUADCOPTER_ACRO_YAW_RATE (PI)			// 180 degree/s
-
-static int rc_reverse[3] = 								// -1 = reverse, 1 = normal, 0 = disable, won't affect mannual mode
-{
-	1,			// roll
-	1,			// pitch
-	1,			// yaw
-};
-
-static int sensor_reverse[3] = 						// -1 = reverse, 1 = normal, 0 = disable, won't affect mannual mode
-{
-	1,			// roll
-	1,			// pitch
-	-1,			// yaw
-};
-
-
 
 #endif
