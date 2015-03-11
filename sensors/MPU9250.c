@@ -9,10 +9,10 @@ int MPU9250SlaveAddress = 0xD2;
 #define MPU9250_REG_WHO_AM_I 0x75
 
 // Gyro and accelerator registers
-#define	SMPLRT_DIV		0x19	//??????,???:0x07(125Hz)
-#define	MPU9250_CONFIG 0x1A	//??????,???:0x06(5Hz)
-#define	GYRO_CONFIG		0x1B	//??????????,???:0x18(???,2000deg/s)
-#define	ACCEL_CONFIG	0x1C	//?????????????????,???:0x01(???,2G,5Hz)
+#define	SMPLRT_DIV		0x19
+#define	MPU9250_CONFIG 0x1A
+#define	GYRO_CONFIG		0x1B
+#define	ACCEL_CONFIG	0x1C
 #define	ACCEL_XOUT_H	0x3B
 #define	ACCEL_XOUT_L	0x3C
 #define	ACCEL_YOUT_H	0x3D
@@ -28,8 +28,8 @@ int MPU9250SlaveAddress = 0xD2;
 #define	GYRO_ZOUT_H		0x47
 #define	GYRO_ZOUT_L		0x48
 #define EXT_SENS_DATA 0x49
-#define	PWR_MGMT_1		0x6B	//????,???:0x00(????)
-#define	WHO_AM_I		0x75	//IIC?????(????0x68,??)
+#define	PWR_MGMT_1		0x6B
+#define	WHO_AM_I		0x75
 
 static int res;
 // call initI2C before this

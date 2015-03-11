@@ -637,11 +637,38 @@ float sqr(float a, float b)
 	return sqrt(a*a+b*b);
 }
 
+int to8bitbin()
+{
+	FILE *f=fopen("Z:\\2.wav", "rb");
+	fseek(f, 0, SEEK_END);
+	int size = ftell(f) - 44;
+	fseek(f, 44, SEEK_SET);
+
+	unsigned char * data = new unsigned char[size];
+	fread(data, 1, size, f);
+	fclose(f);
+
+
+	f = fopen("Z:\\a.h", "wb");
+	fprintf(f, "char data[%d] = \r\n{\r\n", size);
+	for(int i=0; i<size; i++)
+	{
+		fprintf(f, "0x%02x, ", data[i]);
+		printf("0x%02x, ", data[i]);
+	}
+
+	fprintf(f, "\r\n};\r\n");
+	fclose(f);
+
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 // 	sanity_test();
 	int ssize = sizeof(quadcopter_data2);
 // 	tobin();
+	to8bitbin();
 
 	int size =  sizeof(rf_data);
 	int gyros_counter = 0;

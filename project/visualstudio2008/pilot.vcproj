@@ -63,79 +63,7 @@
 			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			>
 			<File
-				RelativePath="..\..\library\ahrs.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\library\ahrs.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\library\ahrs2.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\library\ahrs2.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\library\altitude_controller.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\library\altitude_controller.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\library\altitude_estimator.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\library\altitude_estimator.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\library\altitude_estimatorCF.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\library\altitude_estimatorCF.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\library\log.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\library\log.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\library\of_controller.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\library\of_controller.h"
-				>
-			</File>
-			<File
 				RelativePath="..\..\main\pilot.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\library\pos_controll.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\library\pos_controll.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\library\pos_estimator.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\library\pos_estimator.h"
 				>
 			</File>
 			<File
@@ -263,7 +191,7 @@
 				</File>
 			</Filter>
 			<Filter
-				Name="fat2"
+				Name="file_system"
 				>
 				<File
 					RelativePath="..\..\fat\diskio.c"
@@ -299,7 +227,7 @@
 				</File>
 			</Filter>
 			<Filter
-				Name="sensors2"
+				Name="sensors"
 				>
 				<File
 					RelativePath="..\..\sensors\adis16405.c"
@@ -647,7 +575,7 @@
 				</File>
 			</Filter>
 			<Filter
-				Name="common2"
+				Name="common"
 				>
 				<File
 					RelativePath="..\..\common\adc.c"
@@ -811,6 +739,90 @@
 				</File>
 				<File
 					RelativePath="..\..\common\vector.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="modules"
+				>
+				<File
+					RelativePath="..\..\library\ahrs.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\library\ahrs.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\library\ahrs2.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\library\ahrs2.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\library\altitude_controller.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\library\altitude_controller.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\library\altitude_estimator.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\library\altitude_estimator.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\library\altitude_estimatorCF.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\library\altitude_estimatorCF.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\library\log.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\library\log.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\library\motor_mixer.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\library\motor_mixer.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\library\of_controller.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\library\of_controller.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\library\pos_controll.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\library\pos_controll.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\library\pos_estimator.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\library\pos_estimator.h"
 					>
 				</File>
 			</Filter>

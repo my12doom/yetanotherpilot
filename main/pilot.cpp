@@ -123,44 +123,6 @@ static param pid_factor2[3][4] = 			// pid_factor2[roll,pitch,yaw][p,i,d,i_limit
 };
 static param quadcopter_max_climb_rate("maxC",5);
 static param quadcopter_max_descend_rate("maxD", 2);
-static param quadcopter_max_acceleration("maxA", 4.5);
-
-static param pid_quad_altitude[4] = 	// P, I, D, IMAX, 
-										// unit: 1/second, 1/seconds^2, 1, meter*second
-										// convert altitude error(meter) to target climb rate(meter/second)
-{
-	param("altP", 1.0f),
-	param("altI", 0.0f),
-	param("altD", 0.0f),
-	param("altM", 0.0f),
-};
-
-static param pid_quad_alt_rate[4] = 	// P, I, D, IMAX
-										// unit: 1/second, 1/seconds^2, 1, meter*second
-										// convert climb rate error(meter/second) to target acceleration(meter/second^2)
-{
-	#ifndef LITE
-	param("cliP", 5.0f),
-	#else
-	param("cliP", 4.5f),
-	#endif
-	param("cliI", 0.0f),
-	param("cliD", 0.0f),
-	param("cliM", 0.0f),
-};
-static param pid_quad_accel[4] =		// P, I, D, IMAX
-										// unit:
-										// convert acceleration error(meter/second^2) to motor output
-										// In ardupilot, default P = 0.75 converts 1 cm/s^2 into 0.75 * 0.1% of full throttle
-										// In yetanotherpilot implementation, default P=0.075 converts 1 m/s^2 into 0.075 of full throttle
-										// the max accel error in default value is around +- 6.66 m/s^2, but should not use that much
-{
-	param("accP", 0.050f),
-	param("accI", 0.100f),
-	param("accD", 0.0f),
-	param("accM", 2.5f),
-};
-
 static param quadcopter_trim[3] = 
 {
 	param("trmR", 0 * PI / 18),				// roll
@@ -169,8 +131,8 @@ static param quadcopter_trim[3] =
 };
 static param quadcopter_range[3] = 
 {
-	param("rngR", PI / 7),			// roll
-	param("rngP", PI / 7),			// pitch
+	param("rngR", PI / 5),			// roll
+	param("rngP", PI / 5),			// pitch
 	param("rngY", PI / 8),			// yaw
 };
 
@@ -293,6 +255,7 @@ struct
 float ground_pressure = 0;
 float ground_temperature = 0;
 float rc[8] = {0};			// ailerron : full left -1, elevator : full down -1, throttle: full down 0, rudder, full left -1
+float rc_mobile[4] = {0};	// rc from mobile devices
 float accelz = 0;
 bool airborne = false;
 bool nearground = false;
@@ -309,8 +272,6 @@ vector gyro_LSB;
 vector accel = {NAN, NAN, NAN};
 vector mag;
 float mag_radius = -999;
-vector mag_avg = {0};
-vector accel_avg = {0};
 vector mag_zero = {0};
 vector mag_gain = {0.7924,0.8354,0.8658};
 vector accel_earth_frame_mwc;
@@ -325,7 +286,6 @@ float VCC_5V = -1;
 float VCC_motor = -1;
 float airspeed_voltage = -1;
 long last_baro_time = 0;
-int baro_counter = 0;
 char climb_rate_string[10];
 int64_t time;
 float error_pid[3][3] = {0};		// error_pid[roll, pitch, yaw][p,i,d]
@@ -375,16 +335,17 @@ float mah_consumed = 0;
 float wh_consumed = 0;
 
 float sonar_distance = NAN;
-float sonar_target = NAN;
+int64_t last_sonar_time = getus();
+
 short adxrs453_value = 0;
 short mpu9250_value[7] = {0};
-int64_t last_sonar_time = getus();
 bool has_5th_channel = true;
 bool has_6th_channel = true;
 
 float bluetooth_roll = 0;
 float bluetooth_pitch = 0;
 int64_t bluetooth_last_update = 0;
+int64_t mobile_last_update = 0;
 
 
 vector gyro_temp_k = {0};		// gyro temperature compensating curve (linear)
@@ -460,7 +421,7 @@ int prepare_pid()
 				}
 
 				float alt_state[3] = {alt_estimator.state[0], alt_estimator.state[1], alt_estimator.state[3] + accelz};
-				alt_controller.provide_states(alt_state, euler, throttle_real, MOTOR_LIMIT_NONE, airborne);
+				alt_controller.provide_states(alt_state, sonar_distance, euler, throttle_real, MOTOR_LIMIT_NONE, airborne);
 				alt_controller.update(interval, user_rate);
 				throttle_result = alt_controller.get_result();
 
@@ -1493,8 +1454,14 @@ int sensor_calibration()
 
 
 	// static base value detection
+restart:
+	vector mag_avg = {0};
+	vector accel_avg = {0};
 	vector gyro_avg = {0};
+	int baro_counter = 0;
+	ground_pressure = 0;
 	int calibrating_count = 1500;
+	ground_temperature = 0;
 	for(int i=0; i<calibrating_count; i++)
 	{
 		long us = getus();
@@ -1542,7 +1509,7 @@ int sensor_calibration()
 			}
 
 			LOGE("wtf\n");
-			continue;
+			goto restart;
 		}
 		#endif
 
@@ -1670,7 +1637,7 @@ int set_submode(copter_mode newmode)
 	if (!has_alt_controller && to_use_alt_controller)
 	{
 		float alt_state[3] = {alt_estimator.state[0], alt_estimator.state[1], alt_estimator.state[3] + accelz};
-		alt_controller.provide_states(alt_state, euler, throttle_real, MOTOR_LIMIT_NONE, airborne);
+		alt_controller.provide_states(alt_state, sonar_distance, euler, throttle_real, MOTOR_LIMIT_NONE, airborne);
 		alt_controller.reset();
 	}
 
@@ -1701,7 +1668,7 @@ int set_mode(fly_mode newmode)
 	airborne = false;
 
 	float alt_state[3] = {alt_estimator.state[0], alt_estimator.state[1], alt_estimator.state[3] + accelz};
-	alt_controller.provide_states(alt_state, euler, throttle_real, MOTOR_LIMIT_NONE, airborne);
+	alt_controller.provide_states(alt_state, sonar_distance, euler, throttle_real, MOTOR_LIMIT_NONE, airborne);
 	alt_controller.reset();
 
 
@@ -1996,8 +1963,10 @@ int handle_uart4_controll()
 		return 0;
 
 	int len = strlen(line);
+	const char * keyword = ",blue\n";
+	const char * keyword2 = ",stick\n";
 
-	if (strstr(line, ",blue\n") == (line+len-6))
+	if (strstr(line, keyword) == (line+len-strlen(keyword)))
 	{
 		char * p = (char*)strstr(line, ",");
 		if (!p)
@@ -2016,6 +1985,14 @@ int handle_uart4_controll()
 		
 		bluetooth_last_update = getus();
 	}
+	else if (strstr(line, keyword2) == (line+len-strlen(keyword2)))
+	{
+		if (sscanf(line, "%f,%f,%f,%f", &rc_mobile[0], &rc_mobile[1], &rc_mobile[2], &rc_mobile[3] ) == 4)
+		{
+			mobile_last_update = getus();
+		}
+	}
+
 	else
 	{
 		// invalid packet

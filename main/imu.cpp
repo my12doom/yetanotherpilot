@@ -140,7 +140,7 @@ int main()
 
 	ads1258_config1 config1;
 	ads1258_read_registers(REG_CONFIG1, 1, &config1);
-	config1.DRATE = 0;
+	config1.DRATE = 2;
 	config1.DLY = 0;
 	ads1258_write_registers(REG_CONFIG1, 1, &config1);
 	ads1258_read_registers(REG_CONFIG1, 1, &config1);
@@ -148,7 +148,7 @@ int main()
 
 	ads1258_config0 config0;
 	ads1258_read_registers(REG_CONFIG0, 1, &config0);
-	config0.BYPAS = 0;
+	config0.BYPAS = 1;
 	config0.CHOP = 0;
 	ads1258_write_registers(REG_CONFIG0, 1, &config0);
 	ads1258_read_registers(REG_CONFIG0, 1, &config0);

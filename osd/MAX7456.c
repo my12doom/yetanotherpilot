@@ -685,9 +685,10 @@ void Max7456_Learn_Char(uint8_t number, const uint8_t *data)
 	MAX7456_Write_Reg(VM0, vm0 | ENABLE_OSD);
 } 
 
-void Max7456_Download_Char(uint8_t number, uint8_t *data)
+void Max7456_Download_Char(uint8_t number, void *pdata)
 { 
 	uint8_t i, vm0; 
+	uint8_t *data = (uint8_t*)pdata;
 
 	vm0 = MAX7456_Read_Reg(VM0 | RADD1);
 	MAX7456_Write_Reg(VM0, vm0 & (~ENABLE_OSD));
@@ -708,10 +709,11 @@ void Max7456_Download_Char(uint8_t number, uint8_t *data)
 	MAX7456_Write_Reg(VM0, vm0 | ENABLE_OSD);
 }
 
-void Max7456_Update_Char(uint8_t number, const uint8_t *data)
+void Max7456_Update_Char(uint8_t number, const void *pdata)
 {
 	uint8_t read[54];
 	int i;
+	const uint8_t *data = (uint8_t*)pdata;
 	
 	// 3 retries, to avoid eeprom wring by read failure.
 	for(i=0; i<3; i++)

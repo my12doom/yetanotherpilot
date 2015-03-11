@@ -98,8 +98,6 @@ static int write_reg(uint8_t reg, uint8_t data)
 		else
 			LOGE("reg(%02x) error %02x/%02x\n", reg, read, data);
 	}
-
-	return -1;
 }
 
 int init_MPU9250spi(void)

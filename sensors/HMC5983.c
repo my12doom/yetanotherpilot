@@ -88,8 +88,6 @@ static int write_reg(uint8_t reg, uint8_t data)
 		else
 			LOGE("reg error %08x/%08x", read, data);
 	}
-
-	return -1;
 }
 
 int init_HMC5983(void)

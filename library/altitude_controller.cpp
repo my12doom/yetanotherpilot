@@ -57,13 +57,14 @@ altitude_controller::~altitude_controller()
 
 // provide system state estimation for controller
 // alt[0-2] : altitude, climb_rate, acceleration
+// sonar: sonar reading ,NAN for invalid reading(no echo or other errors), controller is responsible for filtering and switching between sonar and baro
 // throttle_realized: throttle delivered last tick by motor mixer.
 // motor_state: a combination of one or more of MOTOR_LIMIT_MIN, MOTOR_LIMIT_MAX.
 //		MOTOR_LIMIT_NONE : the total power of motor matrix didn't reached any limitation 
 //		MOTOR_LIMIT_MAX : the total power of motor matrix has reached maximum 
 //		MOTOR_LIMIT_MAX : the total power of motor matrix has reached minimum 
 // airborne: if the aircraft has liftoff
-int altitude_controller::provide_states(float *alt, float *attitude, float throttle_realized, int motor_state, bool airborne)
+int altitude_controller::provide_states(float *alt, float sonar, float *attitude, float throttle_realized, int motor_state, bool airborne)
 {
 	m_states[0] = alt[0];
 	m_states[1] = alt[1];
@@ -74,6 +75,7 @@ int altitude_controller::provide_states(float *alt, float *attitude, float throt
 	m_throttle_realized = throttle_realized;
 // 	m_motor_state = motor_state;
 	m_airborne = airborne;
+	m_sonar = sonar;
 
 	return 0;
 }

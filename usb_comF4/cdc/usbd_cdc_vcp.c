@@ -220,8 +220,8 @@ static uint16_t VCP_DataRx(uint8_t* Buf, uint32_t Len) {
 	_Mal_Accessed = 1;
 	
 	Buf[Len-1] = 0;
-	count = parse_command_line(Buf, response);
-	VCP_DataTx(response, count);
+	count = parse_command_line((char*)Buf, response);
+	VCP_DataTx((uint8_t*)response, count);
 	return USBD_OK;
 }
 

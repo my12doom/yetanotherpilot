@@ -53,7 +53,7 @@ int init_HMC5883(void)
 	int j;
 	short data[3];
 	float mag_ref[3] = {1.16, 1.16, 1.08};
-	char identification[3] = {0};
+	uint8_t identification[3] = {0};
 
 #ifdef EXTERNAL_HMC5883
 	switch_I2C();
