@@ -65,8 +65,11 @@ public:
 	float throttle_result;// = 0;
 
 	float m_sonar;
+	float m_last_valid_sonar;
 	float m_sonar_target;
+	float m_sonar_ticker;
 
 protected:
+	float feed_forward_factor;
 	float calc_leash_length(float speed, float accel, float kP);
 };

@@ -1,12 +1,18 @@
 #pragma once
 
-#include <stdint.h>
+#include "actuator.h"
 
-class motor_mixer
+class motor_mixer : public actuator
 {
-public:
 	motor_mixer();
 	~motor_mixer();
-protected:
+
+	// set the target torque and thrust in body frame
+	int set_target(const float *torque, const float *throttle);
+
+	//
+	int get_result(float *out);
+	int get_actuated(float *torque, float *throttle);
+	int get_state(void *p, int maxsize);
 
 };

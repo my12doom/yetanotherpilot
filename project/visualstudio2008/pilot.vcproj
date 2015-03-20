@@ -67,11 +67,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\priority.h"
-				>
-			</File>
-			<File
-				RelativePath=".\RFData.h"
+				RelativePath="..\..\library\priority.h"
 				>
 			</File>
 			<File

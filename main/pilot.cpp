@@ -425,7 +425,7 @@ int prepare_pid()
 				alt_controller.update(interval, user_rate);
 				throttle_result = alt_controller.get_result();
 
-				LOGE("\rthr=%f/%f", throttle_result, alt_controller.get_result());
+				TRACE("\rthr=%f/%f", throttle_result, alt_controller.get_result());
 			}
 			else
 			{
@@ -818,6 +818,12 @@ int save_logs()
 
 	log(&quad2, TAG_QUADCOPTER_DATA2, time);
 
+	quadcopter_data4 quad4 = 
+	{
+		isnan(alt_controller.m_sonar_target) ? 0 : alt_controller.m_sonar_target*100,
+	};
+	log(&quad4, TAG_QUADCOPTER_DATA4, time);
+
 	quadcopter_data3 quad3 = 
 	{
 		alt_controller.target_altitude * 100,
@@ -911,12 +917,14 @@ int read_sensors()
 
 	TRACE("\radis16405 supply = %fV", adis16405_packet.supply_measurement * 0.00242f);
 
+	/*
 	if (sonar_update() == 0)
 	{
 		sonar_distance = sonar_result() > 0 ? sonar_result()/1000.0f : NAN;
 		last_sonar_time = getus();
 		TRACE("\rdis=%.2f", sonar_distance);
 	}
+	*/
 	#endif
 
 	if (getus()-last_sonar_time > 200000)		//200ms
@@ -1412,7 +1420,6 @@ mag_load:
 }
 
 
-
 int sensor_calibration()
 {
 	// update gyro temperature compensation
@@ -1454,10 +1461,10 @@ int sensor_calibration()
 
 
 	// static base value detection
-restart:
 	vector mag_avg = {0};
 	vector accel_avg = {0};
 	vector gyro_avg = {0};
+
 	int baro_counter = 0;
 	ground_pressure = 0;
 	int calibrating_count = 1500;
@@ -1466,7 +1473,7 @@ restart:
 	{
 		long us = getus();
 
-		TRACE("\r%d/%d", i, calibrating_count);
+		LOGE("\r%d/%d", i, calibrating_count);
 		#ifndef LITE
 		ads1115_go_on();
 		#endif
@@ -1486,33 +1493,18 @@ restart:
 		vector_add(&gyro_avg, &gyro_radian);
 
 		#ifndef LITE
-		if (fabs(gyro_radian.array[0]*PI180)>5.0f || fabs(gyro_radian.array[1]*PI180)>5.0f || fabs(gyro_radian.array[2]*PI180)>5.0f)
+		if (i>calibrating_count/10 && 
+			  ((fabs(gyro_radian.array[0]*PI180)>5.0f || fabs(gyro_radian.array[1]*PI180)>5.0f || fabs(gyro_radian.array[2]*PI180)>5.0f))
+			)
 		{
-			float angular_rate[3] = 
-			{
-				float(adis16405_packet.gyro_x) * 0.05f * PI / 180,
-				float(-adis16405_packet.gyro_y) * 0.05f * PI / 180,
-				float(adis16405_packet.gyro_z) * 0.05f * PI / 180,
-			};
-			LOGE("wtf? %.2f,%.2f,%.2f\n", 		float(adis16405_packet.gyro_x) * 0.05f * PI / 180,
-			float(-adis16405_packet.gyro_y) * 0.05f * PI / 180,
-			float(adis16405_packet.gyro_z) * 0.05f * PI / 180);
-
-			// wait a second (with blinking)
-			int64_t us = getus();
-			while(getus()-us < 1000000)
-			{
-				if ((getus()/1000)%50 > 25)
-					led_all_on();
-				else
-					led_all_off();
-			}
-
-			LOGE("wtf\n");
-			goto restart;
+			LOGE("wtf %f,%f,%f,%f,%f,%f, %d\n", fabs(gyro_radian.array[0]*PI180), fabs(gyro_radian.array[1]*PI180), fabs(gyro_radian.array[2]*PI180), 
+				 fabs(gyro_radian.array[0]*PI180), fabs(gyro_radian.array[1]*PI180), fabs(gyro_radian.array[2]*PI180), i);
+			return -1;
 		}
 		#endif
 
+		if (critical_errors)
+			return -2;
 
 		airspeed_voltage = ads1115_airspeed*0.03f + airspeed_voltage * 0.97f;
 
@@ -1699,9 +1691,9 @@ int check_mode()
 		else if (rc[5] < -0.6f)
 			newmode = basic;
 		else if (rc[5] > 0.6f)
-			newmode = airborne ? optical_flow : althold;
+// 			newmode = airborne ? optical_flow : althold;
 // 			newmode = (bluetooth_last_update > getus() - 500000) ? bluetooth : althold;
-// 			newmode = (estimator.healthy && airborne) ? poshold : althold;
+			newmode = (estimator.healthy && airborne) ? poshold : althold;
 		else if (rc[5] > -0.5f && rc[5] < 0.5f)
 			newmode = althold;
 #else
@@ -1961,6 +1953,8 @@ int handle_uart4_controll()
 	byte_count = UART4_ReadPacket(line, sizeof(line));
 	if (byte_count <= 0)
 		return 0;
+	
+	LOGE(line);
 
 	int len = strlen(line);
 	const char * keyword = ",blue\n";
@@ -1990,7 +1984,51 @@ int handle_uart4_controll()
 		if (sscanf(line, "%f,%f,%f,%f", &rc_mobile[0], &rc_mobile[1], &rc_mobile[2], &rc_mobile[3] ) == 4)
 		{
 			mobile_last_update = getus();
+			TRACE("stick:%f,%f,%f,%f\n", rc_mobile[0], rc_mobile[1], rc_mobile[2], rc_mobile[3]);
 		}
+	}
+
+	else if (strcmp(line, "arm\n") == 0)
+	{
+		LOGE("mobile arm\n");
+		set_mode(quadcopter);
+
+		const char *armed = "armed\n";
+		UART4_SendPacket(armed, strlen(armed));
+	}
+	else if (strcmp(line, "arm\r\n") == 0)
+	{
+		LOGE("mobile arm\n");
+		set_mode(quadcopter);
+
+		const char *armed = "armed\n";
+		UART4_SendPacket(armed, strlen(armed));
+	}
+
+	else if (strcmp(line, "disarm\n") == 0)
+	{
+		LOGE("mobile disarm\n");
+
+		set_mode(_shutdown);
+		const char *disarmed = "disarmed\n";
+		UART4_SendPacket(disarmed, strlen(disarmed));
+	}
+	
+	else if (strcmp(line, "takeoff\n") == 0)
+	{
+		LOGE("mobile takeoff\n");
+
+		const char *tak = "taking off\n";
+		UART4_SendPacket(tak, strlen(tak));
+
+	}
+
+	else if (strcmp(line, "land\n") == 0)
+	{
+		LOGE("mobile land\n");
+		const char *land = "landing\n";
+		UART4_SendPacket(land, strlen(land));
+
 	}
 
 	else
@@ -2058,13 +2096,13 @@ int loop(void)
 	if (read_px4flow(&frame) < 0)
 		sonar_distance = NAN;
 	else
-		sonar_distance = frame.ground_distance <= 0.30f ? NAN : frame.ground_distance;
+		sonar_distance = frame.ground_distance <= 0.30f ? NAN : frame.ground_distance / 1000.0f;
 	TRACE("\rreading sensors cost %d+%dms, ground = %f m, roll=%.2f", int(us2-us), int(getus()-us2), frame.ground_distance/1000.0f, euler[0] * PI180);
 //  	read_advsensor_packets();
 //  	read_advsensor_packets();
 //  	read_advsensor_packets();
-//	handle_uart4_controll();
- 	handle_uart4_cli();
+	handle_uart4_controll();
+//  	handle_uart4_cli();
 
 	// attitude and  heading
 	calculate_attitude();
@@ -2236,16 +2274,16 @@ int test_sensors()
 // 	}
 
 
-// 	init_MPU9250spi();
-// 	while(1)
-// 	{
-// 		short result16[8] = {0};
-// 		int res = read_MPU9250spi(result16);
-// 		float temp = (result16[3]-521)  / 340.0f + 21;
-// 		printf("\r%d,%d,%d,%d,%d,%d,%d,%d, %.3fdeg                  ", res, result16[0], result16[1], result16[2], result16[3], result16[4], result16[5], result16[6], temp);
-// 
-// 		delayms(10);
-// 	}
+	init_MPU9250spi();
+	while(1)
+	{
+		short result16[8] = {0};
+		int res = read_MPU9250spi(result16);
+		float temp = (result16[3]-521)  / 340.0f + 21;
+		printf("\r%d,%d,%d,%d,%d,%d,%d,%d, %.3fdeg                  ", res, result16[0], result16[1], result16[2], result16[3], result16[4], result16[5], result16[6], temp);
+
+		delayms(10);
+	}
 
 // 	init_HMC5983();
 // 	while(1)
@@ -2258,15 +2296,15 @@ int test_sensors()
 // 		delayms(10);
 // 	}
 // 	
-// 	init_MS5611spi();
-// 	while(1)
-// 	{
-// 		int result[2];
-// 		int res = read_MS5611spi(result);
-// 		printf("\r%d,%d,%d                  ", res, result[0], result[1]);
-// 		
-// 		delayms(10);
-// 	}
+	init_MS5611spi();
+	while(1)
+	{
+		int result[2];
+		int res = read_MS5611spi(result);
+		printf("\r%d,%d,%d                  ", res, result[0], result[1]);
+		
+		delayms(10);
+	}
 
 // 	adis16405_init();
 // 
@@ -2394,7 +2432,14 @@ int main(void)
 
 	//magnet_calibration();
 #endif
-	sensor_calibration();
+
+	int res;
+	do
+	{
+		res = sensor_calibration();
+		if (res == -2)
+			break;
+	}while (res < 0);
 
 	has_5th_channel = g_pwm_input_update[4] > getus()-500000;
 	has_6th_channel = g_pwm_input_update[5] > getus()-500000;

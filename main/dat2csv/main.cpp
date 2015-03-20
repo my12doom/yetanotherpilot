@@ -663,12 +663,44 @@ int to8bitbin()
 	return 0;
 }
 
+void normalize(float *p, int count)
+{
+	float t = 0;
+	for(int i=0; i<count; i++)
+	{
+		t += p[i] * p[i];
+	}
+	t = sqrt(t);
+	if (fabs(t) > 1e-6)
+	for(int i=0; i<count; i++)
+	{
+		p[i] /= t;
+	}
+}
+
 int main(int argc, char **argv)
 {
 // 	sanity_test();
-	int ssize = sizeof(quadcopter_data2);
+	int ssize = sizeof(quadcopter_data3);
 // 	tobin();
-	to8bitbin();
+// 	to8bitbin();
+
+	vector v = {1,1,1};
+	vector v2 = v;
+	float delta[3] = {0.1*PI/180,0.2*PI/180,0.3*PI/180};
+	vector_rotate(&v2, delta);
+	vector_normalize(&v2);
+
+	// i     j    k
+	// v. 0  v. 1   v .2
+	// v2.0  v2.1   v2.2
+
+	float cross[3] = 
+	{
+		+(v.array[1] * v2.array[2] - v.array[2] * v2.array[1]),
+		-(v.array[0] * v2.array[2] - v.array[2] * v2.array[0]),
+		+(v.array[0] * v2.array[1] - v.array[1] * v2.array[0]),
+	};
 
 	int size =  sizeof(rf_data);
 	int gyros_counter = 0;
@@ -761,6 +793,7 @@ int main(int argc, char **argv)
 	quadcopter_data quad = {0};
 	quadcopter_data2 quad2 = {0};
 	quadcopter_data3 quad3 = {0};
+	quadcopter_data4 quad4 = {0};
 	ned_data ned[3] = {0};
 	ned_data &ned0 = ned[0];
 	ned_data &ned1 = ned[1];
@@ -938,6 +971,12 @@ int main(int argc, char **argv)
 		else if (tag ==  TAG_QUADCOPTER_DATA3)
 		{
 			quad3 = rf.data.quadcopter3;
+		}
+		else if (tag ==  TAG_QUADCOPTER_DATA4)
+		{
+			quad4 = rf.data.quadcopter4;
+
+// 			quad4.sonar_target = quad4.sonar_target > 0 ? 400 : 0;
 		}
 		else if (tag ==  TAG_PX4FLOW_DATA)
 		{
@@ -1205,8 +1244,8 @@ int main(int argc, char **argv)
  		fprintf(fo, "%.4f,%.5f,%.5f,%2f,%f,"
 					"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 					"%f,%f,%f,%f,%f,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%f,%f,%f,%d,%d,%d,%d\r\n",
-				float(time/1000000.0f), float(flow_pos[0]), float(throttle), float(quad3.throttle_real_crusing), float(quad2.airborne ? 500 : 0),
- 				quad2.accel_z, quad2.accel_z_kalman, sensor.accel[2], px4flow.qual, pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[1], pilot2.D[0],
+				float(time/1000000.0f), float(px4flow.ground_distance/10), float(quad4.sonar_target), float(quad2.altitude_baro_raw), float(quad2.altitude_kalman),
+ 				px4flow.qual, quad2.accel_z_kalman, sensor.accel[2], px4flow.qual, pilot.error[0], pilot.error[1], pilot.error[2], pilot2.I[1], pilot2.D[0],
 				roll*180/PI, pitch*180/PI, roll_acc * 180 / PI, pitch_acc*180/PI, pilot.target[0]/100.0, pilot.target[2]/100.0, 
 				(ppm.in[2]-1113)/50, pilot.fly_mode,
 				ppm.in[0], ppm.in[1], ppm.in[2], ppm.in[3], ppm.out[0], ppm.out[1], ppm.out[2], ppm.out[3],

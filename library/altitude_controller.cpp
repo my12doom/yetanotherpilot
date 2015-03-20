@@ -44,6 +44,7 @@ altitude_controller::altitude_controller()
 ,target_climb_rate(0)
 ,target_accel(0)
 ,throttle_result(0)
+,m_sonar_ticker(0)
 {
 	memset(altitude_error_pid, 0, sizeof(altitude_error_pid));
 	memset(climb_rate_error_pid, 0, sizeof(climb_rate_error_pid));
@@ -75,7 +76,16 @@ int altitude_controller::provide_states(float *alt, float sonar, float *attitude
 	m_throttle_realized = throttle_realized;
 // 	m_motor_state = motor_state;
 	m_airborne = airborne;
+
+	if (isnan(m_sonar) ^ isnan(sonar))				// reset ticker if sonar state changed
+	{
+		if (isnan(sonar) ^ isnan(m_sonar_target))	// changed ?
+			m_sonar_ticker = 0;
+	}
+
 	m_sonar = sonar;
+	if (!isnan(m_sonar))
+		m_last_valid_sonar = m_sonar;
 
 	return 0;
 }
@@ -92,11 +102,31 @@ int altitude_controller::set_altitude_target(float new_target)
 // user_rate: user desired climb rate, usually from stick.
 int altitude_controller::update(float dt, float user_rate)
 {
+	// sonar switching
+	if (m_sonar_ticker < 0.5f)
+	{
+		m_sonar_ticker += dt;
+
+		if (m_sonar_ticker > 0.5f)
+		{
+			// sonar state changed more than 0.5 second.
+			if (isnan(m_sonar))
+			{
+				m_sonar_target = NAN;
+			}
+			else
+			{
+				m_sonar_target = m_sonar + target_altitude - m_states[0];
+			}			
+			LOGE("sonar changed: %f/%f,%f,%f\n", m_sonar_target, m_sonar, target_altitude, m_states[0]);
+		}
+	}
+
 	if (!isnan(target_altitude))
 	{
 		float leash_up = calc_leash_length(quadcopter_max_climb_rate, quadcopter_max_acceleration, pid_quad_altitude[0]);
 		float leash_down = calc_leash_length(quadcopter_max_descend_rate, quadcopter_max_acceleration, pid_quad_altitude[0]);
-
+		
 		// only move altitude target if throttle didn't hit limits
 		if ((!(m_motor_state & MOTOR_LIMIT_MAX) && user_rate > 0) || (!(m_motor_state & MOTOR_LIMIT_MIN) && user_rate < 0))
 			target_altitude += user_rate * dt;
@@ -114,10 +144,13 @@ int altitude_controller::update(float dt, float user_rate)
 		target_climb_rate = 0;
 	}
 
-	target_climb_rate += user_rate * 0.35f;		// feed forward 45%
+	// feed forward
+	// 
+	feed_forward_factor += m_airborne ? -dt : dt;
+	feed_forward_factor = limit(feed_forward_factor, 0.35f, 0.8f);
+	target_climb_rate += user_rate * feed_forward_factor;
 
-
-	TRACE("\rtarget_climb_rate=%.2f/%.2f, user=%.2f, out=%2f.     ", target_climb_rate, target_climb_rate-user_rate, user_rate, throttle_result);
+	TRACE("\rtarget_climb_rate=%.2f climb from alt =%.2f, user=%.2f, out=%2f.     ", target_climb_rate, target_climb_rate-user_rate * feed_forward_factor, user_rate, throttle_result);
 
 
 	// new climb rate error
@@ -170,8 +203,8 @@ int altitude_controller::update(float dt, float user_rate)
 	output += accel_error_pid[0] * pid_quad_accel[0];
 	output += accel_error_pid[1] * pid_quad_accel[1];
 	output += accel_error_pid[2] * pid_quad_accel[2];
+	output *= throttle_hover / 0.50f;			// normalize throttle output PID, from throttle percentage to acceleration
 
-	float result = throttle_result;
 	throttle_result  = output + throttle_hover;
 	float angle_boost_factor = limit(1/ cos(m_attitude[0]) / cos(m_attitude[1]), 1.0f, 1.5f);
 	throttle_result = throttle_result * angle_boost_factor;
@@ -191,7 +224,7 @@ int altitude_controller::update(float dt, float user_rate)
 		m_motor_state = 0;
 	}
 
-	TRACE("\rthrottle=%f, altitude = %.2f/%.2f, pid=%.2f,%.2f,%.2f, limit=%d", result, alt_estimator.state[0], target_altitude,
+	TRACE("\rthrottle=%f, altitude = %.2f/%.2f, pid=%.2f,%.2f,%.2f, limit=%d", throttle_result, alt_estimator.state[0], target_altitude,
 		accel_error_pid[0], accel_error_pid[1], accel_error_pid[2], m_motor_state);
 
 	// update throttle_real_crusing if we're in near level state and no violent climbing/descending action
@@ -217,11 +250,13 @@ int altitude_controller::update(float dt, float user_rate)
 // or maintain current altitude.
 int altitude_controller::reset()
 {
-	target_altitude = m_airborne ? m_states[0] : (m_states[0]-1);
+	target_altitude = m_airborne ? m_states[0] : (m_states[0]);
+	feed_forward_factor = m_airborne ? 0.35f : 0.8f;
 	accel_error_pid[0] = NAN;
 	accel_error_pid[1] = 0;
 	accel_error_pid[2] = NAN;
 	climb_rate_error_pid[0] = NAN;
+	m_sonar_ticker = 0;
 
 	return 0;
 }

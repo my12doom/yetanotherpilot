@@ -176,6 +176,12 @@ typedef struct
 
 typedef struct
 {
+	short sonar_target;
+} quadcopter_data4;
+
+
+typedef struct
+{
 	float target_pos[2];
 	float pos[2];
 	short target_vel[2];
@@ -222,6 +228,7 @@ typedef struct
 		quadcopter_data quadcopter;	// 24 byte
 		quadcopter_data2 quadcopter2;
 		quadcopter_data3 quadcopter3;
+		quadcopter_data4 quadcopter4;
 		pos_controller_data pos_controller;
 		pos_controller_data2 pos_controller2;
 		double_sensor_data double_sensor;
@@ -249,6 +256,7 @@ typedef struct
 #define TAG_POS_CONTROLLER_DATA2	0x43
 #define TAG_DOUBLE_SENSOR_DATA	0x44
 #define TAG_PX4FLOW_DATA	0x45
+#define TAG_QUADCOPTER_DATA4	0x46
 
 #define TAG_PILOT_DATA	0x65
 #define TAG_PILOT_DATA2	0x66
