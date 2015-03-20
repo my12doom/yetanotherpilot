@@ -4,6 +4,7 @@
 
 extern bool log_ready;
 extern int log_pending;
+extern int LOG_LEVEL;
 
 int sdcard_speed_test();
 int format_sdcard();

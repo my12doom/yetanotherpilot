@@ -18,6 +18,7 @@ CircularQueue<rf_data, 256> *plog_buffer = &log_buffer;
 int log_pending = 0;
 int last_log_flush_time = 0;
 bool log_ready;
+int LOG_LEVEL = LOG_SDCARD;
 
 int save_log_packet(rf_data &packet)
 {

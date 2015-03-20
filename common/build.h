@@ -25,7 +25,6 @@
 #endif
 
 // pilot configuration
-#define QUADCOPTER 1
 #define PI 3.14159265f
 #define cycle_time (3000)
 
@@ -51,17 +50,7 @@
 #define LOG_SDCARD 2
 #define LOG_USART1 4
 #define LOG_USART2 8
-extern int LOG_LEVEL;
 
-
-
-#if QUADCOPTER == 1
-#define ACRO_MANUAL_FACTOR (0.0)
-
-#else
-#define ACRO_MANUAL_FACTOR (0.3)		// final output in acrobatic mode, 70% pid, 30% rc
-
-#endif
 
 #define QUADCOPTER_THROTTLE_RESERVE 0.15f
 

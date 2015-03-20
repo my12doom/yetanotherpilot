@@ -385,7 +385,6 @@ int prepare_pid()
 
 	switch (mode)
 	{
-#if QUADCOPTER == 1
 	case quadcopter:
 		{
 
@@ -564,7 +563,6 @@ int prepare_pid()
 			}
 		}
 		break;
-#endif
 	}
 
 	return 0;
@@ -576,7 +574,7 @@ int pid()
 	{
 		float new_p = (target[i]-pos[i]);
 
-		if (i == 1 && QUADCOPTER == 1)
+		if (i == 1)
 			new_p = -new_p;
 
 		TRACE("p[%d]=%f", i, new_p*PI180);
@@ -661,11 +659,7 @@ int output()
 	if (mode == _shutdown || mode == initializing)
 	{
 		for(int i=0; i<6; i++)
-#if QUADCOPTER == 1
 			g_ppm_output[i] = THROTTLE_STOP;
-#else
-			g_ppm_output[i] = i==2 ? THROTTLE_STOP : RC_CENTER;
-#endif
 	}
 
 
@@ -678,9 +672,7 @@ int output()
 // called by main loop, only copy logs to a memory buffer, should be very fast
 int save_logs()
 {
-	if (LOG_LEVEL == LOG_SDCARD
-		&& !log_ready
-	)
+	if (LOG_LEVEL == LOG_SDCARD	&& !log_ready)
 		return 0;
 
 	// if the saving task is transferring logs into 2nd buffer
@@ -769,7 +761,6 @@ int save_logs()
 
 	log(&ppm, TAG_PPM_DATA, time);
 
-#if QUADCOPTER == 1
 	quadcopter_data quad = 
 	{
 		angle_pos[0] * 18000/PI, angle_pos[1] * 18000/PI, angle_pos[2] * 18000/PI,
@@ -849,9 +840,6 @@ int save_logs()
 	};
 
 	log(&pc2, TAG_POS_CONTROLLER_DATA2, time);
-
-#endif
-
 
 	if (last_gps_tick > getus() - 2000000)
 	{
@@ -1300,12 +1288,7 @@ mag_load:
 
 			// RC pass through except throttle
 			for(int i=0; i<6; i++)
-#if QUADCOPTER == 1
 				g_ppm_output[i] = THROTTLE_STOP;
-#else
-				g_ppm_output[i] = floor(g_pwm_input[i]+0.5);
-			g_ppm_output[2] = THROTTLE_STOP;
-#endif
 			PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
 
 			// magnetemeter centering
@@ -1535,14 +1518,7 @@ int usb_lock()
 	if (Mal_Accessed())
 	{
 		for(int i=0; i<sizeof(g_ppm_output)/sizeof(g_ppm_output[0]); i++)
-		{
-#if QUADCOPTER == 1
 			g_ppm_output[i] = THROTTLE_STOP;
-#else
-			g_ppm_output[i] = i==2?THROTTLE_STOP : RC_CENTER;
-#endif
-
-		}
 		PPM_update_output_channel(PPM_OUTPUT_CHANNEL_ALL);
 	}
 
@@ -1614,14 +1590,12 @@ int set_mode(fly_mode newmode)
 	alt_controller.reset();
 
 
-#if QUADCOPTER == 1
 	for(int i=0; i<3; i++)
 	{
 		angle_target[i] = angle_pos[i];
 		error_pid[i][1] = 0;	//reset integration
 		angle_errorI[i] = 0;
 	}
-#endif
 
 	mode = newmode;
 
@@ -1651,7 +1625,6 @@ int check_mode()
 
 	if (g_pwm_input_update[4] > getus() - RC_TIMEOUT || !has_5th_channel)
 	{
-#if QUADCOPTER == 1
 		if (mode == initializing)
 			set_mode(_shutdown);
 
@@ -1691,17 +1664,6 @@ int check_mode()
 				arm_start_tick = getus();
 			}
 		}
-
-#else
-		if (g_pwm_input[4] < 1333)
-			set_mode(manual);
-		else if (g_pwm_input[4] > 1666)
-			set_mode(acrobatic);
-		else
-		{
-			set_mode(rc_fail);
-		}
-#endif
 	}
 	else
 	{
@@ -2301,13 +2263,8 @@ int main(void)
 		&USR_cb);
 #endif
 
-#ifdef QUADCOPTER
 	for(int i=0; i<8; i++)
 		g_ppm_output[i] = THROTTLE_STOP;
-#else
-	for(int i=0; i<8; i++)
-		g_ppm_output[i] = i == 2 ? THROTTLE_STOP : RC_CENTER;
-#endif
 
 
 	ADC1_Init();

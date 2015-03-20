@@ -42,11 +42,7 @@ int init_MPU9250(void)
 	I2C_WriteReg(MPU9250SlaveAddress, PWR_MGMT_1, 0x80);
 	delayms(10);
 	I2C_WriteReg(MPU9250SlaveAddress, PWR_MGMT_1, 0x00);
-	#if QUADCOPTER == 1
 	I2C_WriteReg(MPU9250SlaveAddress, SMPLRT_DIV, 0x01);
-	#else
-	I2C_WriteReg(MPU9250SlaveAddress, SMPLRT_DIV, 0x07);
-	#endif
 	I2C_WriteReg(MPU9250SlaveAddress, MPU9250_CONFIG, 0x2);
 	I2C_WriteReg(MPU9250SlaveAddress, GYRO_CONFIG, 1 << 3);			// full scale : 500 degree/s, ~65.5 LSB/degree/s
 	I2C_WriteReg(MPU9250SlaveAddress, ACCEL_CONFIG, 0x18);			// full scale : 16g, 2048 = 1g
