@@ -37,7 +37,6 @@ int ahrs_mwc_update(vector gyro, vector accel, vector mag, float dt)
 	vector_sub(&mag_delta, &mag);
 
 	// apply CF filter for Mag if delta is acceptable
-#ifndef LITE
 	float mag_diff = fabs(vector_length(&mag) / vector_length(&estMagGyro) - 1.0f);
 	if ( mag_diff < mag_tolerate)
 	{
@@ -52,7 +51,6 @@ int ahrs_mwc_update(vector gyro, vector accel, vector mag, float dt)
 		mag_tolerate += 0.05f * dt;
 		TRACE("warning: possible magnetic interference");
 	}
-#endif
 
 	// apply CF filter for Acc if g force is acceptable
 	float acc_g = vector_length(&accel);
@@ -89,7 +87,6 @@ int ahrs_mwc_update(vector gyro, vector accel, vector mag, float dt)
 	yaw_gyro = atan2(estGyro.V.x * estAccGyro16.V.z - estGyro.V.z * estAccGyro16.V.x,
 		((estGyro.V.x * estAccGyro16.V.x + estGyro.V.z * estAccGyro16.V.z) *estAccGyro16.V.y - estGyro.V.y * xxzz )/G);
 
-#ifndef LITE
 	accel_ef = accel;
 	float attitude[3] = {roll, pitch, radian_add(yaw_mag, PI)};
 	vector_rotate2(&accel_ef, attitude);
@@ -97,7 +94,6 @@ int ahrs_mwc_update(vector gyro, vector accel, vector mag, float dt)
 	TRACE("\raccel_ef:%.1f, %.1f, %.1f / %.1f,%.1f,%.1f, accelz:%.2f/%.2f, yaw=%.2f", accel_earth_frame_mwc.V.x*9.8f, accel_earth_frame_mwc.V.y*9.8f, accel_earth_frame_mwc.V.z*9.8f,
 		accel_earth_frame.V.x, accel_earth_frame.V.y, accel_earth_frame.V.z, accelz,
 		accelz_mwc, (accel_earth_frame_mwc.V.z+2085)/2085*9.80, yaw_est*180/PI);
-#endif
 
 	return 0;
 }

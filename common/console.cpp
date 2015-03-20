@@ -15,10 +15,7 @@
 extern volatile vector imu_statics[2][4];		//	[accel, gyro][min, current, max, avg]
 extern volatile int avg_count;
 extern float mpu6050_temperature;
-
-#ifndef LITE
 extern pos_estimator estimator;
-#endif
 
 #define SIGNATURE_ADDRESS 0x0800E800
 
@@ -216,7 +213,6 @@ extern "C" int parse_command_line(const char *line, char *out)
 		strcpy(out, "ok\n");
 		return 3;
 	}
-#ifndef LITE
 	else if (strstr(line, "gps") == line)
 	{
 		nmeaINFO *info = GPS_GetInfo();
@@ -241,7 +237,6 @@ extern "C" int parse_command_line(const char *line, char *out)
 		
 		return strlen(out);
 	}
-#endif
 	else if (strstr(line, "imustates") == line)
 	{
 // 		printf("test:");
@@ -268,7 +263,8 @@ extern "C" int parse_command_line(const char *line, char *out)
 
 		return count;
 	}
-	#ifdef LITE
+	/*
+	// TODO: id & signatures
 	else if (strstr(line, "id") == line)
 	{
 		strcpy(out, "id:");
@@ -290,7 +286,7 @@ extern "C" int parse_command_line(const char *line, char *out)
 		strcpy(out, "ok\n");
 		return 3;
 	}
-	#endif
+	*/
 	else if (strstr(line, "resetmc") == line)
 	{
 		space_init(true);

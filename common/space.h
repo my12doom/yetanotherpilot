@@ -5,13 +5,8 @@
 // implement these
 
 #ifdef STM32F1
-#ifdef LITE
-#define START_ADDRESS 0x0800F000
-#define page_size 1024
-#else
 #define START_ADDRESS 0x08030000
 #define page_size 2048
-#endif
 #define buffer_size 4096
 #endif
 

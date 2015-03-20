@@ -26,7 +26,6 @@
 #include "../library/altitude_controller.h"
 #include "../library/log.h"
 
-#ifndef LITE
 #include "../common/crc32.h"
 #include "../sensors/HMC5983.h"
 #include "../sensors/MPU9250SPI.h"
@@ -49,9 +48,6 @@
 #include "../sensors/adxrs453.h"
 #include "../common/console.h"
 #include "../sensors/px4flow.h"
-#else
-#include "../sensors/BMP085.h"
-#endif
 
 
 extern "C"
@@ -204,11 +200,7 @@ static int quadcopter_mixing_matrix[2][MAX_MOTOR_COUNT][3] = // the motor mixing
 #define VOLTAGE_PIN 9
 #endif
 
-#ifdef LITE
-#define read_baro read_BMP085
-#else
 #define read_baro read_MS5611
-#endif
 
 float PI180 = 180/PI;
 
@@ -295,7 +287,6 @@ float errorD_lpf[lpf_order][3] = {0};			// variable for high order low pass filt
 int64_t last_tick = getus();
 int64_t last_gps_tick = 0;
 static unsigned short gps_id = 0;
-#ifndef LITE
 adis16405_burst_packet adis16405_packet;
 pos_estimator estimator;
 pos_controller controller;
@@ -306,7 +297,6 @@ altitude_controller alt_controller;
 OpticalFlowController of_controller;
 float ground_speed_north;		// unit: m/s
 float ground_speed_east;		// unit: m/s
-#endif
 float airspeed_sensor_data;
 int adc_voltage = 0;
 int adc_current = 0;
@@ -465,7 +455,6 @@ int prepare_pid()
 				}
 			}
 
-#ifndef LITE
 			else if (submode == optical_flow)
 			{
 				if (after_unlock_action)	// airborne or armed and throttle up
@@ -523,7 +512,6 @@ int prepare_pid()
 					}
 				}
 			}
-#endif
 
 			// yaw:
 			float delta_yaw = ((fabs(rc[3]) < (float)RC_DEAD_ZONE/RC_RANGE) ? 0 : -rc[3]) * interval * QUADCOPTER_ACRO_YAW_RATE;
@@ -687,15 +675,11 @@ int output()
 
 
 
-#ifndef LITE
-
 // called by main loop, only copy logs to a memory buffer, should be very fast
 int save_logs()
 {
-	if (LOG_LEVEL == LOG_SDCARD 
-		#ifndef LITE
+	if (LOG_LEVEL == LOG_SDCARD
 		&& !log_ready
-		#endif
 	)
 		return 0;
 
@@ -721,9 +705,6 @@ int save_logs()
 	};
 	log(&imu, TAG_IMU_DATA, time);
 	log(&frame, TAG_PX4FLOW_DATA, time);
-
-
-	#ifndef LITE
 	
 	if (last_imu_packet_time > getus() - 1000000)
 	{
@@ -758,7 +739,6 @@ int save_logs()
 	};
 
 	log(&ned, TAG_NED_DATA, time);
-	#endif
 
 
 	pilot_data pilot = 
@@ -836,11 +816,7 @@ int save_logs()
 		yaw_launch * 18000 / PI,
 		euler[2] * 18000 / PI,
 		alt_controller.throttle_hover*1000,
-		#ifndef LITE
 		sonar_result(),
-		#else
-		0xffff,
-		#endif
 		alt_controller.accel_error_pid[1]*1000,
 	};
 
@@ -877,7 +853,6 @@ int save_logs()
 #endif
 
 
-#ifndef LITE
 	if (last_gps_tick > getus() - 2000000)
 	{
 		nmeaINFO &info = *GPS_GetInfo();
@@ -896,18 +871,16 @@ int save_logs()
 		log(&gps, TAG_GPS_DATA, time);
 
 	}
-#endif
 	
 	return 0;
 }
-#endif
+
 
 volatile vector imu_statics[2][4] = {0};		//	[accel, gyro][min, current, max, avg]
 int avg_count = 0;
 
 int read_sensors()
 {
-	#ifndef LITE
 	// read external adc
 	ads1115_go_on();
 
@@ -925,7 +898,6 @@ int read_sensors()
 		TRACE("\rdis=%.2f", sonar_distance);
 	}
 	*/
-	#endif
 
 	if (getus()-last_sonar_time > 200000)		//200ms
 		sonar_distance = NAN;
@@ -940,9 +912,7 @@ int read_sensors()
 	if (read_HMC5883(&p->mag[0]) < 0 && read_HMC5883(&p->mag[0]) < 0)
 	{
 		TRACE("HMC5883 Error\n");
-#ifndef LITE
 		critical_errors |= error_magnet;
-#endif
 	}
 
 	for(int i=0; i<3; i++)
@@ -964,7 +934,6 @@ int read_sensors()
 		dt * gyro_temp_k.array[2] + gyro_temp_a.array[2],
 	};
 
-#ifndef LITE
 // 	vector acc = {-p->accel[1], p->accel[0], p->accel[2]};
 // 	vector gyro = {-p->gyro[0], -p->gyro[1], -p->gyro[2]};
 // 	vector mag = {(p->mag[2]-mag_zero.array[2]), -(p->mag[0]-mag_zero.array[0]), -(p->mag[1]-mag_zero.array[1])};
@@ -975,11 +944,7 @@ int read_sensors()
 // 	gyro.array[1] = mpu9250_value[6];
 
 // 	LOGE("\rmag:%d,%d,%d,%d, %.2f   ", int(mag.array[0]), int(mag.array[1]), int(mag.array[2]), (int)sqrt(mag.array[0]*mag.array[0]+mag.array[1]*mag.array[1]+mag.array[2]*mag.array[2]), yaw_est*PI180);
-#else
-	vector acc = {p->accel[1], p->accel[0], -p->accel[2]};
-	vector gyro = {-p->gyro[0], p->gyro[1], p->gyro[2]};
-	vector mag = {0};
-#endif
+
 	for(int i=0; i<3; i++)
 	{
 		acc.array[i] += acc_bias[i];
@@ -996,8 +961,6 @@ int read_sensors()
 	vector_multiply(&gyro, GYRO_SCALE);
 
 // 	gyro.array[0] = adxrs453_value * 0.0002181f;
-
-	#ifndef LITE
 
 	if (use_adis16405 > 0.5f)
 	{
@@ -1057,7 +1020,6 @@ int read_sensors()
 // 		LOGE("gyro=%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\n", angular_rate[0]*PI180, angular_rate[1]*PI180, angular_rate[2]*PI180,
 // 			gyro.array[0]*PI180, gyro.array[1]*PI180, gyro.array[2]*PI180);
 	}
-	#endif
 
 	::gyro_radian = gyro;
 	::mag = mag;
@@ -1277,8 +1239,6 @@ void inline debugpin_init()
 
 void inline led_all_on()
 {
-	#ifdef LITE
-	#endif
 	GPIO_ResetBits(GPIOA, GPIO_Pin_8);
 	GPIO_ResetBits(GPIOC, GPIO_Pin_4 | GPIO_Pin_5);
 }
@@ -1474,9 +1434,7 @@ int sensor_calibration()
 		long us = getus();
 
 		LOGE("\r%d/%d", i, calibrating_count);
-		#ifndef LITE
 		ads1115_go_on();
-		#endif
 
 		read_sensors();
 		if (ms5611_result == 0)
@@ -1492,7 +1450,6 @@ int sensor_calibration()
 		vector_add(&mag_avg, &mag);
 		vector_add(&gyro_avg, &gyro_radian);
 
-		#ifndef LITE
 		if (i>calibrating_count/10 && 
 			  ((fabs(gyro_radian.array[0]*PI180)>5.0f || fabs(gyro_radian.array[1]*PI180)>5.0f || fabs(gyro_radian.array[2]*PI180)>5.0f))
 			)
@@ -1501,7 +1458,6 @@ int sensor_calibration()
 				 fabs(gyro_radian.array[0]*PI180), fabs(gyro_radian.array[1]*PI180), fabs(gyro_radian.array[2]*PI180), i);
 			return -1;
 		}
-		#endif
 
 		if (critical_errors)
 			return -2;
@@ -1550,11 +1506,7 @@ int sensor_calibration()
 	vector pix_acc = {accel_avg.V.y, -accel_avg.V.x, -accel_avg.V.z};
 	float pix_gyro[3] = {gyro_avg.array[0], gyro_avg.array[1], -gyro_avg.array[2]};
 	vector_multiply(&pix_acc, 9.8065f);
-#ifndef LITE
 	float pix_mag[3] = {mag_avg.V.y, -mag_avg.V.x, -mag_avg.V.z};
-#else
-	float pix_mag[3] = {0};
-#endif
 
 	ahrs_mwc_init(gyro_avg, accel_avg, mag_avg);
 
@@ -1610,7 +1562,6 @@ int set_submode(copter_mode newmode)
 	bool has_alt_controller = submode == poshold || submode == althold || submode == bluetooth || submode == optical_flow;
 	bool to_use_alt_controller = newmode == poshold || newmode == althold || newmode == bluetooth || newmode == optical_flow;
 
-#ifndef LITE
 	if (!has_pos_controller && to_use_pos_controller)
 	{
 		// reset pos controller
@@ -1624,7 +1575,6 @@ int set_submode(copter_mode newmode)
 		controller.get_target_angles(angle_target);
 		controller.reset();
 	}
-#endif
 
 	if (!has_alt_controller && to_use_alt_controller)
 	{
@@ -1687,7 +1637,6 @@ int check_mode()
 		copter_mode newmode = submode;
 		if(!has_6th_channel)
 			newmode = althold;
-#ifndef LITE
 		else if (rc[5] < -0.6f)
 			newmode = basic;
 		else if (rc[5] > 0.6f)
@@ -1696,10 +1645,6 @@ int check_mode()
 			newmode = (estimator.healthy && airborne) ? poshold : althold;
 		else if (rc[5] > -0.5f && rc[5] < 0.5f)
 			newmode = althold;
-#else
-		else
-			newmode = rc[5] < 0 ? basic : althold;
-#endif
 
 		set_submode(newmode);
 	}
@@ -1769,7 +1714,6 @@ int check_mode()
 
 int osd()
 {
-	#ifndef LITE
 	// artificial horizon
 	//while((MAX7456_Read_Reg(STAT) & 0x10) != 0x00); // wait for vsync
 	float roll_constrain = limit(euler[0], -30*PI/180, +30*PI/180);
@@ -1803,9 +1747,6 @@ int osd()
 	else
 		MAX7456_PrintDigitString(" ", 0, 10);
 
-
-
-	#endif
 	return 0;
 }
 
@@ -2077,14 +2018,12 @@ int loop(void)
 	cycle_counter++;
 
 	// flashlight
-	#ifndef LITE
 	time = getus();
 	int time_mod_1500 = (time%1500000)/1000;
 	if (time_mod_1500 < 150 || (time_mod_1500 > 200 && time_mod_1500 < 350) || (time_mod_1500 > 400 && time_mod_1500 < 550 && log_ready))
 		flashlight_on();
 	else
 		flashlight_off();
-	#endif
 
 	// RC modes and RC fail detection
 	check_mode();
@@ -2107,8 +2046,7 @@ int loop(void)
 	// attitude and  heading
 	calculate_attitude();
 
-	// gps		
-#ifndef LITE
+	// gps
 	if (GPS_ParseBuffer() > 0)
 	{
 		last_gps_tick = getus();
@@ -2146,16 +2084,11 @@ int loop(void)
 
 	estimator.update_accel(accel_earth_frame.array[0], accel_earth_frame.array[1], getus());
 
-#endif
-
-
 // 	osd();
 	prepare_pid();
 	pid();
 	output();
-#ifndef LITE
 	save_logs();
-#endif
 
 	if (mode == quadcopter)
 	{
@@ -2183,14 +2116,12 @@ int loop(void)
 
 	led_all_on();
 
-	#ifndef LITE
 	if (log_ready)
 	{
 		// flash one of the LED(A4) at 10hz
 		if ((getus() % 100000) < 50000)
 			GPIO_SetBits(GPIOC, GPIO_Pin_4);
 	}
-	#endif
 
 	if (ms5611_result == 0)
 	{
@@ -2200,7 +2131,6 @@ int loop(void)
 	return 0;
 }
 
-#ifndef LITE
 typedef struct  
 {
 	int isAccel;
@@ -2244,7 +2174,6 @@ int sanity_test()
 	return 0;
 }
 
-#endif
 
 int test_sensors()
 {
@@ -2344,17 +2273,10 @@ int test_sensors()
 
 int main(void)
 {
-#ifdef LITE
-	//if (FLASH_GetReadOutProtectionStatus() != SET)
-	//	FLASH_ReadOutProtection(ENABLE);
-#endif
-
 	//Basic Initialization
 	init_timer();
 	SysClockInit();
-	#ifndef LITE
 // 	sdcard_speed_test();
-	#endif
 
 	// priority settings
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_3);
@@ -2401,7 +2323,6 @@ int main(void)
 // 	if (init_MPU9250() < 0)
 // 		critical_errors |= error_accelerometer | error_gyro;
 	
-	#ifndef LITE
 	estimator.set_gps_latency(0);
 	adxrs453_init();
 	if (init_MS5611() < 0)
@@ -2416,33 +2337,11 @@ int main(void)
  	//MAX7456_SYS_Init();
  	Max7456_Set_System(1);
 	//sonar_init();
-	#else
-	if (init_BMP085() < 0)
-		critical_errors |= error_baro;
-	#endif
 	flashlight_on();
 
-	#if PCB_VERSION == 3 && !defined(LITE)
-	ads1115_init();	
- 	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN0, ads1115_gain_4V, &ads1115_voltage);
- 	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN1_AIN3, ads1115_gain_4V, &ads1115_current);
- 	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN2_AIN3, ads1115_gain_2V, &ads1115_airspeed);
- 	ads1115_new_work(ads1115_speed_860sps, ads1115_channnel_AIN3, ads1115_gain_4V, &ads1115_2_5V);	
-	#endif
-		
-	p->voltage = -32768;
-	p->current = -32768;
+	// test_sensors();
 
-
-
-
-
-
-#ifndef LITE
-	test_sensors();
-
-	//magnet_calibration();
-#endif
+	// magnet_calibration();
 
 	int res;
 	do
@@ -2534,17 +2433,11 @@ int main(void)
 
 
 
-#if !defined(LITE) && !defined(STM32F1)
 	// set timer(TIM12) for log saving task
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM12,ENABLE);
 	TIM_DeInit(TIM12);
 	TIM_InternalClockConfig(TIM12);
-#ifdef STM32F1
-	TIM_TimeBaseStructure.TIM_Prescaler=71;
-#endif
-#ifdef STM32F4
 	TIM_TimeBaseStructure.TIM_Prescaler=83;
-#endif
 	TIM_TimeBaseStructure.TIM_ClockDivision=TIM_CKD_DIV1;
 	TIM_TimeBaseStructure.TIM_CounterMode=TIM_CounterMode_Up;
 	TIM_TimeBaseStructure.TIM_Period=6000-1;
@@ -2559,7 +2452,6 @@ int main(void)
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
-#endif
 
 	while(1)
 	{
@@ -2590,7 +2482,6 @@ int64_t tick;
 void TIM8_BRK_TIM12_IRQHandler(void)
 {
 
-#ifndef LITE
 
 	int64_t t = getus();
 	int dt = t-tick;
@@ -2607,7 +2498,6 @@ void TIM8_BRK_TIM12_IRQHandler(void)
 
 	if (res == 0)
 		tick = t;
-#endif
 	TIM_ClearITPendingBit(TIM12 , TIM_FLAG_Update);
 }
 }

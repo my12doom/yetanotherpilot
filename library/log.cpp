@@ -83,7 +83,6 @@ int real_log_packet(void *data, int size)
 
 
 	// fatfs
-#ifndef LITE
 	if (LOG_LEVEL & LOG_SDCARD)
 	{
 		if (file == NULL && log_ready)
@@ -130,7 +129,6 @@ int real_log_packet(void *data, int size)
 	// 	if (read_count + write_count > 1)
 	// 		LOGE("\r\n");
 	read_count = write_count = 0;
-#endif
 
 
 
