@@ -2274,34 +2274,45 @@ int test_sensors()
 // 	}
 
 
-	init_MPU9250spi();
+ 	init_MPU9250spi();
+	init_MS5611spi();
+	init_HMC5983();
 	while(1)
 	{
-		short result16[8] = {0};
-		int res = read_MPU9250spi(result16);
-		float temp = (result16[3]-521)  / 340.0f + 21;
-		printf("\r%d,%d,%d,%d,%d,%d,%d,%d, %.3fdeg                  ", res, result16[0], result16[1], result16[2], result16[3], result16[4], result16[5], result16[6], temp);
+		int64_t t = getus();
+		{
+		short result_mpu[8] = {0};
+ 		int res = read_MPU9250spi(result_mpu);
+		float temp = (result_mpu[3]-521)  / 340.0f + 21;
+		//printf("\r%d,%d,%d,%d,%d,%d,%d,%d, %.3fdeg                  ", res, result_mpu[0], result_mpu[1], result_mpu[2], result_mpu[3], result_mpu[4], result_mpu[5], result_mpu[6], temp);
+		}
 
-		delayms(10);
+		{
+			short result_hmc[8] = {0};
+  			int res = read_HMC5983(result_hmc);
+			//printf("%d,%d,%d,%d                  ", res, result_hmc[0], result_hmc[1], result_hmc[2]);
+		}
+		{
+			int result[2];
+ 			int res = read_MS5611spi(result);
+ 			//printf("%d,%d,%d                  ", res, result[0], result[1]);
+		}
+
+		t = getus() - t;
+
+		printf("%d, ", int(t));
+
+		delayms(2);
 	}
 
-// 	init_HMC5983();
-// 	while(1)
-// 	{
-// 		int result[2];
-// 		short result16[8] = {0};
-// 		int res = read_HMC5983(result16);
-// 		printf("\r%d,%d,%d,%d                  ", res, result16[0], result16[1], result16[2]);
-// 		
-// 		delayms(10);
-// 	}
-// 	
-	init_MS5611spi();
 	while(1)
 	{
-		int result[2];
-		int res = read_MS5611spi(result);
-		printf("\r%d,%d,%d                  ", res, result[0], result[1]);
+		
+		delayms(10);
+	}
+	
+	while(1)
+	{
 		
 		delayms(10);
 	}

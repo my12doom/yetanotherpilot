@@ -175,6 +175,44 @@ int check_MS5611spi(void)
 	return crc == crc2;
 }
 
+int switch_spi()
+{
+	SPI_InitTypeDef  SPI_InitStructure = {0};
+	SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
+	SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
+	SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b;
+	SPI_InitStructure.SPI_CPOL = SPI_CPOL_Low;
+	SPI_InitStructure.SPI_CPHA = SPI_CPHA_1Edge;
+	SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16;
+	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
+	SPI_InitStructure.SPI_CRCPolynomial = 7;
+	
+	SPI_Cmd(SPI2, DISABLE);
+	SPI_Init(SPI2, &SPI_InitStructure);
+	SPI_Cmd(SPI2, ENABLE);
+	
+	return 0;
+}
+
+int switch_back()
+{
+	SPI_InitTypeDef  SPI_InitStructure = {0};
+	SPI_InitStructure.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
+	SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
+	SPI_InitStructure.SPI_DataSize = SPI_DataSize_8b;
+	SPI_InitStructure.SPI_CPOL = SPI_CPOL_High;
+	SPI_InitStructure.SPI_CPHA = SPI_CPHA_2Edge;
+	SPI_InitStructure.SPI_NSS = SPI_NSS_Soft;
+	SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8;
+	SPI_InitStructure.SPI_FirstBit = SPI_FirstBit_MSB;
+	SPI_InitStructure.SPI_CRCPolynomial = 7;
+	SPI_Cmd(SPI2, DISABLE);
+	//SPI_Init(SPI2, &SPI_InitStructure);
+	SPI_Cmd(SPI2, ENABLE);
+	
+	return 0;
+}
 
 int read_MS5611spi(int *data)
 {
@@ -185,6 +223,7 @@ int read_MS5611spi(int *data)
 	{
 		if (new_temperature == 0 && last_temperature_time == 0 && last_pressure_time == 0)
 		{
+			switch_spi();
 			if (write_reg(MS561101BA_D2 + OSR) < 0)
 			{
 				rtn = -1;
@@ -195,6 +234,7 @@ int read_MS5611spi(int *data)
 		
 		if (getus() - last_temperature_time >  SAMPLEING_TIME && new_temperature == 0)
 		{
+			switch_spi();
 			if (read_reg(0x00, tmp, 3) < 0)
 			{
 				rtn = -1;
@@ -216,6 +256,7 @@ int read_MS5611spi(int *data)
 
 		if (getus() - last_pressure_time >  SAMPLEING_TIME && last_pressure_time > 0)
 		{
+			switch_spi();
 			if (read_reg(0x00, tmp, 3) <0)
 			{
 				rtn = -1;
@@ -234,6 +275,8 @@ int read_MS5611spi(int *data)
 			rtn = 0;
 		}
 	} while (0);
+	
+	switch_back();
 	
 	data[0] = pressure;
 	data[1] = temperature;

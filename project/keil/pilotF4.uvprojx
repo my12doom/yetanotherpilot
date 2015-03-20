@@ -220,7 +220,7 @@
             <hadIRAM>1</hadIRAM>
             <hadXRAM>0</hadXRAM>
             <uocXRam>0</uocXRam>
-            <RvdsVP>2</RvdsVP>
+            <RvdsVP>1</RvdsVP>
             <hadIRAM2>1</hadIRAM2>
             <hadIROM2>0</hadIROM2>
             <StupSel>8</StupSel>
@@ -363,7 +363,7 @@
             <useXO>0</useXO>
             <VariousControls>
               <MiscControls>--diag_suppress 177,550,1,1295 --gnu</MiscControls>
-              <Define>USE_STDPERIPH_DRIVER,USE_STM324x9I_EVAL,STM32F4,USE_USB_OTG_FS,HSE_VALUE=8000000,__FPU_USED=1</Define>
+              <Define>USE_STDPERIPH_DRIVER,USE_STM324x9I_EVAL,STM32F4,USE_USB_OTG_FS,HSE_VALUE=8000000,__FPU_USED=0</Define>
               <Undefine></Undefine>
               <IncludePath>..\..\stm32\STM32F4xx_StdPeriph_Driver;.\..\;..\..\library</IncludePath>
             </VariousControls>
@@ -564,11 +564,6 @@
               <FilePath>..\..\common\i2c_sw.c</FilePath>
             </File>
             <File>
-              <FileName>PPM.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\common\PPM.c</FilePath>
-            </File>
-            <File>
               <FileName>printf.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\common\printf.c</FilePath>
@@ -617,6 +612,11 @@
               <FileName>NRF24L01.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\common\NRF24L01.c</FilePath>
+            </File>
+            <File>
+              <FileName>PPM2.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\common\PPM2.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -719,11 +719,6 @@
               <FilePath>..\..\sensors\sonar.c</FilePath>
             </File>
             <File>
-              <FileName>HMC5983.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\sensors\HMC5983.c</FilePath>
-            </File>
-            <File>
               <FileName>MS5611SPI2.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\sensors\MS5611SPI2.c</FilePath>
@@ -732,6 +727,11 @@
               <FileName>MPU9250SPI2.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\sensors\MPU9250SPI2.c</FilePath>
+            </File>
+            <File>
+              <FileName>HMC5983_2.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\sensors\HMC5983_2.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1573,11 +1573,6 @@
               <FilePath>..\..\common\i2c_sw.c</FilePath>
             </File>
             <File>
-              <FileName>PPM.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\common\PPM.c</FilePath>
-            </File>
-            <File>
               <FileName>printf.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\common\printf.c</FilePath>
@@ -1626,6 +1621,11 @@
               <FileName>NRF24L01.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\common\NRF24L01.c</FilePath>
+            </File>
+            <File>
+              <FileName>PPM2.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\common\PPM2.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1728,11 +1728,6 @@
               <FilePath>..\..\sensors\sonar.c</FilePath>
             </File>
             <File>
-              <FileName>HMC5983.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\sensors\HMC5983.c</FilePath>
-            </File>
-            <File>
               <FileName>MS5611SPI2.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\sensors\MS5611SPI2.c</FilePath>
@@ -1741,6 +1736,11 @@
               <FileName>MPU9250SPI2.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\sensors\MPU9250SPI2.c</FilePath>
+            </File>
+            <File>
+              <FileName>HMC5983_2.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\sensors\HMC5983_2.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -2582,11 +2582,6 @@
               <FilePath>..\..\common\i2c_sw.c</FilePath>
             </File>
             <File>
-              <FileName>PPM.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\common\PPM.c</FilePath>
-            </File>
-            <File>
               <FileName>printf.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\common\printf.c</FilePath>
@@ -2635,6 +2630,11 @@
               <FileName>NRF24L01.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\common\NRF24L01.c</FilePath>
+            </File>
+            <File>
+              <FileName>PPM2.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\common\PPM2.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -2737,11 +2737,6 @@
               <FilePath>..\..\sensors\sonar.c</FilePath>
             </File>
             <File>
-              <FileName>HMC5983.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\sensors\HMC5983.c</FilePath>
-            </File>
-            <File>
               <FileName>MS5611SPI2.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\sensors\MS5611SPI2.c</FilePath>
@@ -2750,6 +2745,11 @@
               <FileName>MPU9250SPI2.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\sensors\MPU9250SPI2.c</FilePath>
+            </File>
+            <File>
+              <FileName>HMC5983_2.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\sensors\HMC5983_2.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -3591,11 +3591,6 @@
               <FilePath>..\..\common\i2c_sw.c</FilePath>
             </File>
             <File>
-              <FileName>PPM.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\common\PPM.c</FilePath>
-            </File>
-            <File>
               <FileName>printf.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\common\printf.c</FilePath>
@@ -3644,6 +3639,11 @@
               <FileName>NRF24L01.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\common\NRF24L01.c</FilePath>
+            </File>
+            <File>
+              <FileName>PPM2.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\common\PPM2.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -3746,11 +3746,6 @@
               <FilePath>..\..\sensors\sonar.c</FilePath>
             </File>
             <File>
-              <FileName>HMC5983.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\sensors\HMC5983.c</FilePath>
-            </File>
-            <File>
               <FileName>MS5611SPI2.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\sensors\MS5611SPI2.c</FilePath>
@@ -3759,6 +3754,11 @@
               <FileName>MPU9250SPI2.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\sensors\MPU9250SPI2.c</FilePath>
+            </File>
+            <File>
+              <FileName>HMC5983_2.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\sensors\HMC5983_2.c</FilePath>
             </File>
           </Files>
         </Group>
