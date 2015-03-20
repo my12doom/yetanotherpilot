@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="9.00"
 	Name="pilotF4"
-	ProjectGUID="{B2F03CAB-A15C-4019-B923-F9EFAFC1E5D0}"
+	ProjectGUID="{CFBE6B03-CA97-44CA-9B17-B6CE3C08EB0B}"
 	TargetFrameworkVersion="196613"
 	>
 	<Platforms>
