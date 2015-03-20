@@ -35,7 +35,7 @@
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f4xx.h"
+#include "../common/mcu.h"
 #include "stm32_eval_legacy.h"
    
 /** @addtogroup Utilities

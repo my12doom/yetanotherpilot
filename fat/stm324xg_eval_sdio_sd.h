@@ -36,6 +36,7 @@
 #endif
 
 /* Includes ------------------------------------------------------------------*/
+#include "../common/mcu.h"
 #include "stm324xg_eval.h"
 
 /** @addtogroup Utilities
